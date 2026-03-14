@@ -1,0 +1,51 @@
+.search-container {
+  width: 100%;
+  /* CRÍTICO: margin 0 permite que o flexbox do pai controle a posição */
+  margin: 0; 
+  padding: 0;
+  
+  flex: 1; /* Ocupa o espaço disponível */
+  min-width: 250px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 50px;
+  height: 50px; /* Mesma altura do Dropdown */
+  padding: 0 20px; 
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+/* Efeito Hover igual ao do Dropdown */
+.search-box:hover,
+.search-box:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+  border-color: #ffebee;
+}
+
+.search-icon-svg {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  object-fit: contain;
+  opacity: 0.5;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 1rem;
+  color: #333;
+  background: transparent;
+  height: 100%;
+}
+
+.search-input::placeholder {
+  color: #bbb;
+}

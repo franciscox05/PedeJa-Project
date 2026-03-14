@@ -1,0 +1,6 @@
+#div-left {
+  /* Se 100px foi pouco, tenta 200px ou usa 25vh (25% da altura do ecrã) */
+  padding-top: 100px !important; 
+  display: flex;
+  align-items: flex-start;
+}

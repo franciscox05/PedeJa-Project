@@ -1,0 +1,62 @@
+/* src/css/CartWidget.css */
+
+/* Container for login/profile + cart at top-right */
+.header-right-actions {
+  position: fixed;
+  top: 25px;
+  right: 25px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 9999;
+}
+
+/* Align only header buttons, never modal overlays */
+.header-right-actions > .user-profile-container,
+.header-right-actions > .cart-widget-header {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+/* Cart button */
+.cart-widget-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  color: #333;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.cart-widget-header:hover {
+  transform: scale(1.1);
+  color: #ff3b30;
+}
+
+/* Cart item count badge */
+.cart-badge-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff3b30;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 800;
+  height: 22px;
+  width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid white;
+}

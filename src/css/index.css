@@ -1,0 +1,1285 @@
+/* --- 1. CONFIGURAÇÕES GERAIS --- */
+@font-face {
+  font-family: 'Plumpfull';
+  src: url('/assets/fonts/Plumpfull.ttf') format('truetype');
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  
+  /* MUDANÇA: Fundo Vermelho Sólido Vibrante (igual à imagem) */
+  background-color: #e62429; 
+  background-image: none; /* Removemos o gradiente */
+  
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+img {
+  /* Impede o arrastar da imagem (ghost image) */
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  
+  /* Impede que a imagem fique azul (selecionada) ao clicar */
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  
+  /* Garante que cliques normais ainda funcionam */
+  pointer-events: auto; 
+}
+
+/* --- ESTILOS DE ÍCONES (IMAGENS) --- */
+
+/* 1. CLASSE MÁGICA: Transforma ícones pretos em VERMELHO (#e62429) */
+.icon-red {
+  /* Este filtro converte preto para vermelho exato */
+  filter: invert(19%) sepia(90%) saturate(5799%) hue-rotate(351deg) brightness(98%) contrast(94%);
+}
+
+/* 2. Ícone Menu Flutuante (Bola Preta) */
+.menu-floating-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  /* Inverte para branco (se o ícone original for preto) */
+  filter: invert(100%); 
+}
+
+/* 3. Ícone Voltar (Dentro da bola branca) */
+.voltar-icon-img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  /* O .icon-red aplicado no JSX trata da cor */
+}
+
+/* --- LÓGICA DO BOTÃO FECHAR (CLOSE) --- */
+
+.menu-close-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  transition: filter 0.3s ease;
+  opacity: 0.7; 
+}
+
+.close-custom:hover .menu-close-icon {
+  filter: brightness(0) invert(1);
+  opacity: 1;
+}
+
+.menu-item-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  margin-right: 15px;
+  transition: all 0.2s ease;
+}
+
+.menu-btn-custom {
+  display: flex;
+  align-items: center;
+}
+
+/* --- EFEITO HOVER COMBINADO (Brilha + Aumenta) --- */
+
+.menu-btn-custom:hover .menu-item-icon {
+  /* 1. Aumenta ligeiramente o tamanho */
+  transform: scale(1.1);
+  
+  /* 2. Transforma a cor em Branco Puro */
+  filter: brightness(0) invert(1);
+  
+  /* 3. Garante que ambas as mudanças são suaves */
+  transition: all 0.2s ease;
+}
+
+/* --- Seta da Categoria (Imagem) --- */
+.cat-chevron-img {
+  /* 1. Tamanho mais pequeno (estava 24px) */
+  width: 18px; 
+  height: 18px;
+  
+  object-fit: contain;
+  margin-left: 20px;
+  
+  /* 2. Menos Opacidade (Mais transparente) */
+  opacity: 0.25; /* Valor entre 0 (invisível) e 1 (sólido) */
+  
+  transition: all 0.2s ease;
+}
+
+/* Opcional: Quando passas o rato, ela fica um pouco mais visível */
+.categoria-btn:hover .cat-chevron-img {
+  transform: translateX(3px);
+  opacity: 0.6; 
+}
+
+/* --- BOTÃO DE LOGIN (Estilo PedeJá) --- */
+/* --- BOTÃO DE LOGIN (Versão Final: Cor consistente no clique) --- */
+
+.user-profile {
+  position: relative; /* Agora é relativo ao pai */
+  width: 150px;
+  height: 50px;
+  
+  /* Mantém o resto do estilo visual */
+  background: linear-gradient(135deg, #e62429 0%, #c91b20 100%);
+  color: white;
+  border-radius: 15px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Sombra Normal */
+  box-shadow: 
+    0 5px 0 #99181c,            
+    0 5px 15px rgba(230, 36, 41, 0.3); 
+
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  outline: none;  
+}
+
+.user-profile:hover {
+  transform: translateY(-2px);
+  
+  box-shadow: 
+    0 8px 0 #99181c, 
+    0 12px 25px rgba(230, 36, 41, 0.6); 
+    
+  filter: brightness(1.1); 
+}
+
+.user-profile:active {
+  transform: translateY(2px);
+  box-shadow: 
+    0 4px 0 #99181c,  
+    0 5px 15px rgba(230, 36, 41, 0.8), 
+    inset 0 2px 5px rgba(0,0,0,0.2); 
+  filter: brightness(1.1); 
+  
+  transition: all 0.05s ease;
+}
+
+/* Remove o focus outline irritante depois de clicar */
+.user-profile:focus {
+  outline: none;
+}
+
+/* --- INTERIOR --- */
+.user-profile-inner {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  pointer-events: none; 
+}
+
+.user-profile-inner p {
+  margin: 0;
+  margin-right: 8px; 
+}
+
+.user-profile-inner img {
+  margin: 0;
+  margin-left: 4px; 
+}
+
+.user-icon-img {
+  width: 26px;   
+  height: 26px;
+  object-fit: contain;
+  /* --- O TRUQUE MÁGICO --- */
+  /* 1. Inverte as cores: O preto vira branco, o branco vira preto */
+  /* 2. Aumenta o brilho e contraste para garantir que o branco fica puro */
+  filter: invert(100%) brightness(150%) contrast(150%);
+  /* 3. Faz o fundo preto (que foi invertido) desaparecer */
+  mix-blend-mode: screen;
+  transition: transform 0.2s ease;
+}
+
+.user-profile:hover .user-icon-img {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* TOPO: Barra branca arredondada para baixo */
+#wave-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 130px; /* Altura da parte branca do topo */
+  background-color: #fff;
+  
+  /* A CURVA MÁGICA */
+  border-bottom-left-radius: 50% 40px;
+  border-bottom-right-radius: 50% 40px;
+  
+  z-index: 999; /* Fica atrás do conteúdo, mas à frente do fundo vermelho */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* Sombra suave */
+}
+
+/* FUNDO: Barra branca arredondada para cima */
+#wave-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80px; /* Altura da parte branca do fundo */
+  background-color: #fff;
+  background-image: none; /* Removemos a imagem antiga */
+  
+  /* A CURVA MÁGICA INVERTIDA */
+  border-top-left-radius: 50% 40px;
+  border-top-right-radius: 50% 40px;
+  
+  z-index: 10;
+  pointer-events: none; /* Deixa clicar no que estiver por baixo */
+}
+
+/* --- 3. LOGÓTIPO --- */
+#logoini {
+  width: 180px;
+  height: auto;
+  
+  /* MUDANÇA: fixed em vez de absolute */
+  position: fixed; 
+  
+  top: 25px;
+  left: 50px;
+  
+  /* Aumentei o z-index para garantir que fica por cima do conteúdo que rola */
+  z-index: 1001; 
+  cursor: pointer;
+  
+  /* Sombra no PNG transparente */
+  filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.5));
+  transition: transform 0.2s ease;
+}
+
+#logoini:hover {
+  transform: scale(1.05);
+}
+
+/* --- 4. CONTEÚDO PRINCIPAL --- */
+#content {
+  z-index: 20 !important;
+  margin: 180px 0 100px 0 !important; /* Ajustei a margem para não bater nas ondas */
+  padding: 0 !important;
+  min-height: 50vh;
+}
+
+/* Estilos das Imagens e Layout */
+#imgbar img {
+  width: 250px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+#moto {
+  border-radius: 16%;
+  max-width: 50vh;
+  max-height: 50vh;
+}
+
+/* Tipografia */
+#title {
+  font-family: "Plumpfull", sans-serif;
+  color: #fff; /* Texto branco no fundo vermelho */
+  text-align: center;
+  margin-top: 20px;
+}
+#title h1 {
+  font-size: 50px !important; /* Maior destaque */
+  font-weight: bold;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+}
+#subtitle {
+  color: #f0f0f0;
+  text-align: center;
+}
+#subtitle h2 {
+  font-size: 16px !important;
+}
+#titlebar p {
+  color: #ffeb3b; /* Amarelo para destacar a instrução */
+  text-align: center;
+  font-weight: 600;
+  margin-top: 20px;
+  font-size: 18px;
+}
+
+/* Barra de Cidades (Imagem Barcelos) */
+#bar {
+  text-align: center;
+  margin-top: 20px;
+}
+#bar img {
+  cursor: pointer;
+  border: 4px solid #fff; /* Borda branca para destacar no vermelho */
+  width: 280px;
+  border-radius: 10px; /* Ligeiramente arredondado */
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+#bar img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+/* --- 5. MENU (MODAL) --- */
+.modal-content {
+  border-radius: 25px;
+  border: none;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  background-color: #ffffff;
+}
+.modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 20px 25px;
+  background-color: #fafafa;
+}
+.modal-body {
+  padding: 25px;
+}
+.close-custom {
+  background-color: #f1f1f1;
+  color: #333;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.close-custom:hover {
+  background-color: #dc3545;
+  color: white;
+  transform: rotate(90deg);
+}
+.menu-btn-custom {
+  width: 100%;
+  background-color: #f8f9fa;
+  color: #444;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+}
+.menu-btn-custom .material-icons {
+  margin-right: 15px;
+  color: #dc3545;
+}
+.menu-btn-custom:hover {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+}
+.menu-btn-custom:hover .material-icons {
+  color: white;
+}
+
+/* --- 6. BOTÕES FLUTUANTES --- */
+
+/* Botão MENU (Bola Preta) */
+#menu-iconini {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  background-color: #202020;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease;
+}
+#menu-iconini:hover {
+  transform: scale(1.1);
+}
+#menu-iconini .material-icons {
+  font-size: 30px;
+}
+
+/* Botão VOLTAR (Bola Vermelha) */
+.btn-voltar-fixo {
+  position: fixed;
+  bottom: 30px;
+  right: 110px;
+  width: 60px;
+  height: 60px;
+  background-color: #fff; /* Mudei para BRANCO para destacar no fundo vermelho */
+  color: #dc3545; /* Seta vermelha */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease;
+}
+.btn-voltar-fixo:hover {
+  transform: scale(1.1);
+}
+.btn-voltar-fixo .material-icons {
+  font-size: 30px;
+}
+
+
+
+
+/* ---------- ESTILOS DA PÁGINA DE RESTAURANTES ---------- */
+
+.restaurante-hero-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.restaurante-hero-header h1 {
+    color: #d32f2f; 
+    font-weight: 800;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.restaurantes-main {
+  min-height: 100vh;
+  position: relative;
+  background-color: #ff0008;
+  background: linear-gradient(to bottom, #ff2a2a 0%, #ff2027 100%);
+  padding-bottom: 50px;
+}
+
+.restaurantes-container {
+  padding-top: 180px; 
+  position: relative;
+  z-index: 20;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* Títulos */
+.restaurantes-title {
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 3rem;
+  margin-bottom: 50px;
+  text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.restaurantes-subtitle {
+  color: #fff;
+  font-size: 1.5rem;
+  display: block;
+  margin-top: 10px;
+  text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+  font-weight: normal;
+}
+
+/* Coluna do Cartão */
+.restaurante-col {
+  margin-bottom: 30px;
+}
+
+/* --- ESTILO DO CARTÃO (HERO / NETFLIX STYLE) --- */
+.restaurante-card {
+  background: white;
+  border-radius: 20px; /* Bordas arredondadas */
+  overflow: hidden;    /* Importante para a imagem não sair */
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  height: 240px; /* Altura fixa */
+  position: relative;
+}
+
+.restaurante-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.25);
+}
+
+/* 1. Área da Imagem (Topo 75%) */
+.card-image-container {
+  position: relative;
+  width: 100%;
+  height: 75%;
+  overflow: hidden;
+}
+
+.card-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.restaurante-card:hover .card-bg-img {
+  transform: scale(1.05);
+}
+
+/* Overlay Escuro */
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.7) 100%);
+  z-index: 1;
+}
+
+/* Nome do Restaurante (Centrado na Imagem) */
+.card-center-title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  text-align: center;
+  color: #fff;
+  font-family: 'Plumpfull', sans-serif; /* Ou a tua fonte padrão se esta falhar */
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  text-shadow: 0 2px 5px rgba(0,0,0,0.9);
+  z-index: 2;
+  margin: 0;
+  line-height: 1.1;
+}
+
+/* Logo Redondo (Canto Inferior Direito da Imagem) */
+.card-logo-badge {
+  position: absolute;
+  bottom: 10px; /* Ajustado para ficar dentro da imagem */
+  right: 15px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: white;
+  padding: 2px;
+  z-index: 3;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-logo-badge img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* 2. Área do Rodapé (Baixo 25%) */
+.card-footer-info {
+  height: 25%;
+  background-color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 15px;
+  z-index: 4;
+  position: relative;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Lado Esquerdo (Info + Nome pequeno) */
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Espaço entre o ícone e o texto */
+  max-width: 55%;
+}
+
+.info-icon {
+  font-size: 18px;
+  color: #888;
+}
+
+.info-icon-img {
+  width: 20px; 
+  height: 20px;
+  object-fit: contain;
+}
+
+.footer-text {
+  font-size: 0.8rem;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+/* Lado Direito (Status) */
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  min-width: 40%;
+}
+
+.status-icon-img {
+  width: 20px; /* Geralmente a bolinha de status é pequena */
+  height: 20px;
+  object-fit: contain;
+}
+
+.status-icon-dynamic {
+  font-size: 16px;
+  /* Cor definida via style no React */
+}
+
+.status-text-dynamic {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  /* A cor vem do React inline style */
+}
+
+/* ---------- ESTILOS DA PÁGINA DE CATEGORIAS ---------- */
+
+/* Grelha de botões */
+
+#content #div-right {
+  z-index: 20 !important;
+  
+  /* Definimos uma altura mínima para haver espaço onde centralizar */
+  min-height: 60vh; 
+  
+  margin: 0 !important;
+  padding: 0 !important;
+  
+  /* A MAGIA DO FLEXBOX (Centralização) */
+  display: flex !important;
+  flex-direction: column;
+  align-items: center !important; /* Centraliza Verticalmente */
+  justify-content: center !important; /* Centraliza Horizontalmente */
+}
+
+/* Ajuste no container interno para garantir que não "foge" */
+#content #div-right #base-right {
+  width: 100%; /* Garante que ocupa a largura disponível */
+  max-width: 650px; /* (Opcional) Limita a largura em ecrãs muito grandes */
+  margin: 0 !important;
+  padding: 20px !important;
+}
+#tipo {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+/* Botão da Categoria (O Card) */
+.categoria-btn {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 15px 20px;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+  height: 100%;
+  width: 100%;
+}
+
+/* Efeito Hover */
+.categoria-btn:hover {
+  transform: scale(1.02);
+}
+
+/* Imagem da Categoria */
+.cat-img {
+  width: 35px;
+  height: 35px;
+  margin-right: 15px;
+  object-fit: contain;
+}
+
+/* Ícone Material (Alternativo) */
+.cat-icon-fallback {
+  font-size: 28px;
+  color: #dc3545;
+  margin-right: 15px;
+  display: none; /* Escondido por defeito */
+}
+
+/* Nome da Categoria */
+.cat-nome {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Seta direita */
+.cat-chevron {
+  margin-left: 10px;
+  color: #ccc;
+  font-size: 24px;
+}
+
+.titulo-cidade {
+  color: #ffffff;
+  font-size: 3.5rem; 
+  font-weight: 900;
+  
+  /* 1. Centraliza o texto dentro do h1 */
+  text-align: center; 
+  
+  width: 100%;
+  max-width: 800px;
+  
+  /* 2. Centraliza o bloco do h1 horizontalmente e mantém o espaço em baixo */
+  margin: 0 auto 30px auto; 
+  
+  letter-spacing: -1.5px;
+  text-transform: uppercase;
+}
+
+
+/* Layout geral da página de menus */
+.menus-main {
+    min-height: 100vh;
+    background-color: #f8f9fa; /* Fundo ligeiramente cinza para destacar os cards brancos */
+    position: relative;
+    padding-top: 150px; /* Espaço para o logo e onda */
+}
+
+
+
+/* Badges de status (Aberto/Fechado) */
+.badge-status {
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.status-aberto { background-color: #d4edda; color: #28a745; }
+.status-fechado { background-color: #f8d7da; color: #dc3545; }
+
+/* Título da secção "Pratos Principais" */
+.menu-seccao-titulo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eee;
+}
+
+#div-left {
+  /* Se 100px foi pouco, tenta 200px ou usa 25vh (25% da altura do ecrã) */
+  padding-top: 100px !important; 
+  display: flex;
+  align-items: flex-start;
+}
+
+/* --- O CARD DO PRATO (Design Moderno) --- */
+.prato-card {
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06); /* Sombra suave moderna */
+    margin-bottom: 25px;
+    display: flex;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.prato-card:hover {
+    transform: translateY(-3px); /* Levanta ligeiramente ao passar o rato */
+    box-shadow: 0 12px 25px rgba(211, 47, 47, 0.15); /* Sombra avermelhada no hover */
+}
+
+/* Placeholder da imagem (quadrado à esquerda) */
+.prato-img-placeholder {
+    width: 120px;
+    min-width: 120px;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+}
+.prato-img-placeholder .material-icons { font-size: 40px; }
+
+/* Corpo do card */
+.prato-conteudo {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Texto do prato */
+.prato-info {
+    padding-right: 15px;
+}
+.prato-titulo {
+    margin: 0 0 8px 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #222;
+}
+.prato-descricao {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Área do preço e botão (à direita) */
+.prato-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 110px;
+}
+
+.prato-preco {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #d32f2f; /* Preço em vermelho destaque */
+    margin-bottom: 12px;
+    display: block;
+}
+
+.btn-adicionar-prato {
+    background-color: #d32f2f;
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 30px; /* Botão bem redondo */
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-shadow: 0 4px 10px rgba(211, 47, 47, 0.3);
+}
+.btn-adicionar-prato:hover {
+    background-color: #b71c1c; /* Vermelho mais escuro no hover */
+}
+
+.home-container {
+  /* Caminho para a imagem na pasta public/assets/img/ */
+  background-image: url("/src/assets/img/bg.png"); 
+  background-size: cover;      /* Faz a imagem cobrir todo o ecrã */
+  background-position: center; /* Centra a imagem */
+  background-repeat: no-repeat;
+  min-height: 100vh;           /* Garante que o fundo ocupa a altura toda */
+  width: 100%;
+  overflow-x: hidden;          /* Evita scroll horizontal indesejado */
+}
+
+/* Ajuste para telemóveis */
+@media (max-width: 576px) {
+    .prato-card { flex-direction: column; }
+    .prato-img-placeholder { width: 100%; height: 100px; }
+    .prato-conteudo { flex-direction: column; align-items: flex-start; }
+    .prato-info { padding-right: 0; margin-bottom: 15px; }
+    .prato-actions { 
+        flex-direction: row; 
+        justify-content: space-between; 
+        align-items: center; 
+        width: 100%;
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+    }
+    .prato-preco { margin-bottom: 0; }
+}
+
+/* --- CONTENTOR DOS FILTROS (Lado a Lado) --- */
+.filtros-row {
+  display: flex;
+  justify-content: center; /* Centraliza o bloco todo na página */
+  align-items: center;
+  gap: 20px; /* Espaço entre a Barra de Pesquisa e o Dropdown */
+  
+  width: 100%;
+  max-width: 900px; /* Largura máxima para não ficar muito esticado */
+  margin: 0 auto 40px auto; /* Margem em baixo para separar dos cards */
+  padding: 0 20px;
+}
+
+/* RESPONSIVIDADE: Em telemóveis, volta a empilhar um em cima do outro */
+@media (max-width: 768px) {
+  .filtros-row {
+    flex-direction: column; /* Um por cima do outro */
+    gap: 15px;
+  }
+  
+  .search-container, 
+  .dropdown-container, 
+  .filter-pill {
+    width: 100% !important;
+    max-width: none;
+  }
+}
+/* ===== MENU DETAILS / SOLD OUT ===== */
+.menu-item-card-sold-out {
+  background: linear-gradient(180deg, #ffffff 0%, #fff8f8 100%);
+}
+
+.menu-item-badge-soldout {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: #ffe3e3;
+  color: #b91c1c;
+  text-transform: uppercase;
+}
+
+.menu-item-badge-ok {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: #dcfce7;
+  color: #166534;
+  text-transform: uppercase;
+}
+
+.menu-mini-btn {
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.menu-mini-btn.info {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.menu-mini-btn.add {
+  background: #d32f2f;
+  color: #fff;
+}
+
+.menu-mini-btn.add.disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.menu-toast {
+  position: absolute;
+  top: -42px;
+  right: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  z-index: 12;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.menu-toast.success {
+  background: #22c55e;
+  color: #fff;
+}
+
+.menu-toast.error {
+  background: #ef4444;
+  color: #fff;
+}
+
+.menu-details-backdrop,
+.store-details-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+.menu-details-sheet,
+.store-details-sheet {
+  width: min(680px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 18px;
+  position: relative;
+  box-shadow: 0 24px 44px rgba(15, 23, 42, 0.32);
+}
+
+.menu-details-close,
+.store-details-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #111827;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.menu-details-top {
+  padding: 16px 16px 0;
+}
+
+.menu-details-image {
+  width: 100%;
+  height: 230px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #e5e7eb;
+}
+
+.menu-details-image.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+.menu-details-image.placeholder .material-icons {
+  font-size: 56px;
+}
+
+.menu-details-content {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.menu-details-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.menu-details-title-row h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #111827;
+}
+
+.menu-details-description {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.menu-details-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.menu-details-meta div {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 3px;
+}
+
+.menu-details-meta span,
+.store-details-block span {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.menu-details-meta strong {
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.menu-details-actions,
+.store-details-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 2px 0 8px;
+}
+
+.btn-details {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-details.primary {
+  background: #d32f2f;
+  color: #fff;
+}
+
+.btn-details.primary:disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.btn-details.secondary {
+  background: #111827;
+  color: #fff;
+}
+
+/* ===== RESTAURANTE DETAILS ===== */
+.footer-info-btn {
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  cursor: pointer;
+  max-width: 55%;
+}
+
+.store-details-sheet {
+  padding: 18px;
+}
+
+.store-details-header {
+  padding-right: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.store-details-header h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #111827;
+}
+
+.store-details-block {
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.store-details-block p {
+  margin: 4px 0 0;
+  color: #374151;
+}
+
+@media (max-width: 768px) {
+  .menu-details-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-details-image {
+    height: 190px;
+  }
+
+  .menu-details-actions,
+  .store-details-actions {
+    flex-direction: column;
+  }
+
+  .btn-details {
+    width: 100%;
+  }
+}
+
+.clear-filters-btn {
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-filters-btn:hover {
+  background: #fff;
+  color: #e62429;
+}
+
+@media (max-width: 768px) {
+  .clear-filters-btn {
+    width: 100%;
+  }
+}
+

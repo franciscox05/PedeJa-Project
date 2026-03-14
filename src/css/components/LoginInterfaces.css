@@ -1,0 +1,501 @@
+/* --- FUNDO ESCURO (OVERLAY) --- */
+.auth-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999 !important;
+  animation: fadeIn 0.3s ease;
+}
+
+/* --- JANELA MODAL (Versão Equilibrada) --- */
+.auth-modal {
+  background: white;
+  padding: 35px; 
+  border-radius: 18px;
+  position: relative; 
+  width: 90%; 
+  max-width: 400px; 
+  max-height: 95vh;
+  overflow-y: auto;
+  scrollbar-width: none; 
+
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  animation: slideUp 0.3s ease;
+  
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* --- TÍTULOS --- */
+.auth-form h2 {
+  margin-top: 0;
+  color: #333;
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.auth-form hr {
+  border: 0;
+  height: 1px;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
+  margin-bottom: 20px; 
+}
+
+/* --- FORMULÁRIO --- */
+.form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* --- LABELS --- */
+.auth-form label {
+  font-size: 0.9rem; 
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 4px;
+  margin-left: 5px;
+  text-align: left;
+  width: 100%;
+}
+
+/* --- INPUTS (Tamanho Confortável) --- */
+.auth-form input[type="text"],
+.auth-form input[type="email"],
+.auth-form input[type="password"],
+.auth-form input[type="phone"],
+.auth-form input[type="tel"] {
+  width: 100%;
+  padding: 12px 14px; 
+  margin-bottom: 12px; 
+  border: 2px solid #eee;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.auth-form input:focus {
+  border-color: #e62429;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(230, 36, 41, 0.1);
+}
+
+/* --- BOTÃO DE SUBMETER --- */
+.auth-form input[type="submit"] {
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  background-color: #e62429;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  box-shadow: 0 4px 6px rgba(230, 36, 41, 0.2);
+}
+
+.auth-form input[type="submit"]:hover {
+  background-color: #c91b20;
+  transform: translateY(-2px);
+}
+
+.auth-form input[type="submit"]:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+/* --- TEXTOS DE RODAPÉ --- */
+.auth-form p {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+
+.auth-form strong {
+  color: #e62429;
+  cursor: pointer;
+}
+
+.auth-form strong:hover {
+  text-decoration: underline;
+}
+
+/* --- BOTÃO FECHAR (X) --- */
+.close-menu-red {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  color: #bbb;
+  font-size: 24px;
+  cursor: pointer;
+  font-weight: bold;
+  background: none;
+  border: none;
+  padding: 5px;
+}
+
+.close-menu-red:hover {
+  color: #e62429;
+}
+
+/* --- ANIMAÇÕES --- */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+
+/* Contentor para posicionamento do menu flutuante */
+.user-profile {
+  width: auto !important; 
+  min-width: 130px;
+  max-width: 280px;
+  display: inline-flex !important; 
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px; 
+}
+
+.user-profile-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.user-profile p {
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis; 
+  margin: 0;
+}
+
+.user-profile img {
+  margin-left: -5px;
+}
+
+.user-profile-container {
+  position: fixed;    
+  top: 25px;
+  right: 35px;
+  z-index: 1002;
+  display: inline-block;
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  top: 135%;
+  right: 0;
+  width: 160px;
+  background-color: white;
+  z-index: 99999 !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 8px;
+  opacity: 0;
+  transform: translateY(-20px); 
+  visibility: hidden; 
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Estado Ativo (Visível) */
+.user-dropdown-menu.active {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+/* Seta (Triângulo) - Também precisa de desaparecer suavemente */
+.user-dropdown-menu::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: 25px;
+  width: 12px;
+  height: 12px;
+  background: white;
+  transform: rotate(45deg);
+  border-top: 1px solid #f0f0f0;
+  border-left: 1px solid #f0f0f0;
+  
+  /* Transição igual ao menu */
+  transition: opacity 0.3s; 
+  opacity: 0; 
+}
+
+.user-dropdown-menu.active::before {
+  opacity: 1;
+}
+
+/* Texto de boas-vindas */
+.dropdown-item-info {
+  padding: 10px;
+  font-size: 0.85rem;
+  color: #999;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Botão Sair */
+.dropdown-item-logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  color: #333;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.dropdown-item-logout:hover {
+  background-color: #fff0f0; /* Vermelho clarinho */
+  color: #e62429; /* Vermelho PedeJá */
+}
+
+.dropdown-item-logout:hover .logout-icon {
+  /* Este código maluco transforma preto na cor exata do PedeJá */
+  filter: brightness(0) saturate(100%) invert(16%) sepia(94%) saturate(6054%) hue-rotate(355deg) brightness(96%) contrast(114%);
+  
+  /* Um saltinho extra para ficar bonito */
+  transform: translateX(3px);
+}
+
+.logout-text {
+  /* Garante que o span aceita transformações */
+  display: inline-block; 
+  
+  /* A magia da suavidade */
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Quando passas o rato no botão inteiro (.dropdown-item-logout),
+   o texto (.logout-text) mexe-se */
+.dropdown-item-logout:hover .logout-text {
+  /* Desliza 5px para a direita */
+  transform: translateX(5px);
+    
+  /* Fica negrito */
+  font-weight: 700;
+
+  /* Afasta ligeiramente as letras */
+  letter-spacing: 0.5px;
+}
+
+.logout-icon {
+  width: 30px; 
+  height: 30px;
+  object-fit: contain;
+  transition: transform 0.2s, filter 0.2s;
+}
+
+/* --- ÍCONE DO PERFIL --- */
+.profile-icon {
+  width: 20px; 
+  height: 20px;
+  object-fit: contain;
+  transition: transform 0.2s, filter 0.2s;
+  margin-right: 0; /* O gap do pai já trata do espaço */
+}
+
+/* Efeito: Fica vermelho ao passar o rato (igual ao Sair) */
+.dropdown-item-logout:hover .profile-icon {
+  filter: brightness(0) saturate(100%) invert(16%) sepia(94%) saturate(6054%) hue-rotate(355deg) brightness(96%) contrast(114%);
+  transform: scale(1.1); /* Um ligeiro zoom */
+}
+
+/* --- TEXTO DO PERFIL (ESTÁTICO) --- */
+.profile-static {
+  font-size: 0.95rem;
+  color: #333;
+  font-weight: 500;
+  
+  /* Mantém estático (sem animação de posição) */
+  transform: none !important;
+  transition: none !important;
+  letter-spacing: normal !important;
+
+  /* MUDANÇA: Removemos o text-align: center para ele ficar ao lado do ícone */
+  text-align: left; 
+  flex: 1; /* Ocupa o resto do espaço */
+}
+
+/* Apenas muda a cor e peso no hover */
+.dropdown-item-logout:hover .profile-static {
+  color: #e62429;
+  font-weight: 700;
+}
+
+@keyframes dropFade {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.input-disabled {
+  background-color: #f0f0f0 !important; /* Cinzento claro */
+  color: #888 !important;
+  border-color: #ddd !important;
+  cursor: default;
+}
+
+.btn-action {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: transform 0.1s;
+}
+
+.btn-edit {
+  background-color: #333;
+  color: white;
+}
+.btn-edit:hover {
+  background-color: #000;
+}
+
+.btn-cancel {
+  background-color: #eee;
+  color: #333;
+}
+.btn-cancel:hover {
+  background-color: #ddd;
+}
+
+/* --- MODAL DE CONFIRMAÇÃO DE LOGOUT (TEMÁTICO & ELEGANTE) --- */
+
+.logout-overlay {
+  z-index: 10005 !important;
+}
+
+.logout-modal {
+  max-width: 580px !important; 
+  
+  padding: 30px 25px !important;
+  text-align: center;
+  border-top: 4px solid #e62429; 
+}
+
+/* Cabeçalho */
+.logout-header {
+  margin-bottom: 15px;
+}
+
+/* CLASSE PARA A IMAGEM SAD.PNG */
+.logout-icon-img {
+  width: 60px; 
+  height: auto;
+  display: block;
+  margin: 0 auto 15px auto; 
+}
+
+.logout-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #333;
+  /* Garante que o texto não quebra palavras a meio se for mesmo muito comprido */
+  white-space: nowrap; 
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Subtexto para dar mais contexto e elegância */
+.logout-subtext {
+  font-size: 0.95rem;
+  color: #666;
+  margin-bottom: 25px;
+  line-height: 1.4;
+}
+
+/* Contentor dos Botões */
+.logout-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+
+/* Logótipo inserido no meio do texto (Inline) */
+.logo-text-inline {
+  /* Define uma altura que combine com o tamanho da fonte do h3 (aprox 24-30px) */
+  height: 28px; 
+  width: auto;
+  
+  /* Alinha verticalmente com o meio das letras */
+  vertical-align: middle;
+  
+  /* Dá um espacinho nas laterais para não colar nas palavras */
+  margin: 0 6px;
+  
+  /* Pequeno ajuste para subir se parecer descaído */
+  position: relative;
+  top: -2px; 
+}
+
+
+/* Estilo Base dos Botões de Logout */
+.btn-logout {
+  padding: 12px 20px;
+  border-radius: 50px; /* Botões bem redondos = Moderno */
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); /* Transição suave */
+  flex: 1; /* Botões com a mesma largura */
+  border: none;
+  outline: none;
+}
+
+/* Botão CANCELAR (Subtil, cinzento) */
+.btn-logout.btn-cancel {
+  background-color: #f5f5f5;
+  color: #555;
+  border: 1px solid #e0e0e0;
+}
+
+.btn-logout.btn-cancel:hover {
+  background-color: #eee;
+  color: #333;
+  border-color: #d0d0d0;
+}
+
+/* Botão CONFIRMAR (Temático Vermelho PedeJá) */
+.btn-logout.btn-confirm {
+  background-color: #e62429;
+  color: white;
+  /* Sombra vermelha suave */
+  box-shadow: 0 4px 10px rgba(230, 36, 41, 0.3); 
+}
+
+.btn-logout.btn-confirm:hover {
+  background-color: #c91b20;
+  /* Pequeno "salto" e sombra maior no hover */
+  transform: translateY(-2px); 
+  box-shadow: 0 6px 15px rgba(230, 36, 41, 0.4);
+}
+
+/* Forca centragem do login na pagina de menus de restaurante */
+.auth-modal.auth-modal-centered {
+  margin: 0 auto;
+  align-self: center;
+  justify-self: center;
+}

@@ -1,0 +1,168 @@
+/* --- CONTAINER GERAL --- */
+.dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* =========================================
+   1. ESTILO DA PÍLULA (Mantém o original)
+   ========================================= */
+.filter-pill {
+  background: white;
+  border-radius: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid transparent;
+  min-width: 240px; 
+  position: relative; 
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-pill:hover,
+.filter-pill.ativo {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+  border-color: #fbe0e1;
+}
+
+/* Texto dentro da pílula */
+.filter-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #444;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 10px;
+}
+
+/* ÍCONES */
+.filter-icon-svg {
+  width: 22px;
+  height: 22px;
+  margin-right: 12px;
+  object-fit: contain;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.filter-arrow-img {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.filter-arrow-img.rodar {
+  transform: rotate(180deg);
+}
+
+/* Efeito Hover (Vermelho) */
+.filter-pill:hover .filter-icon-svg,
+.filter-pill:hover .filter-arrow-img,
+.filter-pill.ativo .filter-icon-svg,
+.filter-pill.ativo .filter-arrow-img {
+  opacity: 1;
+  /* Filtro Vermelho PedeJá */
+  filter: brightness(0) invert(21%) sepia(93%) saturate(6268%) hue-rotate(353deg) brightness(98%) contrast(116%);
+}
+
+.filter-pill:hover .filter-text,
+.filter-pill.ativo .filter-text {
+  color: #e62429;
+}
+
+
+/* =========================================
+   2. O MENU DROPDOWN (Com Checkboxes)
+   ========================================= */
+.dropdown-menu-custom {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 100%;
+  
+  background: white;
+  border-radius: 20px;
+  padding: 10px;
+  margin: 0;
+  list-style: none;
+  
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  border: 1px solid #f0f0f0;
+  
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+  
+  animation: slideDown 0.2s ease-out forwards;
+}
+
+/* Scrollbar */
+.dropdown-menu-custom::-webkit-scrollbar {
+  width: 6px;
+}
+.dropdown-menu-custom::-webkit-scrollbar-thumb {
+  background-color: #ddd;
+  border-radius: 10px;
+}
+
+/* --- ITEM DA LISTA --- */
+.dropdown-item {
+  display: flex;
+  align-items: center; /* Alinha checkbox e texto */
+  padding: 12px 15px;
+  border-radius: 12px;
+  color: #555;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+/* CHECKBOX PERSONALIZADA */
+.cat-checkbox {
+  margin-right: 12px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #e62429; /* Cor vermelha na checkbox */
+  transform: scale(1.2); 
+}
+
+/* Hover no Item */
+.dropdown-item:hover {
+  background-color: #fff5f5;
+  color: #e62429;
+}
+
+/* --- ESTADOS DE SELEÇÃO --- */
+
+/* 1. Seleção Única (Botão "Todas as Categorias") */
+.dropdown-item.selected {
+  background-color: #e62429;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(230, 36, 41, 0.3);
+}
+
+/* 2. Seleção Múltipla (Categorias com Checkbox) */
+/* Fundo mais leve para não esconder a checkbox vermelha */
+.dropdown-item.selected-multi {
+  background-color: #ffebee; 
+  color: #e62429;
+  font-weight: 700;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

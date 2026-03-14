@@ -1,0 +1,162 @@
+/* src/css/Carrinho.css */
+
+.cart-page-wrapper {
+    background-color: #f5f7fa; /* Fundo cinza claro moderno */
+    min-height: 100vh;
+    padding-bottom: 50px;
+    font-family: 'Arial', sans-serif;
+}
+
+.cart-header-nav {
+    background: white;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.cart-content-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* Mobile: 1 coluna */
+    gap: 30px;
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+
+/* Em PC, divide em duas colunas */
+@media (min-width: 992px) {
+    .cart-content-grid {
+        grid-template-columns: 1.5fr 1fr; 
+    }
+}
+
+/* Cartão do Produto */
+.cart-item-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+    transition: transform 0.2s;
+}
+
+.cart-item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+}
+
+.cart-item-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+
+.cart-item-img-box {
+    width: 80px;
+    height: 80px;
+    background: #eee;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cart-item-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cart-item-details h4 {
+    margin: 0 0 5px 0;
+    color: #222;
+    font-size: 1.1rem;
+}
+
+.cart-item-price-calc {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.cart-item-total-price {
+    font-weight: 800;
+    color: #333;
+    font-size: 1.2rem;
+    min-width: 80px;
+    text-align: right;
+}
+
+.btn-remove-item {
+    background: #fff0f0;
+    color: #ff3b30;
+    border: none;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 20px;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.btn-remove-item:hover {
+    background: #ff3b30;
+    color: white;
+}
+
+/* Painel de Resumo (Direita) */
+.cart-summary-panel {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    height: fit-content;
+    position: sticky;
+    top: 100px; 
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    color: #666;
+}
+
+.summary-row.total {
+    color: #222;
+    font-weight: 900;
+    font-size: 1.5rem;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #eee;
+}
+
+.btn-checkout-final {
+    width: 100%;
+    background: #ff3b30;
+    color: white;
+    padding: 18px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 30px;
+    transition: background 0.2s;
+    box-shadow: 0 10px 20px rgba(255, 59, 48, 0.3);
+}
+
+.btn-checkout-final:hover {
+    background: #e03228;
+}

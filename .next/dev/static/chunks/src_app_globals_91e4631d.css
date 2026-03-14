@@ -1,0 +1,221 @@
+/* [project]/src/app/globals.css [app-client] (css) */
+body, html {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.modal.fade .modal-dialog {
+  transition: transform .6s cubic-bezier(.25, .8, .25, 1) !important;
+}
+
+.modal.modal-static .modal-dialog {
+  transform: scale(1.02) !important;
+}
+
+.modal-backdrop.show {
+  opacity: .5;
+}
+
+#menu-iconini {
+  color: #fff;
+  cursor: pointer;
+  z-index: 999;
+  box-shadow: none;
+  text-shadow: 0 2px 5px #0003;
+  background-color: #0000;
+  border-radius: 0;
+  padding: 0;
+  font-size: 45px;
+  position: fixed;
+  bottom: 30px;
+  left: auto;
+  right: 30px;
+}
+
+.inline-icon {
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+#content {
+  min-height: 50vh;
+  z-index: 20 !important;
+  margin: 23vh 0 !important;
+  padding: 0 !important;
+}
+
+#content #div-left {
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+#moto {
+  border-radius: 16%;
+  max-width: 50vh;
+  max-height: 50vh;
+}
+
+#title {
+  color: #fff;
+  text-align: center;
+  font-family: sans-serif;
+}
+
+#title h1 {
+  font-weight: bold;
+  font-size: 40px !important;
+}
+
+#subtitle {
+  color: #f0f0f0;
+  text-align: center;
+}
+
+#subtitle h2 {
+  font-size: 15px !important;
+}
+
+#titlebar p {
+  color: #ffeb3b;
+  text-align: center;
+  margin-top: 20px;
+  font-weight: 600;
+}
+
+#bar {
+  text-align: center;
+  margin-top: 10px;
+}
+
+#bar img {
+  cursor: pointer;
+  border: 3px solid #ffffffb3;
+  width: 260px;
+  transition: all 1s;
+}
+
+#bar img:hover {
+  border: 3px solid #fff;
+  transform: scale(1.05);
+}
+
+#imgbar img {
+  width: 250px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+#wave-bottom {
+  z-index: 10;
+  pointer-events: none;
+  background: url("https://pedeja.pt/assets/img/wave-bot.png") bottom / cover no-repeat;
+  width: 100%;
+  height: 150px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+}
+
+body {
+  background: linear-gradient(#fff 0%, red 100%);
+}
+
+.close-custom {
+  color: #333;
+  cursor: pointer;
+  background-color: #f1f1f1;
+  border: none;
+  border-radius: 50%;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  transition: all .3s;
+  display: flex;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  box-shadow: 0 2px 5px #0000001a;
+}
+
+.close-custom .material-icons {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.close-custom:hover {
+  color: #fff;
+  background-color: #dc3545;
+  transform: rotate(90deg);
+  box-shadow: 0 4px 8px #dc354566;
+}
+
+.modal-header {
+  background-color: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 20px 25px;
+}
+
+.modal-content {
+  background-color: #fff;
+  border: none;
+  border-radius: 25px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px #0000004d;
+}
+
+.modal-title {
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.modal-body {
+  padding: 25px;
+}
+
+.menu-btn-custom {
+  color: #444;
+  text-align: left;
+  cursor: pointer;
+  background-color: #f8f9fa;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all .3s cubic-bezier(.25, .8, .25, 1);
+  display: flex;
+  position: relative;
+}
+
+.menu-btn-custom .material-icons {
+  color: #dc3545;
+  margin-right: 15px;
+  transition: color .3s;
+}
+
+.menu-btn-custom:hover {
+  color: #fff;
+  background-color: #dc3545;
+  border-color: #dc3545;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px #dc35454d;
+}
+
+.menu-btn-custom:hover .material-icons {
+  color: #fff;
+}
+
+/*# sourceMappingURL=src_app_globals_91e4631d.css.map*/
