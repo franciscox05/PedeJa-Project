@@ -2,9 +2,10 @@
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../services/supabaseClient.js";
 import { fetchProfileOrders } from "../services/profileOrdersService";
+import { fetchFavoriteStores, toggleFavoriteStore } from "../services/favoriteStoresService";
 import userGif from "../assets/img/perfil.gif";
 import AddressManager from "./AddressManager";
-import { extractUserId } from "../utils/roles";
+import { extractUserId, resolveUserRole } from "../utils/roles";
 
 function normalizeRpcPayload(payload) {
   if (Array.isArray(payload)) return payload[0] || null;
@@ -22,6 +23,14 @@ function formatDateTime(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatOrderMoment(order) {
+  if (order?.order_timing_mode === "SCHEDULED") {
+    return `Agendado para ${formatDateTime(order.created_at)}`;
+  }
+
+  return formatDateTime(order?.created_at);
 }
 
 function formatMoney(value) {
@@ -55,14 +64,25 @@ function MeuPerfil({ user, aoAtualizarUser }) {
     },
     orders: [],
   });
+  const [favoriteStores, setFavoriteStores] = useState([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [favoriteBusyId, setFavoriteBusyId] = useState("");
 
   const userId = useMemo(() => extractUserId(user), [user]);
+  const isCustomer = useMemo(() => resolveUserRole(user) === "customer", [user]);
   const orderedOrders = useMemo(
     () => [...(ordersData.orders || [])].sort(
       (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime(),
     ),
     [ordersData.orders],
   );
+  const ORDERS_PER_PAGE = 8;
+  const [ordersPage, setOrdersPage] = useState(1);
+  const paginatedOrders = useMemo(
+    () => orderedOrders.slice((ordersPage - 1) * ORDERS_PER_PAGE, ordersPage * ORDERS_PER_PAGE),
+    [orderedOrders, ordersPage],
+  );
+  const totalOrderPages = Math.max(1, Math.ceil(orderedOrders.length / ORDERS_PER_PAGE));
 
   const [formData, setFormData] = useState({
     username: user?.username || "",
@@ -104,7 +124,41 @@ function MeuPerfil({ user, aoAtualizarUser }) {
     return () => {
       active = false;
     };
-  }, [userId, user?.email]);
+  }, [user, userId, user?.email]);
+
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [orderedOrders.length]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadFavorites = async () => {
+      if (!isCustomer || !user) {
+        if (active) setFavoriteStores([]);
+        return;
+      }
+
+      setFavoritesLoading(true);
+      try {
+        const stores = await fetchFavoriteStores(user);
+        if (active) setFavoriteStores(stores);
+      } catch (error) {
+        console.error("Erro ao carregar favoritos:", error);
+        if (active) setFavoriteStores([]);
+      } finally {
+        if (active) setFavoritesLoading(false);
+      }
+    };
+
+    loadFavorites();
+    window.addEventListener("pedeja-favorites-updated", loadFavorites);
+
+    return () => {
+      active = false;
+      window.removeEventListener("pedeja-favorites-updated", loadFavorites);
+    };
+  }, [isCustomer, user]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.id]: e.target.value }));
@@ -192,7 +246,7 @@ function MeuPerfil({ user, aoAtualizarUser }) {
         <div>
           <p className="profile-order-id">Pedido #{order.id}</p>
           <h4>{order.loja_nome}</h4>
-          <p className="profile-order-date">{formatDateTime(order.created_at)}</p>
+          <p className="profile-order-date">{formatOrderMoment(order)}</p>
         </div>
 
         <div className="profile-order-right">
@@ -239,6 +293,19 @@ function MeuPerfil({ user, aoAtualizarUser }) {
     </article>
   );
 
+  const handleRemoveFavorite = async (storeId) => {
+    setFavoriteBusyId(String(storeId));
+    try {
+      await toggleFavoriteStore(user, storeId);
+      setFavoriteStores((prev) => prev.filter((store) => String(store.id) !== String(storeId)));
+      window.dispatchEvent(new Event("pedeja-favorites-updated"));
+    } catch (error) {
+      alert(error?.message || "Nao foi possivel atualizar os favoritos.");
+    } finally {
+      setFavoriteBusyId("");
+    }
+  };
+
   return (
     <section className="profile-workspace">
       <header className="profile-header">
@@ -263,6 +330,15 @@ function MeuPerfil({ user, aoAtualizarUser }) {
         >
           Pedidos
         </button>
+        {isCustomer ? (
+          <button
+            type="button"
+            className={`profile-tab-btn ${tab === "favoritos" ? "active" : ""}`}
+            onClick={() => setTab("favoritos")}
+          >
+            Favoritos
+          </button>
+        ) : null}
         <button
           type="button"
           className={`profile-tab-btn ${tab === "dados" ? "active" : ""}`}
@@ -310,27 +386,88 @@ function MeuPerfil({ user, aoAtualizarUser }) {
                     <span>Cancelados</span>
                     <strong>{ordersData.summary.canceledOrders}</strong>
                   </article>
-                  <article className="profile-summary-card highlight">
-                    <span>Total gasto</span>
-                    <strong>{formatMoney(ordersData.summary.totalSpent)}</strong>
-                  </article>
-                  <article className="profile-summary-card">
-                    <span>Ticket medio</span>
-                    <strong>{formatMoney(ordersData.summary.averageTicket)}</strong>
-                  </article>
                 </div>
 
                 {ordersData.orders.length === 0 ? (
                   <EmptyOrders />
                 ) : (
                   <div className="profile-orders-section">
-                    <p className="profile-note">Todos os pedidos ({orderedOrders.length})</p>
+                    <div className="profile-orders-header">
+                      <p className="profile-note">Pedidos recentes ({orderedOrders.length})</p>
+                      {orderedOrders.length > ORDERS_PER_PAGE ? (
+                        <div className="profile-pagination">
+                          <button
+                            type="button"
+                            className="profile-order-link"
+                            disabled={ordersPage <= 1}
+                            onClick={() => setOrdersPage((prev) => Math.max(prev - 1, 1))}
+                          >
+                            Anterior
+                          </button>
+                          <span>Pagina {ordersPage} de {totalOrderPages}</span>
+                          <button
+                            type="button"
+                            className="profile-order-link"
+                            disabled={ordersPage >= totalOrderPages}
+                            onClick={() => setOrdersPage((prev) => Math.min(prev + 1, totalOrderPages))}
+                          >
+                            Seguinte
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                     <div className="profile-orders-list">
-                      {orderedOrders.map(renderOrderItem)}
+                      {paginatedOrders.map(renderOrderItem)}
                     </div>
                   </div>
                 )}
               </>
+            )}
+          </section>
+        )}
+
+        {tab === "favoritos" && isCustomer && (
+          <section className="profile-orders-area">
+            {favoritesLoading ? (
+              <p className="profile-note">A carregar restaurantes favoritos...</p>
+            ) : favoriteStores.length === 0 ? (
+              <p className="profile-note">Ainda nao adicionaste restaurantes aos favoritos.</p>
+            ) : (
+              <div className="profile-favorites-grid">
+                {favoriteStores.map((store) => (
+                  <article key={store.id} className="profile-favorite-card">
+                    <div>
+                      <p className="profile-order-id">Loja favorita</p>
+                      <h4>{store.nome}</h4>
+                      <p className="profile-order-date">{store.morada || "Morada nao definida"}</p>
+                    </div>
+
+                    <div className="profile-order-meta">
+                      <span className={`profile-status-pill ${store.isIndisponivel ? "is-danger" : "is-success"}`}>
+                        {store.status}
+                      </span>
+                    </div>
+
+                    <div className="profile-actions-row profile-actions-row--start">
+                      <button
+                        type="button"
+                        className="profile-btn secondary"
+                        onClick={() => navigate(`/menus/${store.id}`)}
+                      >
+                        Abrir restaurante
+                      </button>
+                      <button
+                        type="button"
+                        className="profile-btn ghost"
+                        disabled={favoriteBusyId === String(store.id)}
+                        onClick={() => handleRemoveFavorite(store.id)}
+                      >
+                        {favoriteBusyId === String(store.id) ? "A remover..." : "Remover dos favoritos"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             )}
           </section>
         )}

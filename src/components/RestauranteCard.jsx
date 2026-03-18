@@ -44,7 +44,13 @@ function summarizeSchedule(schedule) {
     .join(" | ");
 }
 
-function RestauranteCard({ restaurante }) {
+function RestauranteCard({
+  restaurante,
+  showFavoriteButton = false,
+  isFavorite = false,
+  favoriteBusy = false,
+  onToggleFavorite = null,
+}) {
   const navigate = useNavigate();
   const [showDetails, setShowDetails] = useState(false);
 
@@ -61,6 +67,13 @@ function RestauranteCard({ restaurante }) {
 
   const handleCloseDetails = () => {
     setShowDetails(false);
+  };
+
+  const handleFavoriteClick = (event) => {
+    event.stopPropagation();
+    if (typeof onToggleFavorite === "function") {
+      onToggleFavorite(restaurante);
+    }
   };
 
   const currentStatusColor = restaurante.isIndisponivel
@@ -102,6 +115,18 @@ function RestauranteCard({ restaurante }) {
           }}
         >
           <div className="card-image-container">
+            {showFavoriteButton ? (
+              <button
+                type="button"
+                className={`card-favorite-btn${isFavorite ? " is-active" : ""}`}
+                onClick={handleFavoriteClick}
+                disabled={favoriteBusy}
+                title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              >
+                {isFavorite ? "♥" : "♡"}
+              </button>
+            ) : null}
+
             {backgroundImage ? (
               <img
                 src={backgroundImage}

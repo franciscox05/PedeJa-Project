@@ -37,18 +37,18 @@ export const LEGACY_TO_ESTADO_INTERNO = {
 
 export const SHIPDAY_TO_ESTADO_INTERNO = {
   ACCEPTED: "estafeta_aceitou",
-  ASSIGNED: "atribuindo_estafeta",
-  UNASSIGNED: "aceite",
+  ASSIGNED: "estafeta_aceitou",
+  ACTIVE: "estafeta_aceitou",
+  STARTED: "estafeta_aceitou",
   REJECTED: "aceite",
+  DELETED: "aceite",
   READY: "pronto_recolha",
   READY_FOR_PICKUP: "pronto_recolha",
-  STARTED: "iniciado",
   PICKED_UP: "recolhido",
   READY_TO_DELIVER: "a_caminho",
   ON_THE_WAY: "a_caminho",
   DELIVERED: "entregue",
   ALREADY_DELIVERED: "entregue",
-  NOT_ACCEPTED: "aceite",
   FAILED: "cancelado",
   CANCELLED: "cancelado",
 };
@@ -193,7 +193,22 @@ export function getRestaurantActionsForEstado(estadoInterno) {
 }
 
 export function resolveNextEstadoInterno(currentEstadoInterno, shipdayState) {
-  const mapped = mapShipdayToEstadoInterno(shipdayState);
-  if (!mapped) return normalizeEstadoInterno(currentEstadoInterno) || "pendente";
+  const current = normalizeEstadoInterno(currentEstadoInterno);
+  const normalizedShipdayState = normalizeShipdayState(shipdayState);
+
+  if (current === "atribuindo_estafeta") {
+    if (["ASSIGNED", "ACTIVE", "STARTED"].includes(normalizedShipdayState)) {
+      return "estafeta_aceitou";
+    }
+
+    if (["REJECTED", "DELETED"].includes(normalizedShipdayState)) {
+      return "aceite";
+    }
+
+    return "atribuindo_estafeta";
+  }
+
+  const mapped = mapShipdayToEstadoInterno(normalizedShipdayState);
+  if (!mapped) return current || "pendente";
   return mapped;
 }

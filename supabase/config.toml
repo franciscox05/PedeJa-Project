@@ -1,0 +1,14 @@
+# Public checkout endpoint for guest users.
+[functions.create-order]
+verify_jwt = false
+
+# Dashboard Shipday helpers are called from the frontend without sessao Supabase.
+[functions.shipday-api]
+verify_jwt = false
+
+[functions.update-shipday-status]
+verify_jwt = false
+
+# External Shipday callbacks cannot provide Supabase user JWTs.
+[functions.shipday-webhook]
+verify_jwt = false

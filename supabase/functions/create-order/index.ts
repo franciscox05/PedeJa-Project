@@ -24,6 +24,122 @@ function toNullableNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizePaymentCode(value: unknown) {
+  const normalized = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+
+  if (!normalized) return "";
+  if (normalized === "DINHEIRO") return "CASH";
+  if (normalized === "MB_WAY") return "MBWAY";
+  return normalized;
+}
+
+function paymentCodeToLabel(value: unknown) {
+  const code = normalizePaymentCode(value);
+  if (code === "CASH") return "Dinheiro";
+  if (code === "MBWAY") return "MB WAY";
+  if (code === "CREDIT_CARD") return "Cartao";
+  return code || null;
+}
+
+function parseJsonSafely(rawText: string) {
+  if (!rawText || !rawText.trim()) return null;
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    return null;
+  }
+}
+
+function isMissingOrderColumnError(error: { message?: string } | null | undefined, columnName: string) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("column")
+    && message.includes("orders")
+    && message.includes(String(columnName || "").toLowerCase());
+}
+
+function stripUnsupportedOrderColumns(
+  orderPayload: Record<string, unknown>,
+  error: { message?: string } | null | undefined,
+) {
+  const message = String(error?.message || "").toLowerCase();
+  const nextPayload = { ...orderPayload };
+
+  ["data_aceitacao", "submitted_at", "order_timing_mode", "payment_method", "payment_label"].forEach((columnName) => {
+    if (message.includes("column") && message.includes("orders") && message.includes(columnName)) {
+      delete nextPayload[columnName];
+    }
+  });
+
+  return nextPayload;
+}
+
+async function invokeInternalFunction(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  functionName: string,
+  body: Record<string, unknown>,
+) {
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: serviceRoleKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const rawText = await response.text();
+  const parsed = parseJsonSafely(rawText);
+
+  if (!response.ok) {
+    const message = parsed?.error || parsed?.message || rawText || `Function ${functionName} HTTP ${response.status}`;
+    throw new Error(String(message));
+  }
+
+  if (parsed?.error) {
+    throw new Error(String(parsed.error));
+  }
+
+  return parsed;
+}
+
+async function insertOrderWithCompatibility(
+  supabase: ReturnType<typeof createClient>,
+  orderPayload: Record<string, unknown>,
+) {
+  let response = await supabase
+    .from("orders")
+    .insert(orderPayload)
+    .select("id")
+    .single();
+
+  const shouldRetryCompatibility = response.error && (
+    isMissingOrderColumnError(response.error, "data_aceitacao")
+    || isMissingOrderColumnError(response.error, "submitted_at")
+    || isMissingOrderColumnError(response.error, "order_timing_mode")
+    || isMissingOrderColumnError(response.error, "payment_method")
+    || isMissingOrderColumnError(response.error, "payment_label")
+  );
+
+  if (shouldRetryCompatibility) {
+    console.warn("create-order newer orders columns missing, retrying insert in compatibility mode");
+
+    const fallbackPayload = stripUnsupportedOrderColumns(orderPayload, response.error);
+
+    response = await supabase
+      .from("orders")
+      .insert(fallbackPayload)
+      .select("id")
+      .single();
+  }
+
+  return response;
+}
+
 async function calculateDrivingDistanceKm(
   origin: { lat: number; lng: number },
   destination: { lat: number; lng: number },
@@ -106,7 +222,7 @@ serve(async (req) => {
 
     const { data: loja, error: lojaError } = await supabase
       .from("lojas")
-      .select("idloja, nome, latitude, longitude")
+      .select("idloja, nome, latitude, longitude, aceitacao_automatica_pedidos")
       .eq("idloja", lojaId)
       .maybeSingle();
 
@@ -116,6 +232,12 @@ serve(async (req) => {
     if (!loja) {
       return json({ error: "Loja nao encontrada." }, 400);
     }
+
+    console.log("create-order auto-accept flag", {
+      loja_id: lojaId,
+      loja_nome: loja.nome || null,
+      aceitacao_automatica_pedidos: loja.aceitacao_automatica_pedidos,
+    });
 
     const lojaLat = toNullableNumber(loja.latitude);
     const lojaLng = toNullableNumber(loja.longitude);
@@ -140,29 +262,54 @@ serve(async (req) => {
     const subtotal = toNumber(payload.subtotal, 0);
     const taxaEntrega = toNumber(deliveryQuote.fee, 0);
     const total = subtotal + taxaEntrega;
+    const submittedAt = new Date().toISOString();
+    const storedPaymentMethod = normalizePaymentCode(payload?.payment_label || payload?.payment_method || "CASH") || "CASH";
+    const storedPaymentLabel = paymentCodeToLabel(storedPaymentMethod) || "Dinheiro";
+    const scheduledForRaw = String(payload?.scheduled_for || "").trim();
+    const scheduledForDate = scheduledForRaw ? new Date(scheduledForRaw) : null;
+    const isScheduledOrder = Boolean(
+      String(payload?.order_timing_mode || "").toUpperCase() === "SCHEDULED"
+      && scheduledForDate
+      && !Number.isNaN(scheduledForDate.getTime())
+      && scheduledForDate.getTime() > Date.now(),
+    );
+    const effectiveCreatedAt = isScheduledOrder && scheduledForDate
+      ? scheduledForDate.toISOString()
+      : submittedAt;
+    const autoAcceptEnabled = Boolean(loja.aceitacao_automatica_pedidos) && !isScheduledOrder;
+    const initialStatus = autoAcceptEnabled ? "CONFIRMED" : "PENDING";
+    const initialEstadoInterno = autoAcceptEnabled ? "aceite" : "pendente";
+    const acceptedAt = autoAcceptEnabled ? submittedAt : null;
 
-    const { data: insertedOrder, error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        loja_id: lojaId,
-        customer_nome: customer.nome,
-        customer_phone: customer.telefone,
-        customer_address: customer.morada,
-        customer_address_label: customer.address_label || null,
-        customer_lat: customerLat,
-        customer_lng: customerLng,
-        customer_notes: customer.notas || null,
-        customer_email: customer.email || null,
-        customer_user_id: customer.user_id || null,
-        subtotal,
-        taxa_entrega: taxaEntrega,
-        total,
-        status: "PENDING",
-        estado_interno: "pendente",
-        updated_at: new Date().toISOString(),
-      })
-      .select("id")
-      .single();
+    const orderInsertPayload = {
+      loja_id: lojaId,
+      customer_nome: customer.nome,
+      customer_phone: customer.telefone,
+      customer_address: customer.morada,
+      customer_address_label: customer.address_label || null,
+      customer_lat: customerLat,
+      customer_lng: customerLng,
+      customer_notes: customer.notas || null,
+      customer_email: customer.email || null,
+      customer_user_id: customer.user_id || null,
+      subtotal,
+      taxa_entrega: taxaEntrega,
+      total,
+      payment_method: storedPaymentMethod,
+      payment_label: storedPaymentLabel,
+      status: initialStatus,
+      estado_interno: initialEstadoInterno,
+      data_aceitacao: acceptedAt,
+      submitted_at: submittedAt,
+      order_timing_mode: isScheduledOrder ? "SCHEDULED" : "ASAP",
+      created_at: effectiveCreatedAt,
+      updated_at: effectiveCreatedAt,
+    };
+
+    const { data: insertedOrder, error: orderError } = await insertOrderWithCompatibility(
+      supabase,
+      orderInsertPayload,
+    );
 
     if (orderError) {
       return json({ error: orderError.message }, 500);
@@ -185,14 +332,46 @@ serve(async (req) => {
       return json({ error: itemsError.message }, 500);
     }
 
+    let shipdayResult: any = null;
+    let shipdayErrorMessage: string | null = null;
+
+    if (autoAcceptEnabled) {
+      try {
+        shipdayResult = await invokeInternalFunction(supabaseUrl, serviceRoleKey, "shipday-api", {
+          action: "create_order",
+          orderId,
+          paymentMethod: storedPaymentMethod,
+          paymentLabel: storedPaymentLabel,
+        });
+      } catch (shipdayError: any) {
+        shipdayErrorMessage = String(
+          shipdayError?.message || "Falha ao criar registo Shipday para auto-aceitacao.",
+        );
+        console.error("create-order auto-accept Shipday sync failed", {
+          order_id: orderId,
+          loja_id: lojaId,
+          message: shipdayErrorMessage,
+        });
+      }
+    }
+
     return json({
       ok: true,
       order_id: orderId,
-      estado_interno: "pendente",
-      status: "PENDING",
+      estado_interno: initialEstadoInterno,
+      status: initialStatus,
       taxa_entrega: taxaEntrega,
       total,
       distancia_km: drivingDistanceKm,
+      auto_accept_enabled: Boolean(loja.aceitacao_automatica_pedidos),
+      auto_accept_applied: autoAcceptEnabled,
+      data_aceitacao: acceptedAt,
+      submitted_at: submittedAt,
+      order_timing_mode: isScheduledOrder ? "SCHEDULED" : "ASAP",
+      scheduled_for: isScheduledOrder ? effectiveCreatedAt : null,
+      shipday_error: shipdayErrorMessage,
+      shipday_order_id: shipdayResult?.shipday_order_id || null,
+      shipday_tracking_url: shipdayResult?.shipday_tracking_url || null,
     });
   } catch (error: any) {
     return json({ error: error?.message || "Unexpected server error" }, 500);

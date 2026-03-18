@@ -215,7 +215,7 @@ export default function PedidoConfirmado() {
                   <h3>Entrega e tracking</h3>
                   <div className="pedido-delivery-meta">
                     <p><strong>ID Shipday:</strong> {details.shipday_delivery_id || "-"}</p>
-                    <p><strong>Previsao:</strong> {details.estimated_delivery || "-"}</p>
+                    <p><strong>Previsao:</strong> {details.estimated_delivery || "A calcular..."}</p>
                     <p><strong>Metodo pagamento:</strong> {details.payment_method_label || "-"}</p>
                   </div>
 
@@ -243,7 +243,14 @@ export default function PedidoConfirmado() {
                     <p><strong>Morada:</strong> {details.order.customer_address || "-"}</p>
                     <p><strong>Etiqueta morada:</strong> {details.order.customer_address_label || "-"}</p>
                     <p><strong>Notas:</strong> {details.order.customer_notes || "-"}</p>
-                    <p><strong>Criado:</strong> {formatDateTime(details.order.created_at)}</p>
+                    <p>
+                      <strong>{details.order.order_timing_mode === "SCHEDULED" ? "Pedido agendado para:" : "Criado:"}</strong>
+                      {" "}
+                      {formatDateTime(details.order.created_at)}
+                    </p>
+                    {details.order.submitted_at ? (
+                      <p><strong>Pedido submetido em:</strong> {formatDateTime(details.order.submitted_at)}</p>
+                    ) : null}
                     <p><strong>Ultima atualizacao:</strong> {formatDateTime(details.order.updated_at)}</p>
                   </div>
                 </article>

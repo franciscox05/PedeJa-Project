@@ -16,6 +16,9 @@ const EMPTY_SUMMARY = {
   averageTicket: 0,
 };
 
+const PROFILE_ORDER_SELECT_WITH_TIMING = "id, loja_id, subtotal, taxa_entrega, total, status, estado_interno, created_at, updated_at, customer_user_id, customer_email, submitted_at, order_timing_mode";
+const PROFILE_ORDER_SELECT_LEGACY = "id, loja_id, subtotal, taxa_entrega, total, status, estado_interno, created_at, updated_at, customer_user_id, customer_email";
+
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -149,6 +152,8 @@ function normalizeOrderRow(order, lojaNameMap, latestDeliveryMap) {
     total: toNumber(order.total, 0),
     created_at: order.created_at,
     updated_at: order.updated_at,
+    submitted_at: order.submitted_at || null,
+    order_timing_mode: order.order_timing_mode || "ASAP",
     status_raw: statusInfo.raw,
     status_label: statusInfo.label,
     status_tone: statusInfo.tone,
@@ -166,7 +171,7 @@ async function fetchOrdersByUserId(userId, limit) {
 
   let query = supabase
     .from("orders")
-    .select("id, loja_id, subtotal, taxa_entrega, total, status, estado_interno, created_at, updated_at, customer_user_id, customer_email")
+    .select(PROFILE_ORDER_SELECT_WITH_TIMING)
     .eq("customer_user_id", String(userId))
     .order("created_at", { ascending: false });
 
@@ -177,6 +182,19 @@ async function fetchOrdersByUserId(userId, limit) {
   const { data, error } = await query;
 
   if (error) {
+    if (/submitted_at|order_timing_mode/i.test(String(error.message || ""))) {
+      const fallback = await supabase
+        .from("orders")
+        .select(PROFILE_ORDER_SELECT_LEGACY)
+        .eq("customer_user_id", String(userId))
+        .order("created_at", { ascending: false })
+        .limit(Number.isFinite(limit) && Number(limit) > 0 ? Number(limit) : 100);
+
+      if (!fallback.error) {
+        return fallback.data || [];
+      }
+    }
+
     console.error("Erro ao buscar pedidos por user id:", error);
     return [];
   }
@@ -189,7 +207,7 @@ async function fetchOrdersByEmail(email, limit) {
 
   let query = supabase
     .from("orders")
-    .select("id, loja_id, subtotal, taxa_entrega, total, status, estado_interno, created_at, updated_at, customer_user_id, customer_email")
+    .select(PROFILE_ORDER_SELECT_WITH_TIMING)
     .ilike("customer_email", String(email).trim())
     .order("created_at", { ascending: false });
 
@@ -200,6 +218,19 @@ async function fetchOrdersByEmail(email, limit) {
   const { data, error } = await query;
 
   if (error) {
+    if (/submitted_at|order_timing_mode/i.test(String(error.message || ""))) {
+      const fallback = await supabase
+        .from("orders")
+        .select(PROFILE_ORDER_SELECT_LEGACY)
+        .ilike("customer_email", String(email).trim())
+        .order("created_at", { ascending: false })
+        .limit(Number.isFinite(limit) && Number(limit) > 0 ? Number(limit) : 100);
+
+      if (!fallback.error) {
+        return fallback.data || [];
+      }
+    }
+
     console.error("Erro ao buscar pedidos por email:", error);
     return [];
   }

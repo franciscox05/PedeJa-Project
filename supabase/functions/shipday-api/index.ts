@@ -141,6 +141,41 @@ function resolveShipdayDeliveryId(payload: any): string {
   );
 }
 
+function normalizePaymentCode(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+}
+
+function mapToShipdayPaymentMethod(value: unknown): string {
+  const code = normalizePaymentCode(value);
+  if (code === "MBWAY") return "CREDIT_CARD";
+  if (code === "CASH" || code === "CREDIT_CARD") return code;
+  return "CASH";
+}
+
+async function fetchOrderForShipdayCreate(
+  supabase: ReturnType<typeof createClient>,
+  orderId: number,
+) {
+  let response = await supabase
+    .from("orders")
+    .select("id, loja_id, customer_nome, customer_phone, customer_email, customer_address, customer_notes, customer_user_id, customer_lat, customer_lng, subtotal, taxa_entrega, total, shipday_order_id, payment_method, payment_label")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (response.error && /payment_method|payment_label/i.test(String(response.error.message || ""))) {
+    response = await supabase
+      .from("orders")
+      .select("id, loja_id, customer_nome, customer_phone, customer_email, customer_address, customer_notes, customer_user_id, customer_lat, customer_lng, subtotal, taxa_entrega, total, shipday_order_id")
+      .eq("id", orderId)
+      .maybeSingle();
+  }
+
+  return response;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -239,11 +274,7 @@ serve(async (req) => {
 
       const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .select("id, loja_id, customer_nome, customer_phone, customer_email, customer_address, customer_notes, customer_user_id, customer_lat, customer_lng, subtotal, taxa_entrega, total, shipday_order_id")
-        .eq("id", orderId)
-        .maybeSingle();
+      const { data: order, error: orderError } = await fetchOrderForShipdayCreate(supabase, orderId);
 
       if (orderError) return json({ error: orderError.message }, 500);
       if (!order) return json({ error: "Pedido nao encontrado" }, 404);
@@ -332,7 +363,13 @@ serve(async (req) => {
         orderSource: "PedeJa",
         additionalId: toText(order.customer_user_id),
         clientRestaurantId: order.loja_id,
-        paymentMethod: "CASH",
+        paymentMethod: mapToShipdayPaymentMethod(
+          body?.paymentLabel
+          || body?.paymentMethod
+          || order.payment_label
+          || order.payment_method
+          || "CASH",
+        ),
         orderItem: orderItems.map((item) => ({
           name: item.nome,
           unitPrice: Number(item.preco_unitario || 0),

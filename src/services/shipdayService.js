@@ -1,5 +1,6 @@
 ﻿import { supabase } from "./supabaseClient";
 import { mapEstadoInternoToShipdayState, normalizeEstadoInterno } from "./orderStatusMapper";
+import { buildSupabaseFunctionHeaders, getSupabaseFunctionUrl } from "./supabaseClient";
 
 const SHIPDAY_API_FUNCTION = "shipday-api";
 const SHIPDAY_STATUS_FUNCTION = "update-shipday-status";
@@ -10,17 +11,147 @@ function toText(value) {
   return String(value).trim();
 }
 
-async function invokeShipdayApi(action, payload = {}) {
-  const { data, error } = await supabase.functions.invoke(SHIPDAY_API_FUNCTION, {
-    body: {
-      action,
-      ...payload,
-    },
+function parseJsonSafely(rawText) {
+  if (!rawText || !String(rawText).trim()) return null;
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    return null;
+  }
+}
+
+function isCarrierAlreadyUnassignedError(value) {
+  return String(value || "").toLowerCase().includes("no carrier is assigned");
+}
+
+function isTruthyFlag(value) {
+  if (value === true) return true;
+  return String(value || "").trim().toLowerCase() === "true";
+}
+
+function normalizeVehicleSegment(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  return text
+    .replace(/\bmotorcycle\b/gi, "Mota")
+    .replace(/\bbike\b/gi, "Bicicleta")
+    .replace(/\bbicycle\b/gi, "Bicicleta")
+    .replace(/\bcar\b/gi, "Carro")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeVehiclePlate(value) {
+  const text = toText(value);
+  return text ? text.replace(/\s+/g, "").toUpperCase() : "";
+}
+
+function buildCarrierVehicleSummary(carrier = {}) {
+  const type = normalizeVehicleSegment(
+    carrier?.vehicle_type
+    || carrier?.vehicleType
+    || carrier?.type
+    || carrier?.vehicle?.type,
+  );
+  const make = normalizeVehicleSegment(
+    carrier?.vehicle_make
+    || carrier?.vehicleMake
+    || carrier?.make
+    || carrier?.vehicle?.make,
+  );
+  const model = normalizeVehicleSegment(
+    carrier?.vehicle_model
+    || carrier?.vehicleModel
+    || carrier?.model
+    || carrier?.vehicle?.model,
+  );
+  const plate = normalizeVehiclePlate(
+    carrier?.license_plate
+    || carrier?.licensePlate
+    || carrier?.plate_number
+    || carrier?.plateNumber
+    || carrier?.plate
+    || carrier?.registration
+    || carrier?.vehicle?.license_plate
+    || carrier?.vehicle?.licensePlate
+    || carrier?.vehicle?.plate_number
+    || carrier?.vehicle?.plateNumber
+    || carrier?.vehicle?.plate
+    || carrier?.vehicle?.registration,
+  );
+  const description = normalizeVehicleSegment(
+    carrier?.vehicle_description
+    || carrier?.vehicleDescription
+    || (typeof carrier?.vehicle === "string" ? carrier.vehicle : "")
+    || carrier?.vehicle?.description
+    || carrier?.vehicle?.vehicle_description
+    || carrier?.vehicle?.vehicleDescription,
+  );
+
+  const parts = [];
+  const seen = new Set();
+  [type, make, model].filter(Boolean).forEach((part) => {
+    const key = part.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    parts.push(part);
   });
 
-  if (error) {
-    throw new Error(String(error?.message || "Falha ao invocar shipday-api"));
+  const base = parts.join(" ").trim();
+  if (base && plate) return `${base} (${plate})`;
+  if (base) return base;
+  if (description && plate) return description.includes(plate) ? description : `${description} (${plate})`;
+  return description || plate || "";
+}
+
+async function invokeEdgeFunction(functionName, payload = {}) {
+  if (!supabase || !supabase.auth) {
+    throw new Error("Cliente Supabase indisponivel no Shipday service.");
   }
+
+  const headers = await buildSupabaseFunctionHeaders();
+
+  const response = await fetch(getSupabaseFunctionUrl(functionName), {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const rawText = await response.text();
+  const data = parseJsonSafely(rawText);
+  const isExpectedUnassignNoCarrier =
+    functionName === SHIPDAY_STATUS_FUNCTION
+    && payload?.new_status === "desassociar"
+    && isCarrierAlreadyUnassignedError(data?.error || data?.message || rawText);
+
+  if (!response.ok) {
+    if (!isExpectedUnassignNoCarrier) {
+      console.error("Falha ao invocar edge function Shipday", {
+        functionName,
+        status: response.status,
+        payload,
+        response: data || rawText || null,
+      });
+    }
+    throw new Error(
+      String(
+        data?.error
+        || data?.message
+        || rawText
+        || `Falha ao invocar ${functionName} (${response.status}).`,
+      ),
+    );
+  }
+
+  return data;
+}
+
+async function invokeShipdayApi(action, payload = {}) {
+  const data = await invokeEdgeFunction(SHIPDAY_API_FUNCTION, {
+    action,
+    ...payload,
+  });
 
   if (data?.error) {
     throw new Error(String(data.error));
@@ -78,12 +209,17 @@ function normalizeCarrier(carrier, index) {
   const isAvailable = explicitAvailable === null || explicitAvailable === undefined
     ? !statusUnavailable
     : Boolean(explicitAvailable);
+  const isOnShift = isTruthyFlag(carrier?.isOnShift);
+  const isActive = isTruthyFlag(carrier?.isActive) || isTruthyFlag(carrier?.active);
 
   return {
     id: id !== null && id !== undefined ? String(id) : "",
     name,
     phone,
+    vehicle: buildCarrierVehicleSummary(carrier),
     status,
+    is_on_shift: isOnShift,
+    is_active: isActive,
     is_available: isAvailable,
     raw: carrier,
   };
@@ -95,7 +231,7 @@ export async function retrieveShipdayCarriers() {
 
   const carriers = rawCarriers
     .map((carrier, index) => normalizeCarrier(carrier, index))
-    .filter((carrier) => carrier.id && carrier.is_available);
+    .filter((carrier) => carrier.id && carrier.is_on_shift && carrier.is_active);
 
   return carriers;
 }
@@ -147,8 +283,22 @@ export async function assignOrderToShipdayCarrier({ order, carrier }) {
       id: carrier.id,
       name: carrier.name || "",
       phone: carrier.phone || "",
+      vehicle: carrier.vehicle || "",
     },
   };
+}
+
+export async function unassignOrderToShipdayCarrier({
+  shipdayOrderId,
+  orderId = null,
+  lojaId = null,
+}) {
+  return updateShipdayOrderStatus({
+    shipdayOrderId,
+    newStatus: "desassociar",
+    orderId,
+    lojaId,
+  });
 }
 
 export async function createShipdayOrderForOrder({ orderId }) {
@@ -220,23 +370,12 @@ export async function updateShipdayOrderStatus({
   }
 
   try {
-    const { data, error } = await supabase.functions.invoke(SHIPDAY_STATUS_FUNCTION, {
-      body: {
-        shipday_order_id: normalizedShipdayOrderId,
-        new_status: normalizedNewStatus,
-        order_id: orderId ?? undefined,
-        loja_id: lojaId ?? undefined,
-      },
+    const data = await invokeEdgeFunction(SHIPDAY_STATUS_FUNCTION, {
+      shipday_order_id: normalizedShipdayOrderId,
+      new_status: normalizedNewStatus,
+      order_id: orderId ?? undefined,
+      loja_id: lojaId ?? undefined,
     });
-
-    if (error) {
-      return {
-        ok: false,
-        skipped: false,
-        functionName: SHIPDAY_STATUS_FUNCTION,
-        error: String(error?.message || "Falha ao invocar update-shipday-status"),
-      };
-    }
 
     const functionOk = data?.ok === true || data?.success === true;
 
@@ -258,6 +397,17 @@ export async function updateShipdayOrderStatus({
       data,
     };
   } catch (error) {
+    if (normalizedNewStatus === "desassociar" && isCarrierAlreadyUnassignedError(error?.message || error)) {
+      return {
+        ok: true,
+        skipped: false,
+        tolerated: true,
+        functionName: SHIPDAY_STATUS_FUNCTION,
+        message: "Shipday indica que ja nao existe estafeta atribuido. Estado tratado como desassociado.",
+        reason: "carrier_already_unassigned",
+      };
+    }
+
     return {
       ok: false,
       skipped: false,

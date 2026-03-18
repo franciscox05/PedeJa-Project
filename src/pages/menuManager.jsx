@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchMenus,
@@ -244,7 +244,7 @@ export default function MenuManager() {
     };
   }, [scopedLoja]);
 
-  const loadAdminStores = async () => {
+  const loadAdminStores = useCallback(async () => {
     if (!admin) {
       setAdminStores([]);
       return;
@@ -274,7 +274,7 @@ export default function MenuManager() {
 
       return stores.length > 0 ? String(stores[0].idloja) : "";
     });
-  };
+  }, [admin, queryStoreId]);
   const loadTiposMenu = async () => {
     const { data, error: tiposError } = await supabase
       .from("tiposmenu")
@@ -313,12 +313,10 @@ export default function MenuManager() {
 
   useEffect(() => {
     loadAdminStores();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [admin]);
+  }, [loadAdminStores]);
 
   useEffect(() => {
     loadTiposMenu();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -486,7 +484,7 @@ export default function MenuManager() {
   };
 
   const handleDelete = async (idmenu, nome) => {
-    if (!confirm(`Apagar o prato \"${nome || "sem nome"}\"?`)) return;
+    if (!confirm(`Apagar o prato "${nome || "sem nome"}"?`)) return;
 
     setSaving(true);
     setError("");
@@ -821,7 +819,7 @@ export default function MenuManager() {
   }, [filteredMenus]);
 
   return (
-    <div className="dashboard-shell enterprise">
+    <div className="dashboard-shell enterprise menu-manager-shell">
       <header className="dashboard-header" style={{ marginBottom: 16 }}>
         <div>
           <p className="kicker">Menu Manager</p>

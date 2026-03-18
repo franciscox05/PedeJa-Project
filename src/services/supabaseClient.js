@@ -1,10 +1,68 @@
 ﻿import { createClient } from "@supabase/supabase-js";
 import { isStoreOpenNow } from "../utils/storeHours";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+const supabaseAnonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || "");
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabaseConfig = Object.freeze({
+  url: supabaseUrl,
+  anonKey: supabaseAnonKey,
+});
+
+export function isSupabaseConfigured() {
+  return Boolean(supabaseConfig.url && supabaseConfig.anonKey);
+}
+
+export function assertSupabaseConfigured(context = "supabaseClient") {
+  if (!isSupabaseConfigured()) {
+    throw new Error(`Configuracao Supabase em falta no frontend (${context}).`);
+  }
+}
+
+export function assertSupabaseClientAvailable(context = "supabaseClient") {
+  assertSupabaseConfigured(context);
+
+  if (!supabase || typeof supabase.from !== "function" || !supabase.auth) {
+    throw new Error(`Cliente Supabase indisponivel (${context}).`);
+  }
+}
+
+export function getSupabaseFunctionUrl(functionName) {
+  assertSupabaseConfigured(`function:${functionName}`);
+  return `${supabaseConfig.url}/functions/v1/${functionName}`;
+}
+
+export async function buildSupabaseFunctionHeaders({
+  includeContentType = true,
+  includeSessionAuthorization = true,
+} = {}) {
+  assertSupabaseClientAvailable("buildSupabaseFunctionHeaders");
+
+  const headers = {
+    apikey: supabaseConfig.anonKey,
+  };
+
+  if (includeContentType) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (includeSessionAuthorization) {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data?.session?.access_token;
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+    } catch (error) {
+      console.error("Nao foi possivel obter a sessao Supabase para montar headers", {
+        error: error?.message || String(error),
+      });
+    }
+  }
+
+  return headers;
+}
 
 export async function buscarCategoriasService() {
   const { data, error } = await supabase
@@ -107,6 +165,11 @@ function buildStoreSubCategories(loja) {
   return Array.from(categoryMap.values());
 }
 
+function isMissingCommissionConfigColumnError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("configuracoes_comissao") && message.includes("column");
+}
+
 async function syncStoresAvailability(lojas = []) {
   const changes = (lojas || [])
     .map((loja) => {
@@ -141,7 +204,7 @@ async function syncStoresAvailability(lojas = []) {
 
 export async function buscarLojasService(mainCategorySlug) {
   try {
-    const { data, error } = await supabase
+    let response = await supabase
       .from("lojas")
       .select(`
         idloja,
@@ -152,6 +215,8 @@ export async function buscarLojasService(mainCategorySlug) {
         contacto,
         taxaentrega,
         morada_completa,
+        comissao_pedeja_percent,
+        configuracoes_comissao,
         horario_funcionamento,
         idtipoloja,
         tiposloja (tipoloja),
@@ -161,9 +226,32 @@ export async function buscarLojasService(mainCategorySlug) {
       `)
       .order("idloja", { ascending: true });
 
-    if (error) throw error;
+    if (response.error && isMissingCommissionConfigColumnError(response.error)) {
+      response = await supabase
+        .from("lojas")
+        .select(`
+          idloja,
+          nome,
+          imagemfundo,
+          icon,
+          ativo,
+          contacto,
+          taxaentrega,
+          morada_completa,
+          comissao_pedeja_percent,
+          horario_funcionamento,
+          idtipoloja,
+          tiposloja (tipoloja),
+          categoriaslojas (
+            categorias (idcategoria, categoria)
+          )
+        `)
+        .order("idloja", { ascending: true });
+    }
 
-    const syncedStores = await syncStoresAvailability(data || []);
+    if (response.error) throw response.error;
+
+    const syncedStores = await syncStoresAvailability(response.data || []);
     const filteredStores = syncedStores.filter((loja) => shouldIncludeStoreByCategory(loja, mainCategorySlug));
 
     return filteredStores.map((loja) => {
@@ -179,6 +267,8 @@ export async function buscarLojasService(mainCategorySlug) {
         isIndisponivel,
         contacto: loja.contacto || null,
         taxaentrega: loja.taxaentrega || 0,
+        comissao_pedeja_percent: Number(loja.comissao_pedeja_percent || 0),
+        configuracoes_comissao: loja.configuracoes_comissao || null,
         morada: loja.morada_completa || null,
         horario_funcionamento: loja.horario_funcionamento || null,
         subCategorias: buildStoreSubCategories(loja),
@@ -229,6 +319,7 @@ export async function buscarMenusService(idloja) {
       const normalizedPrato = {
         ...prato,
         desc: prato?.desc ?? prato?.descricao ?? prato?.desricao ?? null,
+        categoria_menu: nomeCategoria,
         tiposmenu: normalizedRelation,
       };
 
@@ -243,7 +334,7 @@ export async function buscarMenusService(idloja) {
 
 export async function buscarDadosLojaService(idloja) {
   try {
-    const { data, error } = await supabase
+    let response = await supabase
       .from("lojas")
       .select(`
         idloja,
@@ -254,6 +345,8 @@ export async function buscarDadosLojaService(idloja) {
         icon,
         morada_completa,
         taxaentrega,
+        comissao_pedeja_percent,
+        configuracoes_comissao,
         categoriaslojas (
           categorias (idcategoria, categoria)
         )
@@ -261,10 +354,31 @@ export async function buscarDadosLojaService(idloja) {
       .eq("idloja", idloja)
       .single();
 
-    if (error) throw error;
+    if (response.error && isMissingCommissionConfigColumnError(response.error)) {
+      response = await supabase
+        .from("lojas")
+        .select(`
+          idloja,
+          nome,
+          ativo,
+          horario_funcionamento,
+          imagemfundo,
+          icon,
+          morada_completa,
+          taxaentrega,
+          comissao_pedeja_percent,
+          categoriaslojas (
+            categorias (idcategoria, categoria)
+          )
+        `)
+        .eq("idloja", idloja)
+        .single();
+    }
 
-    const [syncedStore] = await syncStoresAvailability(data ? [data] : []);
-    const store = syncedStore || data;
+    if (response.error) throw response.error;
+
+    const [syncedStore] = await syncStoresAvailability(response.data ? [response.data] : []);
+    const store = syncedStore || response.data;
     const { statusTexto } = resolveStoreStatus(store);
 
     return {
@@ -274,6 +388,8 @@ export async function buscarDadosLojaService(idloja) {
       icon: store.icon || "",
       morada: store.morada_completa || "",
       taxaentrega: Number(store.taxaentrega || 0),
+      comissao_pedeja_percent: Number(store.comissao_pedeja_percent || 0),
+      configuracoes_comissao: store.configuracoes_comissao || null,
       horario_funcionamento: store.horario_funcionamento || null,
       subCategorias: buildStoreSubCategories(store),
     };
@@ -286,6 +402,8 @@ export async function buscarDadosLojaService(idloja) {
       icon: "",
       morada: "",
       taxaentrega: 0,
+      comissao_pedeja_percent: 0,
+      configuracoes_comissao: null,
       horario_funcionamento: null,
       subCategorias: [],
     };

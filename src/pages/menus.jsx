@@ -3,7 +3,9 @@ import { useParams } from "react-router-dom";
 import {
   buscarMenusService,
   buscarDadosLojaService,
+  supabase,
 } from "../services/supabaseClient.js";
+import { normalizeGroupedMenuPricing } from "../services/pricingService";
 
 import Logo from "../components/Logo";
 import Voltar from "../components/Voltar";
@@ -28,7 +30,7 @@ function slugifyCategory(value) {
 
 export default function Menus() {
   const { idloja } = useParams();
-  const [menuAgrupado, setMenuAgrupado] = useState({});
+  const [menuBaseAgrupado, setMenuBaseAgrupado] = useState({});
   const [loading, setLoading] = useState(true);
 
   const [lojaInfo, setLojaInfo] = useState({
@@ -38,6 +40,8 @@ export default function Menus() {
     icon: "",
     morada: "",
     taxaentrega: 0,
+    comissao_pedeja_percent: 0,
+    configuracoes_comissao: null,
     horario_funcionamento: null,
     subCategorias: [],
   });
@@ -51,12 +55,47 @@ export default function Menus() {
         buscarDadosLojaService(idloja),
       ]);
 
-      setMenuAgrupado(dadosMenu || {});
-      setLojaInfo(dadosLoja || {});
+      const normalizedLoja = dadosLoja || {};
+
+      setMenuBaseAgrupado(dadosMenu || {});
+      setLojaInfo(normalizedLoja);
       setLoading(false);
     };
 
     carregarDados();
+  }, [idloja]);
+
+  const menuAgrupado = useMemo(
+    () => normalizeGroupedMenuPricing(menuBaseAgrupado, lojaInfo),
+    [lojaInfo, menuBaseAgrupado],
+  );
+
+  useEffect(() => {
+    if (!idloja) return undefined;
+
+    const channel = supabase
+      .channel(`store-commission-menu-${idloja}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "lojas",
+          filter: `idloja=eq.${idloja}`,
+        },
+        (payload) => {
+          setLojaInfo((prev) => ({
+            ...prev,
+            comissao_pedeja_percent: Number(payload?.new?.comissao_pedeja_percent || 0),
+            configuracoes_comissao: payload?.new?.configuracoes_comissao || null,
+          }));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [idloja]);
 
   const categorias = useMemo(() => Object.keys(menuAgrupado || {}), [menuAgrupado]);

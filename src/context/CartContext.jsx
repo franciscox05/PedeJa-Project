@@ -1,11 +1,20 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useContext, useEffect } from "react";
+import { normalizePricedItem } from "../services/pricingService";
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState(() => {
     const savedCart = localStorage.getItem("pedeja_cart");
-    return savedCart ? JSON.parse(savedCart) : [];
+    if (!savedCart) return [];
+
+    try {
+      const parsed = JSON.parse(savedCart);
+      return Array.isArray(parsed) ? parsed.map((item) => normalizePricedItem(item)) : [];
+    } catch {
+      return [];
+    }
   });
 
   useEffect(() => {
@@ -22,9 +31,11 @@ export function CartProvider({ children }) {
       return false;
     }
 
+    const normalizedItem = normalizePricedItem(item);
+
     // 1. Modo forcado (substituir tudo)
     if (limparPrimeiro) {
-      setCart([{ ...item, qtd: 1 }]);
+      setCart([{ ...normalizedItem, qtd: 1 }]);
       return true;
     }
 
@@ -43,10 +54,10 @@ export function CartProvider({ children }) {
       const existingItem = prevCart.find((i) => i.idmenu === item.idmenu);
       if (existingItem) {
         return prevCart.map((i) =>
-          i.idmenu === item.idmenu ? { ...i, qtd: i.qtd + 1 } : i,
+          i.idmenu === item.idmenu ? { ...i, ...normalizedItem, qtd: i.qtd + 1 } : i,
         );
       }
-      return [...prevCart, { ...item, qtd: 1 }];
+      return [...prevCart, { ...normalizedItem, qtd: 1 }];
     });
 
     return true;

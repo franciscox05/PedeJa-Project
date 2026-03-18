@@ -249,6 +249,23 @@
   gap: 10px;
 }
 
+.profile-orders-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.profile-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
 .profile-order-item {
   border: 1px solid #e6e9ef;
   border-radius: 12px;
@@ -356,6 +373,30 @@
 
 .profile-order-link:hover {
   text-decoration: underline;
+}
+
+.profile-favorites-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-favorite-card {
+  border: 1px solid #e6e9ef;
+  border-radius: 14px;
+  background: #fff;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.profile-favorite-fee {
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.profile-actions-row--start {
+  justify-content: flex-start;
 }
 
 .profile-order-error {

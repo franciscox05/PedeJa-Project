@@ -1,7 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
+import { normalizePricedItem, resolveDisplayPrice } from "../services/pricingService";
 
 function resolveCategoryName(prato) {
+  if (prato?.categoria_menu) {
+    return prato.categoria_menu;
+  }
   const relation = prato?.tiposmenu;
   if (Array.isArray(relation)) {
     return relation[0]?.tipomenu || "Geral";
@@ -19,6 +23,8 @@ export default function MenuCard({ prato }) {
 
   const isSoldOut = prato?.ativo === false;
   const categoryName = useMemo(() => resolveCategoryName(prato), [prato]);
+  const pricedPrato = useMemo(() => normalizePricedItem(prato), [prato]);
+  const displayPrice = useMemo(() => pricedPrato.preco_cliente ?? resolveDisplayPrice(prato), [prato, pricedPrato]);
 
   const dispararSucesso = () => {
     setAnimacao(true);
@@ -47,7 +53,7 @@ export default function MenuCard({ prato }) {
       return;
     }
 
-    const sucesso = addToCart(prato);
+    const sucesso = addToCart(pricedPrato);
 
     if (sucesso) {
       dispararSucesso();
@@ -63,7 +69,7 @@ export default function MenuCard({ prato }) {
       return;
     }
 
-    addToCart(prato, true);
+    addToCart(pricedPrato, true);
     setShowModal(false);
     dispararSucesso();
   };
@@ -149,7 +155,7 @@ export default function MenuCard({ prato }) {
             }}
           >
             <span style={{ fontWeight: "800", color: "#d32f2f", fontSize: "1.1rem" }}>
-              {Number(prato.preco || 0).toFixed(2)}EUR
+              {displayPrice.toFixed(2)}EUR
             </span>
 
             <div style={{ display: "flex", gap: "8px" }}>
@@ -210,7 +216,7 @@ export default function MenuCard({ prato }) {
                 </div>
                 <div>
                   <span>Preco</span>
-                  <strong>{Number(prato.preco || 0).toFixed(2)}EUR</strong>
+                  <strong>{displayPrice.toFixed(2)}EUR</strong>
                 </div>
               </div>
 

@@ -1,8 +1,10 @@
 ﻿import { supabase } from "./supabaseClient";
 import { extractRestaurantId, extractUserId } from "../utils/roles";
+import { assertSupabaseClientAvailable } from "./supabaseClient";
 import { isStoreOpenNow } from "../utils/storeHours";
 import { mapEstadoInternoToLegacyStatus, mapLegacyStatusToEstadoInterno, resolveOrderEstadoInterno } from "./orderStatusMapper";
 import { createShipdayOrderForOrder, syncOrderStatusWithShipday, updateShipdayOrderStatus } from "./shipdayService";
+import { sanitizeCommissionConfig } from "./pricingService";
 
 const ORDER_SELECT_FULL = "id, loja_id, customer_nome, customer_address, customer_lat, customer_lng, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, created_at, updated_at";
 const ORDER_SELECT_BASIC = "id, loja_id, customer_nome, customer_address, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, created_at, updated_at";
@@ -10,6 +12,18 @@ const ORDER_SELECT_FULL_LEGACY = "id, loja_id, customer_nome, customer_address, 
 const ORDER_SELECT_BASIC_LEGACY = "id, loja_id, customer_nome, customer_address, total, status, created_at, updated_at";
 const DELIVERY_SELECT_ADMIN = "id, order_id, external_delivery_id, status, tracking_url, shipday_error, provider_payload, created_at";
 const DELIVERY_SELECT_RESTAURANT = "id, order_id, status, tracking_url, shipday_error, provider_payload, created_at";
+const STORE_SELECT_WITH_SETTINGS = "idloja, nome, ativo, aceitacao_automatica_pedidos, comissao_pedeja_percent, configuracoes_comissao";
+const STORE_SELECT_LEGACY_SETTINGS = "idloja, nome, ativo, aceitacao_automatica_pedidos, comissao_pedeja_percent";
+const STORE_SELECT_BASIC = "idloja, nome, ativo";
+const COMMISSION_MENU_SELECT = `
+  idmenu,
+  idloja,
+  nome,
+  idtipomenu,
+  tiposmenu (
+    tipomenu
+  )
+`;
 
 function safeNumber(value) {
   return Number(value || 0);
@@ -37,6 +51,30 @@ function withOrderCompatibility(rows = []) {
     driver_name: order?.driver_name || null,
     driver_phone: order?.driver_phone || null,
   }));
+}
+
+function isMissingStoreSettingsColumnError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("column")
+    && (
+      message.includes("aceitacao_automatica_pedidos")
+      || message.includes("comissao_pedeja_percent")
+      || message.includes("configuracoes_comissao")
+    );
+}
+
+function withStoreSettingsCompatibility(rows = []) {
+  return (rows || []).map((store) => {
+    const commission = Number(store?.comissao_pedeja_percent);
+    const normalizedCommission = Number.isFinite(commission) ? commission : 0;
+
+    return {
+      ...store,
+      aceitacao_automatica_pedidos: Boolean(store?.aceitacao_automatica_pedidos),
+      comissao_pedeja_percent: normalizedCommission,
+      configuracoes_comissao: sanitizeCommissionConfig(store?.configuracoes_comissao, normalizedCommission),
+    };
+  });
 }
 
 function emptyMetrics() {
@@ -70,6 +108,15 @@ function normalizeLojaId(value) {
   return Number.isFinite(parsed) ? parsed : String(value).trim();
 }
 
+function normalizeCommissionValue(value) {
+  const parsed = Number(String(value).replace(",", "."));
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+    throw new Error("A comissao PedeJa deve estar entre 0 e 100.");
+  }
+
+  return Number(parsed.toFixed(2));
+}
+
 function getOrderWorkflowStatus(order) {
   return resolveOrderEstadoInterno(order);
 }
@@ -96,6 +143,136 @@ async function resolveStoreTypeIdForRequest(request) {
   const direct = Number(request?.idtipoloja);
   if (Number.isFinite(direct)) return direct;
   return resolveDefaultRestaurantTypeId();
+}
+
+export async function fetchStoresWithAdminSettings({ lojaId = null } = {}) {
+  const normalizedLojaId = normalizeLojaId(lojaId);
+
+  let storeQuery = supabase
+    .from("lojas")
+    .select(STORE_SELECT_WITH_SETTINGS)
+    .order("idloja", { ascending: true });
+
+  if (normalizedLojaId !== null) {
+    storeQuery = storeQuery.eq("idloja", normalizedLojaId);
+  }
+
+  let response = await storeQuery;
+
+  if (response.error && isMissingStoreSettingsColumnError(response.error)) {
+    let fallbackQuery = supabase
+      .from("lojas")
+      .select(STORE_SELECT_LEGACY_SETTINGS)
+      .order("idloja", { ascending: true });
+
+    if (normalizedLojaId !== null) {
+      fallbackQuery = fallbackQuery.eq("idloja", normalizedLojaId);
+    }
+
+    response = await fallbackQuery;
+
+    if (response.error && isMissingStoreSettingsColumnError(response.error)) {
+      let basicFallbackQuery = supabase
+        .from("lojas")
+        .select(STORE_SELECT_BASIC)
+        .order("idloja", { ascending: true });
+
+      if (normalizedLojaId !== null) {
+        basicFallbackQuery = basicFallbackQuery.eq("idloja", normalizedLojaId);
+      }
+
+      response = await basicFallbackQuery;
+    }
+  }
+
+  if (response.error) throw response.error;
+
+  return withStoreSettingsCompatibility(response.data || []);
+}
+
+export async function updateRestaurantAdminSettings(lojaId, patch = {}) {
+  const normalizedLojaId = normalizeLojaId(lojaId);
+  if (normalizedLojaId === null) {
+    throw new Error("Loja invalida para atualizar configuracao.");
+  }
+
+  const updatePayload = {};
+
+  if (Object.prototype.hasOwnProperty.call(patch, "aceitacao_automatica_pedidos")) {
+    updatePayload.aceitacao_automatica_pedidos = Boolean(patch.aceitacao_automatica_pedidos);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "comissao_pedeja_percent")) {
+    updatePayload.comissao_pedeja_percent = normalizeCommissionValue(patch.comissao_pedeja_percent);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "configuracoes_comissao")) {
+    const fallbackGlobalPercent = Object.prototype.hasOwnProperty.call(updatePayload, "comissao_pedeja_percent")
+      ? updatePayload.comissao_pedeja_percent
+      : patch?.configuracoes_comissao?.global_percent;
+    updatePayload.configuracoes_comissao = sanitizeCommissionConfig(
+      patch.configuracoes_comissao,
+      fallbackGlobalPercent ?? 0,
+    );
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("lojas")
+    .update(updatePayload)
+    .eq("idloja", normalizedLojaId)
+    .select(STORE_SELECT_WITH_SETTINGS)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingStoreSettingsColumnError(error)) {
+      throw new Error("As colunas de configuracao ainda nao existem. Executa a migration 009_dashboard_restaurant_settings.sql.");
+    }
+
+    throw error;
+  }
+
+  return withStoreSettingsCompatibility(data ? [data] : [])[0] || null;
+}
+
+export async function fetchStoreCommissionCatalog(lojaId) {
+  const normalizedLojaId = normalizeLojaId(lojaId);
+  if (normalizedLojaId === null) {
+    return { categories: [], items: [] };
+  }
+
+  const { data, error } = await supabase
+    .from("menus")
+    .select(COMMISSION_MENU_SELECT)
+    .eq("idloja", normalizedLojaId)
+    .order("idtipomenu", { ascending: true })
+    .order("nome", { ascending: true });
+
+  if (error) throw error;
+
+  const categoryMap = new Map();
+  const items = (data || []).map((menuItem) => {
+    const relation = Array.isArray(menuItem?.tiposmenu)
+      ? menuItem.tiposmenu[0]
+      : menuItem?.tiposmenu;
+    const categoryName = String(relation?.tipomenu || "Geral").trim() || "Geral";
+
+    categoryMap.set(categoryName.toLowerCase(), categoryName);
+
+    return {
+      idmenu: menuItem.idmenu,
+      nome: menuItem.nome || `Prato ${menuItem.idmenu}`,
+      categoria: categoryName,
+    };
+  });
+
+  return {
+    categories: Array.from(categoryMap.values()).sort((a, b) => a.localeCompare(b, "pt-PT")),
+    items,
+  };
 }
 
 function buildMetrics(orders, deliveries) {
@@ -253,10 +430,12 @@ function withOrderFilters(query, { since = null, lojaId = null } = {}) {
 
 async function queryOrdersRaw({ since = null, lojaId = null, limit = 220, basic = false } = {}) {
   const select = basic ? ORDER_SELECT_BASIC : ORDER_SELECT_FULL;
+  const nowIso = new Date().toISOString();
 
   let query = supabase
     .from("orders")
     .select(select)
+    .lte("created_at", nowIso)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -279,6 +458,7 @@ async function queryOrdersRaw({ since = null, lojaId = null, limit = 220, basic 
     let legacyQuery = supabase
       .from("orders")
       .select(legacySelect)
+      .lte("created_at", nowIso)
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -403,7 +583,7 @@ export async function fetchAdminDashboard(periodDays = 7) {
     const [ordersRes, deliveriesRes, storesRes, requestsRes, storeTypesRes] = await Promise.all([
       fetchOrdersForDashboard({ since, limit: 300 }),
       fetchDeliveriesForDashboard({ since, limit: 300 }),
-      supabase.from("lojas").select("idloja, nome, ativo").order("idloja", { ascending: true }),
+      fetchStoresWithAdminSettings(),
       supabase
         .from("restaurant_signup_requests")
         .select("id, nome, email, telefone, restaurante_nome, nif, morada_completa, horario_funcionamento, latitude, longitude, place_id, user_id, idtipoloja, imagemfundo, icon, status, created_at")
@@ -417,11 +597,10 @@ export async function fetchAdminDashboard(periodDays = 7) {
 
     if (ordersRes.error) throw ordersRes.error;
     if (deliveriesRes.error) throw deliveriesRes.error;
-    if (storesRes.error) throw storesRes.error;
 
     const orders = ordersRes.data || [];
     const deliveries = deliveriesRes.data || [];
-    const stores = storesRes.data || [];
+    const stores = storesRes || [];
 
     return {
       orders,
@@ -529,6 +708,8 @@ export async function fetchRestaurantDashboard({ lojaId, periodDays = 7 }) {
 }
 
 export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId = null, options = {}) {
+  assertSupabaseClientAvailable("opsDashboardService.updateOrderWorkflowStatus");
+
   const mappedFromLegacy = mapLegacyStatusToEstadoInterno(estadoInterno);
   const normalizedEstado = mappedFromLegacy || String(estadoInterno || "").trim().toLowerCase();
 
@@ -561,7 +742,20 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
   }
 
   const { data: currentOrder, error: lookupError } = await lookupQuery.maybeSingle();
-  if (lookupError) throw lookupError;
+  if (lookupError) {
+    console.error("Erro ao consultar pedido antes de atualizar workflow", {
+      orderId,
+      lojaId: normalizedLojaId,
+      estadoInterno: normalizedEstado,
+      response: {
+        code: lookupError.code || null,
+        message: lookupError.message || null,
+        details: lookupError.details || null,
+        hint: lookupError.hint || null,
+      },
+    });
+    throw lookupError;
+  }
   if (!currentOrder) {
     throw new Error("Pedido nao encontrado para esta loja.");
   }
@@ -596,7 +790,21 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
     .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone")
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error("Erro ao atualizar workflow do pedido", {
+      orderId,
+      lojaId: normalizedLojaId,
+      estadoInterno: normalizedEstado,
+      patch,
+      response: {
+        code: error.code || null,
+        message: error.message || null,
+        details: error.details || null,
+        hint: error.hint || null,
+      },
+    });
+    throw error;
+  }
   if (!data) {
     throw new Error("Pedido nao encontrado para esta loja.");
   }

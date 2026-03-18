@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BARCELOS_CENTER,
   BARCELOS_DELIVERY_TIERS,
   computeDeliveryQuoteByDistance,
   formatDistanceKm,
@@ -15,19 +14,14 @@ import {
 import "../css/components/LocationPickerModal.css";
 
 const RING_COLORS = ["#ef4444", "#f97316", "#f59e0b", "#06b6d4", "#6366f1", "#8b5cf6", "#10b981"];
+const FIXED_BARCELOS_CENTER = Object.freeze({
+  lat: 41.5315,
+  lng: -8.6186,
+});
 
 function isFiniteCoordinate(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed);
-}
-
-function toLatLng(value, fallback) {
-  const lat = Number(value?.lat);
-  const lng = Number(value?.lng);
-  if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    return { lat, lng };
-  }
-  return fallback;
 }
 
 function createCircleColor(index) {
@@ -40,7 +34,6 @@ export default function LocationPickerModal({
   subtitle = "Arrasta o marcador ou clica no mapa para escolher o ponto exato.",
   initialLat = null,
   initialLng = null,
-  origin = null,
   onCancel,
   onConfirm,
 }) {
@@ -49,16 +42,12 @@ export default function LocationPickerModal({
   const markerRef = useRef(null);
   const circlesRef = useRef([]);
 
-  const originPoint = useMemo(
-    () => toLatLng(origin, BARCELOS_CENTER),
-    [origin?.lat, origin?.lng],
-  );
   const initialPoint = useMemo(
     () => ({
-      lat: isFiniteCoordinate(initialLat) ? Number(initialLat) : originPoint.lat,
-      lng: isFiniteCoordinate(initialLng) ? Number(initialLng) : originPoint.lng,
+      lat: isFiniteCoordinate(initialLat) ? Number(initialLat) : FIXED_BARCELOS_CENTER.lat,
+      lng: isFiniteCoordinate(initialLng) ? Number(initialLng) : FIXED_BARCELOS_CENTER.lng,
     }),
-    [initialLat, initialLng, originPoint.lat, originPoint.lng],
+    [initialLat, initialLng],
   );
 
   const [selectedPoint, setSelectedPoint] = useState(initialPoint);
@@ -95,7 +84,7 @@ export default function LocationPickerModal({
         }
 
         const map = new window.google.maps.Map(mapElementRef.current, {
-          center: { lat: initialPoint.lat, lng: initialPoint.lng },
+          center: FIXED_BARCELOS_CENTER,
           zoom: 13,
           minZoom: 6,
           maxZoom: 19,
@@ -122,8 +111,9 @@ export default function LocationPickerModal({
           const color = createCircleColor(index);
           return new window.google.maps.Circle({
             map,
-            center: originPoint,
+            center: FIXED_BARCELOS_CENTER,
             radius: tier.maxKm * 1000,
+            clickable: false,
             strokeColor: color,
             strokeOpacity: 0.45,
             strokeWeight: 1.4,
@@ -150,7 +140,11 @@ export default function LocationPickerModal({
           updateSelection(lat, lng);
         });
 
-        setTimeout(() => window.google.maps.event.trigger(map, "resize"), 120);
+        setTimeout(() => {
+          window.google.maps.event.trigger(map, "resize");
+          map.setCenter(FIXED_BARCELOS_CENTER);
+          map.setZoom(13);
+        }, 120);
       })
       .catch((error) => {
         if (cancelled) return;
@@ -167,7 +161,7 @@ export default function LocationPickerModal({
       markerRef.current = null;
       mapRef.current = null;
     };
-  }, [isOpen, originPoint.lat, originPoint.lng, initialPoint.lat, initialPoint.lng]);
+  }, [isOpen, initialPoint.lat, initialPoint.lng]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -176,7 +170,7 @@ export default function LocationPickerModal({
     setDistanceLoading(true);
     setErrorMessage("");
 
-    getDrivingDistanceKm(originPoint, selectedPoint)
+    getDrivingDistanceKm(FIXED_BARCELOS_CENTER, selectedPoint)
       .then((value) => {
         if (cancelled) return;
         setDistanceKm(value);
@@ -193,7 +187,7 @@ export default function LocationPickerModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, originPoint.lat, originPoint.lng, selectedPoint.lat, selectedPoint.lng]);
+  }, [isOpen, selectedPoint.lat, selectedPoint.lng]);
 
   if (!isOpen) return null;
 

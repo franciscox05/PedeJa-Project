@@ -17,6 +17,7 @@ import {
   getDrivingDistanceKm,
 } from "../services/googleMapsService";
 import { extractUserId } from "../utils/roles";
+import { resolveDisplayPrice } from "../services/pricingService";
 import { supabase } from "../services/supabaseClient";
 import LocationPickerModal from "../components/LocationPickerModal";
 import "../css/Carrinho.css";
@@ -71,6 +72,8 @@ export default function Carrinho() {
     nome: "",
     lat: null,
     lng: null,
+    comissao_pedeja_percent: null,
+    configuracoes_comissao: null,
   });
   const [storeOriginLoading, setStoreOriginLoading] = useState(false);
 
@@ -92,7 +95,11 @@ export default function Carrinho() {
     [addresses, selectedAddressId],
   );
 
-  const subtotal = cart.reduce((acc, item) => acc + item.preco * item.qtd, 0);
+  const storePricingSource = storeOrigin;
+  const subtotal = cart.reduce(
+    (acc, item) => acc + resolveDisplayPrice(item, storePricingSource) * Number(item.qtd || 1),
+    0,
+  );
   const taxaEntrega = deliveryQuote.deliverable ? Number(deliveryQuote.fee || 0) : 0;
   const totalFinal = subtotal + taxaEntrega;
 
@@ -121,29 +128,55 @@ export default function Carrinho() {
 
   const loadStoreOrigin = async () => {
     if (!cartLojaId) {
-      setStoreOrigin({ idloja: null, nome: "", lat: null, lng: null });
+      setStoreOrigin({
+        idloja: null,
+        nome: "",
+        lat: null,
+        lng: null,
+        comissao_pedeja_percent: null,
+        configuracoes_comissao: null,
+      });
       return;
     }
 
     setStoreOriginLoading(true);
     try {
-      const { data, error } = await supabase
+      let response = await supabase
         .from("lojas")
-        .select("idloja, nome, latitude, longitude")
+        .select("idloja, nome, latitude, longitude, comissao_pedeja_percent, configuracoes_comissao")
         .eq("idloja", cartLojaId)
         .maybeSingle();
 
-      if (error) throw error;
-      if (!data) throw new Error("Loja nao encontrada para calcular entrega.");
+      if (response.error && /configuracoes_comissao/i.test(String(response.error.message || ""))) {
+        response = await supabase
+          .from("lojas")
+          .select("idloja, nome, latitude, longitude, comissao_pedeja_percent")
+          .eq("idloja", cartLojaId)
+          .maybeSingle();
+      }
+
+      if (response.error) throw response.error;
+      if (!response.data) throw new Error("Loja nao encontrada para calcular entrega.");
 
       setStoreOrigin({
-        idloja: data.idloja,
-        nome: data.nome || `Loja #${cartLojaId}`,
-        lat: isFiniteCoordinate(data.latitude) ? Number(data.latitude) : null,
-        lng: isFiniteCoordinate(data.longitude) ? Number(data.longitude) : null,
+        idloja: response.data.idloja,
+        nome: response.data.nome || `Loja #${cartLojaId}`,
+        lat: isFiniteCoordinate(response.data.latitude) ? Number(response.data.latitude) : null,
+        lng: isFiniteCoordinate(response.data.longitude) ? Number(response.data.longitude) : null,
+        comissao_pedeja_percent: Number.isFinite(Number(response.data.comissao_pedeja_percent))
+          ? Number(response.data.comissao_pedeja_percent)
+          : 0,
+        configuracoes_comissao: response.data.configuracoes_comissao || null,
       });
     } catch (error) {
-      setStoreOrigin({ idloja: cartLojaId, nome: "", lat: null, lng: null });
+      setStoreOrigin({
+        idloja: cartLojaId,
+        nome: "",
+        lat: null,
+        lng: null,
+        comissao_pedeja_percent: null,
+        configuracoes_comissao: null,
+      });
       setDeliveryQuote({
         deliverable: false,
         fee: 0,
@@ -201,6 +234,36 @@ export default function Carrinho() {
 
   useEffect(() => {
     loadStoreOrigin();
+  }, [cartLojaId]);
+
+  useEffect(() => {
+    if (!cartLojaId) return undefined;
+
+    const channel = supabase
+      .channel(`store-commission-cart-${cartLojaId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "lojas",
+          filter: `idloja=eq.${cartLojaId}`,
+        },
+        (payload) => {
+          setStoreOrigin((prev) => ({
+            ...prev,
+            comissao_pedeja_percent: Number.isFinite(Number(payload?.new?.comissao_pedeja_percent))
+              ? Number(payload.new.comissao_pedeja_percent)
+              : 0,
+            configuracoes_comissao: payload?.new?.configuracoes_comissao || null,
+          }));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [cartLojaId]);
 
   const handleVoltar = () => {
@@ -566,6 +629,7 @@ export default function Carrinho() {
 
       const resultado = await criarPedidoCheckout({
         cart,
+        storePricingSource,
         deliveryFee: Number(quoteToUse.fee || 0),
         deliverySchedule: {
           mode: deliveryMode,
@@ -628,8 +692,12 @@ export default function Carrinho() {
 
       <div className="cart-content-grid">
         <div className="cart-items-list">
-          {cart.map((item) => (
-            <div key={item.idmenu} className="cart-item-card">
+          {cart.map((item) => {
+            const itemUnitPrice = resolveDisplayPrice(item, storePricingSource);
+            const itemTotalPrice = itemUnitPrice * Number(item.qtd || 1);
+
+            return (
+              <div key={item.idmenu} className="cart-item-card">
               <div className="cart-item-info">
                 <div className="cart-item-img-box">
                   {item.imagem ? <img src={item.imagem} alt={item.nome} /> : <span className="material-icons" style={{ fontSize: "40px", color: "#ccc" }}>restaurant</span>}
@@ -646,13 +714,14 @@ export default function Carrinho() {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "10px" }}>
-                <div className="cart-item-total-price">{(item.preco * item.qtd).toFixed(2)}EUR</div>
+                <div className="cart-item-total-price">{itemTotalPrice.toFixed(2)}EUR</div>
                 <button className="btn-remove-item" onClick={() => removeFromCart(item.idmenu)} title="Remover produto" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <span className="material-icons" style={{ fontSize: "20px" }}>delete</span>
                 </button>
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
 
         <div className="cart-summary-panel">

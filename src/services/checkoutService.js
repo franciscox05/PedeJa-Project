@@ -1,13 +1,54 @@
 import { supabase } from "./supabaseClient";
 import { isStoreOpenAt } from "../utils/storeHours";
+import { resolveDisplayPrice } from "./pricingService";
+import { buildSupabaseFunctionHeaders, getSupabaseFunctionUrl } from "./supabaseClient";
 
-function normalizeItems(cart) {
+function parseJsonSafely(rawText) {
+  if (!rawText || !String(rawText).trim()) return null;
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    return null;
+  }
+}
+
+async function invokePublicEdgeFunction(functionName, payload) {
+  const headers = await buildSupabaseFunctionHeaders();
+
+  const response = await fetch(getSupabaseFunctionUrl(functionName), {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const rawText = await response.text();
+  const parsed = parseJsonSafely(rawText);
+
+  if (!response.ok) {
+    console.error("Falha ao invocar edge function publica", {
+      functionName,
+      status: response.status,
+      payload,
+      response: parsed || rawText || null,
+    });
+    throw new Error(
+      parsed?.error
+      || parsed?.message
+      || rawText
+      || `Falha ao invocar ${functionName} (${response.status}).`,
+    );
+  }
+
+  return parsed;
+}
+
+function normalizeItems(cart, storePricingSource = null) {
   return cart.map((item) => ({
     menu_id: item.idmenu,
     nome: item.nome,
-    preco_unitario: Number(item.preco || 0),
+    preco_unitario: resolveDisplayPrice(item, storePricingSource),
     quantidade: Number(item.qtd || 1),
-    subtotal: Number(item.preco || 0) * Number(item.qtd || 1),
+    subtotal: resolveDisplayPrice(item, storePricingSource) * Number(item.qtd || 1),
   }));
 }
 
@@ -91,6 +132,7 @@ async function assertStoreOpenForSchedule(lojaId, deliverySchedule) {
 
 export async function criarPedidoCheckout({
   cart,
+  storePricingSource = null,
   customer,
   deliveryFee = 2.5,
   deliverySchedule = { mode: "ASAP", scheduledAt: null },
@@ -107,7 +149,7 @@ export async function criarPedidoCheckout({
 
   await assertStoreOpenForSchedule(lojaId, deliverySchedule);
 
-  const items = normalizeItems(cart);
+  const items = normalizeItems(cart, storePricingSource);
   const subtotal = items.reduce((acc, item) => acc + item.subtotal, 0);
 
   const tax = Number(customer?.tax || 0);
@@ -139,15 +181,11 @@ export async function criarPedidoCheckout({
     payment_method: shipdayPaymentMethod,
     payment_label: selectedPayment,
     credit_card_type: customer?.credit_card_type || null,
+    order_timing_mode: deliverySchedule?.mode === "SCHEDULED" ? "SCHEDULED" : "ASAP",
+    scheduled_for: deliverySchedule?.mode === "SCHEDULED" ? expectedDelivery.toISOString() : null,
   };
 
-  const { data, error } = await supabase.functions.invoke("create-order", {
-    body: payload,
-  });
-
-  if (error) {
-    throw new Error(error.message || "Falha ao criar pedido.");
-  }
+  const data = await invokePublicEdgeFunction("create-order", payload);
 
   if (!data?.order_id) {
     throw new Error("Resposta invalida do checkout.");

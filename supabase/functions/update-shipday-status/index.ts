@@ -22,7 +22,7 @@ serve(async (req) => {
     } else if (new_status === 'em_preparacao') {
       endpoint = `https://api.shipday.com/internal/order/notreadytopickup/${shipday_order_id}`;
     } else if (new_status === 'desassociar') {
-      endpoint = `https://api.shipday.com/internal/order/unassign/${shipday_order_id}`;
+      endpoint = `https://api.shipday.com/orders/unassign/${shipday_order_id}`;
     } 
     // 2. COMANDOS GOD MODE (ADMIN)
     else if (new_status === 'recolhido') {

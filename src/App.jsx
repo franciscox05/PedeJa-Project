@@ -7,6 +7,7 @@ import Menus from "./pages/menus";
 import Carrinho from "./pages/carrinho";
 import PedidoConfirmado from "./pages/pedidoConfirmado";
 import DashboardAdmin from "./pages/dashboardAdmin";
+import DashboardRevenue from "./pages/dashboardRevenue";
 import DashboardRestaurante from "./pages/dashboardRestaurante";
 import DashboardDev from "./pages/dashboardDev";
 import MenuManager from "./pages/menuManager";
@@ -19,6 +20,7 @@ import { resolveUserRole } from "./utils/roles";
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const isDashboardRoute = location.pathname.startsWith("/dashboard/");
 
   useEffect(() => {
     const handleContextMenu = (e) => {
@@ -34,6 +36,10 @@ export default function App() {
 
     document.addEventListener("contextmenu", handleContextMenu);
     document.addEventListener("mousedown", handleMouseDown);
+    document.body.style.backgroundColor = isDashboardRoute ? "#f5f5f5" : "";
+    document.body.style.backgroundImage = isDashboardRoute ? "none" : "";
+    document.documentElement.style.backgroundColor = isDashboardRoute ? "#f5f5f5" : "";
+    document.documentElement.style.backgroundImage = isDashboardRoute ? "none" : "";
 
     const maybeRedirectRestaurant = () => {
       const raw = localStorage.getItem("pedeja_user");
@@ -64,12 +70,16 @@ export default function App() {
     return () => {
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("mousedown", handleMouseDown);
+      document.body.style.backgroundColor = "";
+      document.body.style.backgroundImage = "";
+      document.documentElement.style.backgroundColor = "";
+      document.documentElement.style.backgroundImage = "";
     };
-  }, [location.pathname, location.search, navigate]);
+  }, [isDashboardRoute, location.pathname, location.search, navigate]);
 
   return (
     <CartProvider>
-      <main className="main-content">
+      <main className={`main-content${isDashboardRoute ? " main-content--dashboard" : ""}`}>
         <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/categorias/:city" element={<Categorias />} />
@@ -101,6 +111,15 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <DashboardAdmin />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/receita"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <DashboardRevenue />
               </ProtectedRoute>
             }
           />
