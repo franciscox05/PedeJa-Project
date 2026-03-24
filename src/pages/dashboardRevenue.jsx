@@ -76,7 +76,7 @@ export default function DashboardRevenue() {
   return (
     <DashboardSidebarLayout
       tabs={ADMIN_DASHBOARD_TABS}
-      activeTabId="dashboard"
+      activeTab="dashboard"
       onTabChange={(tabId) => navigate(`/dashboard/admin?tab=${tabId}`)}
       title="PedeJa Control Center"
       subtitle="Origem da receita faturada, comissao e performance por loja/estafeta."
@@ -101,6 +101,9 @@ export default function DashboardRevenue() {
               <option value={90}>Ultimos 90 dias</option>
             </select>
             <button className="btn-dashboard" onClick={() => load(periodDays)}>Atualizar</button>
+            <button className="btn-dashboard secondary" onClick={() => navigate(`/dashboard/admin/performance?days=${periodDays}`)}>
+              Performance
+            </button>
             <button className="btn-dashboard secondary" onClick={() => navigate("/dashboard/admin")}>Voltar ao dashboard</button>
           </div>
         </header>

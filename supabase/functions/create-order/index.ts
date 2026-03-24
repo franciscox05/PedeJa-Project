@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { computeDeliveryQuoteByDistance } from "../_shared/deliveryPricing.ts";
+import {
+  BARCELOS_CENTER,
+  computeDeliveryQuoteByDistance,
+  resolveEffectiveDeliveryPricingConfig,
+} from "../_shared/deliveryPricing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,6 +64,30 @@ function isMissingOrderColumnError(error: { message?: string } | null | undefine
     && message.includes(String(columnName || "").toLowerCase());
 }
 
+function isMissingOrderItemsColumnError(error: { message?: string } | null | undefined, columnName: string) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("column")
+    && message.includes("order_items")
+    && message.includes(String(columnName || "").toLowerCase());
+}
+
+function isMissingStoreColumnError(error: { message?: string } | null | undefined, columnName: string) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("column")
+    && message.includes("lojas")
+    && message.includes(String(columnName || "").toLowerCase());
+}
+
+function isMissingPlatformSettingsTableError(error: { message?: string } | null | undefined) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("configuracoes_plataforma")
+    && (
+      message.includes("does not exist")
+      || message.includes("relation")
+      || message.includes("table")
+    );
+}
+
 function stripUnsupportedOrderColumns(
   orderPayload: Record<string, unknown>,
   error: { message?: string } | null | undefined,
@@ -67,7 +95,7 @@ function stripUnsupportedOrderColumns(
   const message = String(error?.message || "").toLowerCase();
   const nextPayload = { ...orderPayload };
 
-  ["data_aceitacao", "submitted_at", "order_timing_mode", "payment_method", "payment_label"].forEach((columnName) => {
+  ["data_aceitacao", "aceite_em", "submitted_at", "order_timing_mode", "payment_method", "payment_label", "scheduled_for"].forEach((columnName) => {
     if (message.includes("column") && message.includes("orders") && message.includes(columnName)) {
       delete nextPayload[columnName];
     }
@@ -119,10 +147,12 @@ async function insertOrderWithCompatibility(
 
   const shouldRetryCompatibility = response.error && (
     isMissingOrderColumnError(response.error, "data_aceitacao")
+    || isMissingOrderColumnError(response.error, "aceite_em")
     || isMissingOrderColumnError(response.error, "submitted_at")
     || isMissingOrderColumnError(response.error, "order_timing_mode")
     || isMissingOrderColumnError(response.error, "payment_method")
     || isMissingOrderColumnError(response.error, "payment_label")
+    || isMissingOrderColumnError(response.error, "scheduled_for")
   );
 
   if (shouldRetryCompatibility) {
@@ -135,6 +165,25 @@ async function insertOrderWithCompatibility(
       .insert(fallbackPayload)
       .select("id")
       .single();
+  }
+
+  return response;
+}
+
+async function insertOrderItemsWithCompatibility(
+  supabase: ReturnType<typeof createClient>,
+  orderItemsPayload: Record<string, unknown>[],
+) {
+  let response = await supabase
+    .from("order_items")
+    .insert(orderItemsPayload);
+
+  if (response.error && isMissingOrderItemsColumnError(response.error, "opcoes_selecionadas")) {
+    console.warn("create-order newer order_items columns missing, retrying insert in compatibility mode");
+    const fallbackPayload = orderItemsPayload.map(({ opcoes_selecionadas, ...item }) => item);
+    response = await supabase
+      .from("order_items")
+      .insert(fallbackPayload);
   }
 
   return response;
@@ -176,6 +225,26 @@ async function calculateDrivingDistanceKm(
   }
 
   return meters / 1000;
+}
+
+async function fetchGlobalDeliveryPricingConfig(
+  supabase: ReturnType<typeof createClient>,
+) {
+  const response = await supabase
+    .from("configuracoes_plataforma")
+    .select("valor")
+    .eq("chave", "delivery_pricing_default")
+    .maybeSingle();
+
+  if (response.error) {
+    if (isMissingPlatformSettingsTableError(response.error)) {
+      return null;
+    }
+
+    throw response.error;
+  }
+
+  return response.data?.valor ?? null;
 }
 
 serve(async (req) => {
@@ -220,11 +289,21 @@ serve(async (req) => {
       return json({ error: "Morada sem coordenadas. Marca o ponto no mapa para continuar." }, 400);
     }
 
-    const { data: loja, error: lojaError } = await supabase
+    let lojaResponse = await supabase
       .from("lojas")
-      .select("idloja, nome, latitude, longitude, aceitacao_automatica_pedidos")
+      .select("idloja, nome, taxaentrega, aceitacao_automatica_pedidos, configuracao_entrega")
       .eq("idloja", lojaId)
       .maybeSingle();
+
+    if (lojaResponse.error && isMissingStoreColumnError(lojaResponse.error, "configuracao_entrega")) {
+      lojaResponse = await supabase
+        .from("lojas")
+        .select("idloja, nome, taxaentrega, aceitacao_automatica_pedidos")
+        .eq("idloja", lojaId)
+        .maybeSingle();
+    }
+
+    const { data: loja, error: lojaError } = lojaResponse;
 
     if (lojaError) {
       return json({ error: lojaError.message }, 500);
@@ -239,19 +318,24 @@ serve(async (req) => {
       aceitacao_automatica_pedidos: loja.aceitacao_automatica_pedidos,
     });
 
-    const lojaLat = toNullableNumber(loja.latitude);
-    const lojaLng = toNullableNumber(loja.longitude);
-    if (lojaLat === null || lojaLng === null) {
-      return json({ error: "Loja sem geolocalizacao configurada para entregas." }, 400);
-    }
+    const globalDeliveryPricingConfig = await fetchGlobalDeliveryPricingConfig(supabase);
+    const effectiveDeliveryPricingConfig = resolveEffectiveDeliveryPricingConfig(
+      loja.configuracao_entrega ?? null,
+      globalDeliveryPricingConfig,
+      loja.taxaentrega ?? null,
+    );
 
     const drivingDistanceKm = await calculateDrivingDistanceKm(
-      { lat: lojaLat, lng: lojaLng },
+      BARCELOS_CENTER,
       { lat: customerLat, lng: customerLng },
       googleMapsApiKey,
     );
 
-    const deliveryQuote = computeDeliveryQuoteByDistance(drivingDistanceKm);
+    const deliveryQuote = computeDeliveryQuoteByDistance(
+      drivingDistanceKm,
+      effectiveDeliveryPricingConfig,
+      loja.taxaentrega ?? null,
+    );
     if (!deliveryQuote.deliverable) {
       return json({
         error: deliveryQuote.reason || "Morada fora da zona de entrega.",
@@ -273,10 +357,11 @@ serve(async (req) => {
       && !Number.isNaN(scheduledForDate.getTime())
       && scheduledForDate.getTime() > Date.now(),
     );
-    const effectiveCreatedAt = isScheduledOrder && scheduledForDate
+    const scheduledForIso = isScheduledOrder && scheduledForDate
       ? scheduledForDate.toISOString()
-      : submittedAt;
-    const autoAcceptEnabled = Boolean(loja.aceitacao_automatica_pedidos) && !isScheduledOrder;
+      : null;
+    const autoAcceptEnabled = Boolean(loja.aceitacao_automatica_pedidos);
+    const shouldCreateShipdayImmediately = autoAcceptEnabled && !isScheduledOrder;
     const initialStatus = autoAcceptEnabled ? "CONFIRMED" : "PENDING";
     const initialEstadoInterno = autoAcceptEnabled ? "aceite" : "pendente";
     const acceptedAt = autoAcceptEnabled ? submittedAt : null;
@@ -300,10 +385,12 @@ serve(async (req) => {
       status: initialStatus,
       estado_interno: initialEstadoInterno,
       data_aceitacao: acceptedAt,
+      aceite_em: acceptedAt,
       submitted_at: submittedAt,
       order_timing_mode: isScheduledOrder ? "SCHEDULED" : "ASAP",
-      created_at: effectiveCreatedAt,
-      updated_at: effectiveCreatedAt,
+      scheduled_for: scheduledForIso,
+      created_at: submittedAt,
+      updated_at: submittedAt,
     };
 
     const { data: insertedOrder, error: orderError } = await insertOrderWithCompatibility(
@@ -324,9 +411,10 @@ serve(async (req) => {
       quantidade: toNumber(item.quantidade, 1),
       preco_unitario: toNumber(item.preco_unitario, 0),
       subtotal: toNumber(item.subtotal, 0),
+      opcoes_selecionadas: Array.isArray(item?.opcoes_selecionadas) ? item.opcoes_selecionadas : [],
     }));
 
-    const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+    const { error: itemsError } = await insertOrderItemsWithCompatibility(supabase, orderItems);
     if (itemsError) {
       await supabase.from("orders").delete().eq("id", orderId);
       return json({ error: itemsError.message }, 500);
@@ -335,7 +423,7 @@ serve(async (req) => {
     let shipdayResult: any = null;
     let shipdayErrorMessage: string | null = null;
 
-    if (autoAcceptEnabled) {
+    if (shouldCreateShipdayImmediately) {
       try {
         shipdayResult = await invokeInternalFunction(supabaseUrl, serviceRoleKey, "shipday-api", {
           action: "create_order",
@@ -365,10 +453,11 @@ serve(async (req) => {
       distancia_km: drivingDistanceKm,
       auto_accept_enabled: Boolean(loja.aceitacao_automatica_pedidos),
       auto_accept_applied: autoAcceptEnabled,
+      shipday_auto_created: shouldCreateShipdayImmediately,
       data_aceitacao: acceptedAt,
       submitted_at: submittedAt,
       order_timing_mode: isScheduledOrder ? "SCHEDULED" : "ASAP",
-      scheduled_for: isScheduledOrder ? effectiveCreatedAt : null,
+      scheduled_for: scheduledForIso,
       shipday_error: shipdayErrorMessage,
       shipday_order_id: shipdayResult?.shipday_order_id || null,
       shipday_tracking_url: shipdayResult?.shipday_tracking_url || null,

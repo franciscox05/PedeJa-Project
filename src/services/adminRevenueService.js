@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { resolveCommissionPercentForItem } from "./pricingService";
+import { resolveOrderEstadoInterno } from "./orderStatusMapper";
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -264,17 +265,28 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7) {
   const since = daysToIso(periodDays);
   const until = new Date().toISOString();
 
-  const ordersRes = await supabase
+  let ordersRes = await supabase
     .from("orders")
-    .select("id, loja_id, subtotal, taxa_entrega, total, driver_name, driver_phone, created_at")
-    .gte("created_at", since)
+    .select("id, loja_id, subtotal, taxa_entrega, total, driver_name, driver_phone, created_at, submitted_at, status, estado_interno")
+    .or(`submitted_at.gte.${since},and(submitted_at.is.null,created_at.gte.${since})`)
     .lte("created_at", until)
     .order("created_at", { ascending: false })
     .limit(1200);
 
+  if (ordersRes.error && /submitted_at/i.test(String(ordersRes.error.message || ""))) {
+    ordersRes = await supabase
+      .from("orders")
+      .select("id, loja_id, subtotal, taxa_entrega, total, driver_name, driver_phone, created_at, status, estado_interno")
+      .gte("created_at", since)
+      .lte("created_at", until)
+      .order("created_at", { ascending: false })
+      .limit(1200);
+  }
+
   if (ordersRes.error) throw ordersRes.error;
 
-  const orders = ordersRes.data || [];
+  const allOrders = ordersRes.data || [];
+  const orders = allOrders.filter((order) => resolveOrderEstadoInterno(order) !== "cancelado");
   if (!orders.length) {
     return createEmptyRevenueData(periodDays);
   }

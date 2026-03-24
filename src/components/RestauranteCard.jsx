@@ -194,14 +194,16 @@ function RestauranteCard({
             </div>
 
             <div className="store-details-block">
-              <span>Taxa de entrega</span>
-              <p>{Number(restaurante.taxaentrega || 0).toFixed(2)}EUR</p>
-            </div>
-
-            <div className="store-details-block">
               <span>Horario</span>
               <p>{scheduleSummary}</p>
             </div>
+
+            {restaurante.statusDetalhe ? (
+              <div className="store-details-block">
+                <span>Horario especial</span>
+                <p>{restaurante.statusDetalhe}</p>
+              </div>
+            ) : null}
 
             <div className="store-details-block">
               <span>Categorias</span>

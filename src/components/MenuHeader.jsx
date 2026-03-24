@@ -71,6 +71,7 @@ function MenuHeader({ lojaInfo }) {
 
           <div className="menu-hero-meta">
             <span><b>Horario:</b> {summarizeSchedule(lojaInfo?.horario_funcionamento)}</span>
+            {lojaInfo?.statusDetalhe ? <span><b>Excecao:</b> {lojaInfo.statusDetalhe}</span> : null}
             {lojaInfo?.morada ? <span><b>Morada:</b> {lojaInfo.morada}</span> : null}
           </div>
         </div>

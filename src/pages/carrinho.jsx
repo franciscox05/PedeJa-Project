@@ -8,18 +8,22 @@ import {
   updateAddressCoordinates,
 } from "../services/addressService";
 import {
+  BARCELOS_CENTER,
   computeDeliveryQuoteByDistance,
   formatDistanceKm,
-  MAX_BARCELOS_RADIUS_KM,
+  resolveEffectiveDeliveryPricingConfig,
+  resolveDeliveryPricingMaxKm,
 } from "../services/deliveryZoneService";
 import {
   geocodeAddressWithGoogle,
   getDrivingDistanceKm,
 } from "../services/googleMapsService";
 import { extractUserId } from "../utils/roles";
+import { groupSelectedMenuOptionsForDisplay } from "../services/menuOptionsService";
 import { resolveDisplayPrice } from "../services/pricingService";
-import { supabase } from "../services/supabaseClient";
+import { fetchGlobalDeliveryPricingConfig, supabase } from "../services/supabaseClient";
 import LocationPickerModal from "../components/LocationPickerModal";
+import DatePickerCustom from "../components/ui/DatePickerCustom";
 import "../css/Carrinho.css";
 
 function buildAddressLine({ rua, porta, codigoPostal, cidade }) {
@@ -72,9 +76,12 @@ export default function Carrinho() {
     nome: "",
     lat: null,
     lng: null,
+    taxaentrega: null,
     comissao_pedeja_percent: null,
     configuracoes_comissao: null,
+    configuracao_entrega: null,
   });
+  const [globalDeliveryPricingConfig, setGlobalDeliveryPricingConfig] = useState(null);
   const [storeOriginLoading, setStoreOriginLoading] = useState(false);
 
   const [deliveryQuote, setDeliveryQuote] = useState({
@@ -107,6 +114,10 @@ export default function Carrinho() {
     const firstId = Number(cart?.[0]?.idloja);
     return Number.isFinite(firstId) ? firstId : null;
   }, [cart]);
+  const deliveryMaxKm = useMemo(
+    () => resolveDeliveryPricingMaxKm(storeOrigin.configuracao_entrega),
+    [storeOrigin.configuracao_entrega],
+  );
 
   const validarNovaMorada = () => {
     if (isFiniteCoordinate(newAddressGeo?.lat) && isFiniteCoordinate(newAddressGeo?.lng)) {
@@ -133,40 +144,58 @@ export default function Carrinho() {
         nome: "",
         lat: null,
         lng: null,
+        taxaentrega: null,
         comissao_pedeja_percent: null,
         configuracoes_comissao: null,
+        configuracao_entrega: null,
       });
+      setGlobalDeliveryPricingConfig(null);
       return;
     }
 
     setStoreOriginLoading(true);
     try {
-      let response = await supabase
-        .from("lojas")
-        .select("idloja, nome, latitude, longitude, comissao_pedeja_percent, configuracoes_comissao")
-        .eq("idloja", cartLojaId)
-        .maybeSingle();
+      const [globalDeliveryPricing, initialStoreResponse] = await Promise.all([
+        fetchGlobalDeliveryPricingConfig(),
+        supabase
+          .from("lojas")
+          .select("idloja, nome, latitude, longitude, taxaentrega, comissao_pedeja_percent, configuracoes_comissao, configuracao_entrega")
+          .eq("idloja", cartLojaId)
+          .maybeSingle(),
+      ]);
+      let response = initialStoreResponse;
 
-      if (response.error && /configuracoes_comissao/i.test(String(response.error.message || ""))) {
+      if (response.error && /configuracoes_comissao|configuracao_entrega/i.test(String(response.error.message || ""))) {
         response = await supabase
           .from("lojas")
-          .select("idloja, nome, latitude, longitude, comissao_pedeja_percent")
+          .select("idloja, nome, latitude, longitude, taxaentrega, comissao_pedeja_percent")
           .eq("idloja", cartLojaId)
           .maybeSingle();
       }
 
       if (response.error) throw response.error;
       if (!response.data) throw new Error("Loja nao encontrada para calcular entrega.");
+      setGlobalDeliveryPricingConfig(globalDeliveryPricing?.config || null);
+
+      const effectiveDeliveryPricingConfig = resolveEffectiveDeliveryPricingConfig(
+        response.data.configuracao_entrega || null,
+        globalDeliveryPricing?.config || null,
+        response.data.taxaentrega,
+      );
 
       setStoreOrigin({
         idloja: response.data.idloja,
         nome: response.data.nome || `Loja #${cartLojaId}`,
         lat: isFiniteCoordinate(response.data.latitude) ? Number(response.data.latitude) : null,
         lng: isFiniteCoordinate(response.data.longitude) ? Number(response.data.longitude) : null,
+        taxaentrega: Number.isFinite(Number(response.data.taxaentrega))
+          ? Number(response.data.taxaentrega)
+          : null,
         comissao_pedeja_percent: Number.isFinite(Number(response.data.comissao_pedeja_percent))
           ? Number(response.data.comissao_pedeja_percent)
           : 0,
         configuracoes_comissao: response.data.configuracoes_comissao || null,
+        configuracao_entrega: effectiveDeliveryPricingConfig,
       });
     } catch (error) {
       setStoreOrigin({
@@ -174,9 +203,12 @@ export default function Carrinho() {
         nome: "",
         lat: null,
         lng: null,
+        taxaentrega: null,
         comissao_pedeja_percent: null,
         configuracoes_comissao: null,
+        configuracao_entrega: null,
       });
+      setGlobalDeliveryPricingConfig(null);
       setDeliveryQuote({
         deliverable: false,
         fee: 0,
@@ -250,13 +282,48 @@ export default function Carrinho() {
           filter: `idloja=eq.${cartLojaId}`,
         },
         (payload) => {
+          const nextStoreSpecificConfig = payload?.new?.configuracao_entrega || null;
           setStoreOrigin((prev) => ({
             ...prev,
+            taxaentrega: Number.isFinite(Number(payload?.new?.taxaentrega))
+              ? Number(payload.new.taxaentrega)
+              : prev.taxaentrega,
             comissao_pedeja_percent: Number.isFinite(Number(payload?.new?.comissao_pedeja_percent))
               ? Number(payload.new.comissao_pedeja_percent)
               : 0,
             configuracoes_comissao: payload?.new?.configuracoes_comissao || null,
+            configuracao_entrega: resolveEffectiveDeliveryPricingConfig(
+              nextStoreSpecificConfig,
+              globalDeliveryPricingConfig,
+              payload?.new?.taxaentrega ?? prev.taxaentrega,
+            ),
           }));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [cartLojaId, globalDeliveryPricingConfig]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("global-delivery-pricing-cart")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "configuracoes_plataforma",
+          filter: "chave=eq.delivery_pricing_default",
+        },
+        async (payload) => {
+          const nextGlobalConfig = payload?.new?.valor || null;
+          setGlobalDeliveryPricingConfig(nextGlobalConfig);
+          if (cartLojaId) {
+            await loadStoreOrigin();
+          }
         },
       )
       .subscribe();
@@ -367,22 +434,16 @@ export default function Carrinho() {
       };
     }
 
-    if (!isFiniteCoordinate(storeOrigin.lat) || !isFiniteCoordinate(storeOrigin.lng)) {
-      return {
-        deliverable: false,
-        fee: 0,
-        distanceKm: null,
-        tier: null,
-        reason: "Loja sem coordenadas configuradas. Contacta o suporte.",
-      };
-    }
-
     const drivingDistanceKm = await getDrivingDistanceKm(
-      { lat: Number(storeOrigin.lat), lng: Number(storeOrigin.lng) },
+      BARCELOS_CENTER,
       { lat: Number(coords.lat), lng: Number(coords.lng) },
     );
 
-    return computeDeliveryQuoteByDistance(drivingDistanceKm);
+    return computeDeliveryQuoteByDistance(
+      drivingDistanceKm,
+      storeOrigin.configuracao_entrega,
+      storeOrigin.taxaentrega,
+    );
   };
 
   useEffect(() => {
@@ -436,7 +497,7 @@ export default function Carrinho() {
     return () => {
       cancelled = true;
     };
-  }, [useNewAddress, selectedAddressId, selectedAddress?.address_line, selectedAddress?.lat, selectedAddress?.lng, storeOrigin.lat, storeOrigin.lng]);
+  }, [useNewAddress, selectedAddressId, selectedAddress?.address_line, selectedAddress?.lat, selectedAddress?.lng, storeOrigin.configuracao_entrega, storeOrigin.taxaentrega]);
 
   useEffect(() => {
     if (!useNewAddress) return;
@@ -448,7 +509,7 @@ export default function Carrinho() {
         fee: 0,
         distanceKm: null,
         tier: null,
-        reason: `Preenche a nova morada para calcular entrega. Limite: ${MAX_BARCELOS_RADIUS_KM} km.`,
+        reason: `Preenche a nova morada para calcular entrega. Limite: ${deliveryMaxKm} km.`,
       });
       return;
     }
@@ -475,7 +536,7 @@ export default function Carrinho() {
             fee: 0,
             distanceKm: null,
             tier: null,
-            reason: `Morada fora das freguesias de Barcelos ou nao encontrada. Limite: ${MAX_BARCELOS_RADIUS_KM} km.`,
+            reason: `Morada fora das freguesias de Barcelos ou nao encontrada. Limite: ${deliveryMaxKm} km.`,
           });
           return;
         }
@@ -500,7 +561,7 @@ export default function Carrinho() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [useNewAddress, newAddress.rua, newAddress.porta, newAddress.codigoPostal, newAddress.cidade, newAddressGeo?.lat, newAddressGeo?.lng, storeOrigin.lat, storeOrigin.lng]);
+  }, [useNewAddress, newAddress.rua, newAddress.porta, newAddress.codigoPostal, newAddress.cidade, newAddressGeo?.lat, newAddressGeo?.lng, storeOrigin.configuracao_entrega, storeOrigin.taxaentrega, deliveryMaxKm]);
 
   const validarCheckout = () => {
     if (!dadosEntrega.nome.trim()) return "Preencha o nome do cliente.";
@@ -695,9 +756,10 @@ export default function Carrinho() {
           {cart.map((item) => {
             const itemUnitPrice = resolveDisplayPrice(item, storePricingSource);
             const itemTotalPrice = itemUnitPrice * Number(item.qtd || 1);
+            const cartLineId = item.cart_line_id || item.idmenu;
 
             return (
-              <div key={item.idmenu} className="cart-item-card">
+              <div key={cartLineId} className="cart-item-card">
               <div className="cart-item-info">
                 <div className="cart-item-img-box">
                   {item.imagem ? <img src={item.imagem} alt={item.nome} /> : <span className="material-icons" style={{ fontSize: "40px", color: "#ccc" }}>restaurant</span>}
@@ -705,8 +767,13 @@ export default function Carrinho() {
 
                 <div className="cart-item-details">
                   <h4>{item.nome}</h4>
+                  {groupSelectedMenuOptionsForDisplay(item.opcoes_selecionadas).map((group) => (
+                    <p key={`${cartLineId}-${group.groupId}`} style={{ margin: "4px 0 0", color: "#64748b", fontSize: "0.9rem" }}>
+                      <strong>{group.title}:</strong> {group.options.map((option) => option.option_name).join(", ")}
+                    </p>
+                  ))}
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px" }}>
-                    <button onClick={() => decreaseQuantity(item.idmenu)} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid #ddd", background: "white", cursor: "pointer" }}>-</button>
+                    <button onClick={() => decreaseQuantity(cartLineId)} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid #ddd", background: "white", cursor: "pointer" }}>-</button>
                     <span style={{ fontWeight: "bold", minWidth: "20px", textAlign: "center", fontSize: "1.1rem" }}>{item.qtd}</span>
                     <button onClick={() => addToCart(item)} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "none", background: "#ff3b30", color: "white", cursor: "pointer" }}>+</button>
                   </div>
@@ -715,7 +782,7 @@ export default function Carrinho() {
 
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "10px" }}>
                 <div className="cart-item-total-price">{itemTotalPrice.toFixed(2)}EUR</div>
-                <button className="btn-remove-item" onClick={() => removeFromCart(item.idmenu)} title="Remover produto" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button className="btn-remove-item" onClick={() => removeFromCart(cartLineId)} title="Remover produto" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <span className="material-icons" style={{ fontSize: "20px" }}>delete</span>
                 </button>
               </div>
@@ -826,11 +893,12 @@ export default function Carrinho() {
                 <option value="SCHEDULED">Escolher hora especifica</option>
               </select>
               {deliveryMode === "SCHEDULED" && (
-                <input
-                  type="datetime-local"
+                <DatePickerCustom
+                  mode="datetime"
+                  placeholder="Escolher entrega"
                   min={getNowForDateTimeLocal()}
                   value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
+                  onChange={setScheduledAt}
                 />
               )}
             </div>
@@ -871,7 +939,8 @@ export default function Carrinho() {
         subtitle="Marca o ponto exato no mapa para guardar morada e coordenadas sem erro."
         initialLat={newAddressGeo?.lat ?? null}
         initialLng={newAddressGeo?.lng ?? null}
-        origin={storeOrigin}
+        deliveryPricingConfig={storeOrigin.configuracao_entrega}
+        deliveryFeeFallback={storeOrigin.taxaentrega}
         onCancel={() => setShowMapPicker(false)}
         onConfirm={async (location) => {
           setShowMapPicker(false);

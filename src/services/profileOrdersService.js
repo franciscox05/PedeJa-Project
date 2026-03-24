@@ -16,7 +16,7 @@ const EMPTY_SUMMARY = {
   averageTicket: 0,
 };
 
-const PROFILE_ORDER_SELECT_WITH_TIMING = "id, loja_id, subtotal, taxa_entrega, total, status, estado_interno, created_at, updated_at, customer_user_id, customer_email, submitted_at, order_timing_mode";
+const PROFILE_ORDER_SELECT_WITH_TIMING = "id, loja_id, subtotal, taxa_entrega, total, status, estado_interno, created_at, updated_at, customer_user_id, customer_email, submitted_at, order_timing_mode, scheduled_for";
 const PROFILE_ORDER_SELECT_LEGACY = "id, loja_id, subtotal, taxa_entrega, total, status, estado_interno, created_at, updated_at, customer_user_id, customer_email";
 
 function toNumber(value, fallback = 0) {
@@ -62,7 +62,8 @@ function mapEstadoToneToUi(tone) {
 function buildSummary(orders = []) {
   if (!orders.length) return EMPTY_SUMMARY;
 
-  const totalSpent = orders.reduce((sum, order) => sum + toNumber(order.total, 0), 0);
+  const billableOrders = orders.filter((order) => order.status_group !== "CANCELED");
+  const totalSpent = billableOrders.reduce((sum, order) => sum + toNumber(order.total, 0), 0);
   const openOrders = orders.filter((order) => order.status_group === "OPEN").length;
   const completedOrders = orders.filter((order) => order.status_group === "COMPLETED").length;
   const canceledOrders = orders.filter((order) => order.status_group === "CANCELED").length;
@@ -73,12 +74,12 @@ function buildSummary(orders = []) {
     completedOrders,
     canceledOrders,
     totalSpent,
-    averageTicket: orders.length ? totalSpent / orders.length : 0,
+    averageTicket: billableOrders.length ? totalSpent / billableOrders.length : 0,
   };
 }
 
 function byNewest(a, b) {
-  return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  return new Date(b.submitted_at || b.created_at || 0).getTime() - new Date(a.submitted_at || a.created_at || 0).getTime();
 }
 
 function uniqueOrderRows(rows = []) {
@@ -154,6 +155,7 @@ function normalizeOrderRow(order, lojaNameMap, latestDeliveryMap) {
     updated_at: order.updated_at,
     submitted_at: order.submitted_at || null,
     order_timing_mode: order.order_timing_mode || "ASAP",
+    scheduled_for: order.scheduled_for || (String(order.order_timing_mode || "").toUpperCase() === "SCHEDULED" ? order.created_at || null : null),
     status_raw: statusInfo.raw,
     status_label: statusInfo.label,
     status_tone: statusInfo.tone,
@@ -182,7 +184,7 @@ async function fetchOrdersByUserId(userId, limit) {
   const { data, error } = await query;
 
   if (error) {
-    if (/submitted_at|order_timing_mode/i.test(String(error.message || ""))) {
+    if (/submitted_at|order_timing_mode|scheduled_for/i.test(String(error.message || ""))) {
       const fallback = await supabase
         .from("orders")
         .select(PROFILE_ORDER_SELECT_LEGACY)
@@ -218,7 +220,7 @@ async function fetchOrdersByEmail(email, limit) {
   const { data, error } = await query;
 
   if (error) {
-    if (/submitted_at|order_timing_mode/i.test(String(error.message || ""))) {
+    if (/submitted_at|order_timing_mode|scheduled_for/i.test(String(error.message || ""))) {
       const fallback = await supabase
         .from("orders")
         .select(PROFILE_ORDER_SELECT_LEGACY)

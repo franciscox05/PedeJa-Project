@@ -1,6 +1,13 @@
 import React, { useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { normalizePricedItem, resolveDisplayPrice } from "../services/pricingService";
+import {
+  buildDefaultMenuOptionSelections,
+  buildSelectedMenuOptions,
+  getMenuOptionTypeLabel,
+  hasMissingRequiredMenuOptions,
+  sanitizeMenuOptionsConfig,
+} from "../services/menuOptionsService";
 
 function resolveCategoryName(prato) {
   if (prato?.categoria_menu) {
@@ -20,11 +27,27 @@ export default function MenuCard({ prato }) {
   const [showModal, setShowModal] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showSoldOutNotice, setShowSoldOutNotice] = useState(false);
+  const [optionSelections, setOptionSelections] = useState({});
+  const [selectionError, setSelectionError] = useState("");
 
   const isSoldOut = prato?.ativo === false;
   const categoryName = useMemo(() => resolveCategoryName(prato), [prato]);
   const pricedPrato = useMemo(() => normalizePricedItem(prato), [prato]);
-  const displayPrice = useMemo(() => pricedPrato.preco_cliente ?? resolveDisplayPrice(prato), [prato, pricedPrato]);
+  const optionGroups = useMemo(() => sanitizeMenuOptionsConfig(prato?.configuracao_opcoes), [prato]);
+  const hasConfigurableOptions = optionGroups.length > 0;
+  const appliedCommissionPercent = Number(pricedPrato?.comissao_pedeja_percent_aplicada || 0);
+  const selectedOptions = useMemo(
+    () => buildSelectedMenuOptions(optionGroups, optionSelections, appliedCommissionPercent),
+    [appliedCommissionPercent, optionGroups, optionSelections],
+  );
+  const configuredPrato = useMemo(
+    () => normalizePricedItem({ ...pricedPrato, opcoes_selecionadas: selectedOptions }),
+    [pricedPrato, selectedOptions],
+  );
+  const displayPrice = useMemo(
+    () => configuredPrato.preco_cliente_total ?? configuredPrato.preco_cliente ?? resolveDisplayPrice(prato),
+    [configuredPrato, prato],
+  );
 
   const dispararSucesso = () => {
     setAnimacao(true);
@@ -53,10 +76,25 @@ export default function MenuCard({ prato }) {
       return;
     }
 
-    const sucesso = addToCart(pricedPrato);
+    if (hasConfigurableOptions && !showDetails) {
+      setOptionSelections(buildDefaultMenuOptionSelections(optionGroups));
+      setSelectionError("");
+      setShowDetails(true);
+      return;
+    }
+
+    if (hasMissingRequiredMenuOptions(optionGroups, optionSelections)) {
+      setSelectionError("Seleciona as opcoes obrigatorias antes de adicionar ao carrinho.");
+      if (!showDetails) setShowDetails(true);
+      return;
+    }
+
+    const sucesso = addToCart(configuredPrato);
 
     if (sucesso) {
+      setSelectionError("");
       dispararSucesso();
+      setShowDetails(false);
     } else {
       setShowModal(true);
     }
@@ -69,17 +107,65 @@ export default function MenuCard({ prato }) {
       return;
     }
 
-    addToCart(pricedPrato, true);
+    if (hasMissingRequiredMenuOptions(optionGroups, optionSelections)) {
+      setSelectionError("Seleciona as opcoes obrigatorias antes de adicionar ao carrinho.");
+      setShowModal(false);
+      setShowDetails(true);
+      return;
+    }
+
+    addToCart(configuredPrato, true);
     setShowModal(false);
     dispararSucesso();
   };
 
   const openDetails = () => {
+    setOptionSelections(buildDefaultMenuOptionSelections(optionGroups));
+    setSelectionError("");
     setShowDetails(true);
   };
 
   const closeDetails = () => {
+    setSelectionError("");
     setShowDetails(false);
+  };
+
+  const toggleOption = (group, optionId) => {
+    setOptionSelections((prev) => {
+      const current = Array.isArray(prev?.[group.id]) ? prev[group.id] : [];
+      const exists = current.includes(optionId);
+
+      if (group.maxSelections <= 1) {
+        if (exists) {
+          return {
+            ...prev,
+            [group.id]: group.required ? [optionId] : [],
+          };
+        }
+
+        return {
+          ...prev,
+          [group.id]: [optionId],
+        };
+      }
+
+      if (exists) {
+        return {
+          ...prev,
+          [group.id]: current.filter((id) => id !== optionId),
+        };
+      }
+
+      if (current.length >= group.maxSelections) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [group.id]: [...current, optionId],
+      };
+    });
+    setSelectionError("");
   };
 
   return (
@@ -219,6 +305,51 @@ export default function MenuCard({ prato }) {
                   <strong>{displayPrice.toFixed(2)}EUR</strong>
                 </div>
               </div>
+
+              {optionGroups.length > 0 ? (
+                <div className="menu-options-configurator">
+                  <h4>Complementos e extras</h4>
+                  {optionGroups.map((group) => {
+                    const selectedIds = Array.isArray(optionSelections?.[group.id]) ? optionSelections[group.id] : [];
+
+                    return (
+                      <div key={group.id} className="menu-options-group">
+                        <div className="menu-options-group-head">
+                          <strong>{group.title}</strong>
+                          <span>
+                            {getMenuOptionTypeLabel(group.type)}
+                            {group.required ? " • Obrigatorio" : " • Opcional"}
+                            {group.maxSelections > 1 ? ` • max ${group.maxSelections}` : ""}
+                          </span>
+                        </div>
+
+                        <div className="menu-options-list">
+                          {group.options.map((option) => {
+                            const checked = selectedIds.includes(option.id);
+                            const optionPrice = Number(
+                              (Number(option.price || 0) * (1 + (appliedCommissionPercent || 0) / 100)).toFixed(2),
+                            );
+
+                            return (
+                              <label key={option.id} className={`menu-option-row ${checked ? "selected" : ""}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleOption(group, option.id)}
+                                />
+                                <span>{option.name}</span>
+                                <strong>{optionPrice > 0 ? `+${optionPrice.toFixed(2)}EUR` : "Incluido"}</strong>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {selectionError ? <p className="menu-options-error">{selectionError}</p> : null}
+                </div>
+              ) : null}
 
               <div className="menu-details-actions">
                 <button className="btn-details secondary" onClick={closeDetails}>Fechar</button>

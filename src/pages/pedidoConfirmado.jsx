@@ -1,12 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import Logo from "../components/Logo";
 import Login from "../components/LoginButton";
 import CartWidget from "../components/CartWidget";
 import Voltar from "../components/Voltar";
 import MenuGlobal from "../components/MenuGlobal";
+import EmbeddedTrackingCard from "../components/order/EmbeddedTrackingCard";
+import { groupSelectedMenuOptionsForDisplay } from "../services/menuOptionsService";
+import { updateOrderWorkflowStatus } from "../services/opsDashboardService";
 import { fetchOrderDetails, getStatusTone } from "../services/orderDetailsService";
+import { resolveUserRole } from "../utils/roles";
 import "../css/pages/pedidoDetalhe.css";
+
+const CUSTOMER_CANCEL_WINDOW_MS = 5 * 60 * 1000;
+const CUSTOMER_CANCELABLE_ESTADOS = new Set([
+  "pendente",
+  "aceite",
+  "atribuindo_estafeta",
+  "estafeta_aceitou",
+  "em_preparacao",
+  "pronto_recolha",
+]);
 
 function readSessionUser() {
   try {
@@ -40,6 +55,51 @@ function toneClass(tone) {
   return "is-warning";
 }
 
+function formatVehicleDisplay(value) {
+  const text = String(value || "").trim();
+  if (!text) return "-";
+
+  const plate = text.replace(/\s+/g, "").toUpperCase();
+  const isPlateOnly = /^[A-Z0-9]{2}-?[A-Z0-9]{2}-?[A-Z0-9]{2}$/.test(plate);
+
+  return isPlateOnly ? `(Matricula: ${plate})` : text;
+}
+
+function resolveCustomerCancelBaseTime(order) {
+  return order?.submitted_at || order?.created_at || null;
+}
+
+function getCustomerCancelRemainingMs(order, now = Date.now()) {
+  const baseTime = resolveCustomerCancelBaseTime(order);
+  if (!baseTime) return 0;
+
+  const createdAt = new Date(baseTime).getTime();
+  if (!Number.isFinite(createdAt)) return 0;
+
+  return Math.max(0, (createdAt + CUSTOMER_CANCEL_WINDOW_MS) - now);
+}
+
+function formatRemainingCancelTime(milliseconds) {
+  const safeMs = Math.max(0, Number(milliseconds || 0));
+  const totalSeconds = Math.ceil(safeMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function AsyncValue({
+  loading = false,
+  value,
+  fallback = "-",
+  className = "",
+}) {
+  if (loading) {
+    return <span className={`pedido-skeleton-line${className ? ` ${className}` : ""}`} aria-hidden="true" />;
+  }
+
+  return value || fallback;
+}
+
 export default function PedidoConfirmado() {
   const { orderId } = useParams();
   const navigate = useNavigate();
@@ -49,7 +109,9 @@ export default function PedidoConfirmado() {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
+  const [cancelTick, setCancelTick] = useState(() => Date.now());
 
   const allowGuestState = Boolean(location.state?.allow_guest_access);
   const fallbackTrackingUrl = location.state?.tracking_url || null;
@@ -71,6 +133,7 @@ export default function PedidoConfirmado() {
     () => `${user?.idutilizador || user?.id || user?.user_id || "anon"}|${String(user?.email || "").toLowerCase()}`,
     [user?.email, user?.id, user?.idutilizador, user?.user_id],
   );
+  const viewerIsCustomer = useMemo(() => Boolean(user) && resolveUserRole(user) === "customer", [user]);
 
   const loadOrder = useCallback(async ({ silent = false } = {}) => {
     if (!silent) {
@@ -110,6 +173,80 @@ export default function PedidoConfirmado() {
 
     return () => clearInterval(timer);
   }, [details?.is_live, loadOrder]);
+
+  useEffect(() => {
+    const baseTime = resolveCustomerCancelBaseTime(details?.order);
+    if (!baseTime) return undefined;
+
+    const timer = setInterval(() => {
+      setCancelTick(Date.now());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [details?.order]);
+
+  const vehicleDisplay = useMemo(
+    () => formatVehicleDisplay(details?.driver?.vehicle || details?.order?.veiculo_estafeta),
+    [details?.driver?.vehicle, details?.order?.veiculo_estafeta],
+  );
+  const customerCancelRemainingMs = useMemo(
+    () => getCustomerCancelRemainingMs(details?.order, cancelTick),
+    [details?.order, cancelTick],
+  );
+  const customerOrderEstadoInterno = details?.workflow?.estado_interno || details?.order?.estado_interno || "";
+  const customerCanCancel = Boolean(
+    viewerIsCustomer
+    && details?.order?.id
+    && CUSTOMER_CANCELABLE_ESTADOS.has(customerOrderEstadoInterno)
+    && customerCancelRemainingMs > 0,
+  );
+  const shouldShowCustomerCancelBox = Boolean(
+    viewerIsCustomer
+    && details?.order
+    && !["cancelado", "entregue"].includes(customerOrderEstadoInterno),
+  );
+  const shouldSkeletonEta = Boolean(details?.is_live && !details?.estimated_delivery);
+  const shouldSkeletonDriverName = Boolean(details?.is_live && !details?.driver?.name);
+  const shouldSkeletonDriverPhone = Boolean(details?.is_live && !details?.driver?.phone);
+  const shouldSkeletonVehicle = Boolean(details?.is_live && vehicleDisplay === "-");
+
+  const handleCustomerCancel = useCallback(async () => {
+    if (!details?.order?.id) return;
+
+    const remainingMs = getCustomerCancelRemainingMs(details.order, Date.now());
+    if (remainingMs <= 0) {
+      toast.error("A janela de cancelamento de 5 minutos ja terminou.");
+      return;
+    }
+
+    if (!CUSTOMER_CANCELABLE_ESTADOS.has(customerOrderEstadoInterno)) {
+      toast.error("Este pedido ja avancou demasiado para ser cancelado pelo cliente.");
+      return;
+    }
+
+    setCancelling(true);
+
+    try {
+      const result = await updateOrderWorkflowStatus(
+        details.order.id,
+        "cancelado",
+        details.order.loja_id ?? null,
+        { syncShipday: true },
+      );
+
+      if (result?.shipdaySync && !result.shipdaySync.ok && !result.shipdaySync.skipped) {
+        toast.error("Pedido cancelado no PedeJa, mas a sincronizacao com o Shipday falhou.");
+      } else {
+        toast.success("Pedido cancelado com sucesso.");
+      }
+
+      await loadOrder({ silent: false });
+    } catch (cancelError) {
+      toast.error(cancelError?.message || "Nao foi possivel cancelar o pedido.");
+    } finally {
+      setCancelling(false);
+    }
+  }, [customerOrderEstadoInterno, details?.order, loadOrder]);
 
   return (
     <main className="pedido-detalhe-main">
@@ -182,6 +319,30 @@ export default function PedidoConfirmado() {
                 {details.is_live ? <span className="pedido-live-dot">Em curso</span> : <span className="pedido-live-dot done">Finalizado</span>}
               </div>
 
+              {shouldShowCustomerCancelBox ? (
+                <section className="pedido-cancel-card">
+                  <div>
+                    <strong>Cancelamento rapido</strong>
+                    <p className="pedido-muted">
+                      {customerCanCancel
+                        ? `Podes cancelar este pedido durante os primeiros 5 minutos. Tempo restante: ${formatRemainingCancelTime(customerCancelRemainingMs)}.`
+                        : "A janela de cancelamento de 5 minutos ja terminou ou o pedido ja avancou para uma fase sem cancelamento direto."}
+                    </p>
+                  </div>
+
+                  {customerCanCancel ? (
+                    <button
+                      type="button"
+                      className="pedido-btn danger"
+                      disabled={cancelling}
+                      onClick={handleCustomerCancel}
+                    >
+                      {cancelling ? "A cancelar..." : "Cancelar pedido"}
+                    </button>
+                  ) : null}
+                </section>
+              ) : null}
+
               <section className="pedido-panel pedido-workflow-panel">
                 <h3>Progresso do pedido</h3>
                 {details.workflow?.is_canceled ? (
@@ -215,14 +376,24 @@ export default function PedidoConfirmado() {
                   <h3>Entrega e tracking</h3>
                   <div className="pedido-delivery-meta">
                     <p><strong>ID Shipday:</strong> {details.shipday_delivery_id || "-"}</p>
-                    <p><strong>Previsao:</strong> {details.estimated_delivery || "A calcular..."}</p>
+                    <p>
+                      <strong>Previsao:</strong>
+                      {" "}
+                      <AsyncValue
+                        loading={shouldSkeletonEta}
+                        value={details.estimated_delivery}
+                        fallback="A calcular..."
+                        className="pedido-skeleton-line--short"
+                      />
+                    </p>
                     <p><strong>Metodo pagamento:</strong> {details.payment_method_label || "-"}</p>
                   </div>
 
                   {details.tracking_url ? (
-                    <a href={details.tracking_url} target="_blank" rel="noreferrer" className="pedido-track-link pedido-track-link--cta">
-                      Acompanhar no Mapa
-                    </a>
+                    <EmbeddedTrackingCard
+                      url={details.tracking_url}
+                      title={`Tracking pedido #${orderId}`}
+                    />
                   ) : (
                     <p className="pedido-muted">Tracking ainda nao disponibilizado.</p>
                   )}
@@ -246,7 +417,9 @@ export default function PedidoConfirmado() {
                     <p>
                       <strong>{details.order.order_timing_mode === "SCHEDULED" ? "Pedido agendado para:" : "Criado:"}</strong>
                       {" "}
-                      {formatDateTime(details.order.created_at)}
+                      {formatDateTime(details.order.order_timing_mode === "SCHEDULED"
+                        ? (details.order.scheduled_for || details.order.created_at)
+                        : details.order.created_at)}
                     </p>
                     {details.order.submitted_at ? (
                       <p><strong>Pedido submetido em:</strong> {formatDateTime(details.order.submitted_at)}</p>
@@ -261,9 +434,33 @@ export default function PedidoConfirmado() {
                     <p><strong>Restaurante:</strong> {details.store?.nome || "-"}</p>
                     <p><strong>Contacto loja:</strong> {details.store?.contacto || "-"}</p>
                     <p><strong>Morada loja:</strong> {details.store?.morada || "-"}</p>
-                    <p><strong>Estafeta:</strong> {details.driver?.name || "-"}</p>
-                    <p><strong>Telemovel estafeta:</strong> {details.driver?.phone || "-"}</p>
-                    <p><strong>Veiculo:</strong> {details.driver?.vehicle || "-"}</p>
+                    <p>
+                      <strong>Estafeta:</strong>
+                      {" "}
+                      <AsyncValue
+                        loading={shouldSkeletonDriverName}
+                        value={details.driver?.name}
+                        className="pedido-skeleton-line--medium"
+                      />
+                    </p>
+                    <p>
+                      <strong>Telemovel estafeta:</strong>
+                      {" "}
+                      <AsyncValue
+                        loading={shouldSkeletonDriverPhone}
+                        value={details.driver?.phone}
+                        className="pedido-skeleton-line--medium"
+                      />
+                    </p>
+                    <p>
+                      <strong>Veiculo:</strong>
+                      {" "}
+                      <AsyncValue
+                        loading={shouldSkeletonVehicle}
+                        value={vehicleDisplay !== "-" ? vehicleDisplay : ""}
+                        className="pedido-skeleton-line--medium"
+                      />
+                    </p>
                   </div>
                 </article>
               </section>
@@ -286,7 +483,17 @@ export default function PedidoConfirmado() {
                       <tbody>
                         {details.items.map((item) => (
                           <tr key={item.id}>
-                            <td>{item.nome}</td>
+                            <td>
+                              <div>{item.nome}</div>
+                              {groupSelectedMenuOptionsForDisplay(item.opcoes_selecionadas).map((group) => (
+                                <div key={`${item.id}-${group.groupId}`} className="pedido-item-option-group">
+                                  <span className="pedido-item-option-title">{group.title}:</span>
+                                  <span className="pedido-item-option-values">
+                                    {group.options.map((option) => option.option_name).join(", ")}
+                                  </span>
+                                </div>
+                              ))}
+                            </td>
                             <td>{item.quantidade}</td>
                             <td>{formatMoney(item.preco_unitario)}</td>
                             <td>{formatMoney(item.subtotal)}</td>

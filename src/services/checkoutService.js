@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient";
-import { isStoreOpenAt } from "../utils/storeHours";
+import { getStoreScheduleStatus, isStoreOpenAt } from "../utils/storeHours";
 import { resolveDisplayPrice } from "./pricingService";
 import { buildSupabaseFunctionHeaders, getSupabaseFunctionUrl } from "./supabaseClient";
 
@@ -49,6 +49,7 @@ function normalizeItems(cart, storePricingSource = null) {
     preco_unitario: resolveDisplayPrice(item, storePricingSource),
     quantidade: Number(item.qtd || 1),
     subtotal: resolveDisplayPrice(item, storePricingSource) * Number(item.qtd || 1),
+    opcoes_selecionadas: Array.isArray(item?.opcoes_selecionadas) ? item.opcoes_selecionadas : [],
   }));
 }
 
@@ -126,7 +127,11 @@ async function assertStoreOpenForSchedule(lojaId, deliverySchedule) {
   }
 
   if (!isStoreOpenAt(data.horario_funcionamento, referenceDate)) {
-    throw new Error("Loja fechada para o horario escolhido. Escolhe um horario dentro do funcionamento.");
+    const scheduleStatus = getStoreScheduleStatus(data.horario_funcionamento, referenceDate);
+    const detail = scheduleStatus?.message && scheduleStatus.message !== "Fechado"
+      ? ` (${scheduleStatus.message})`
+      : "";
+    throw new Error(`Loja fechada para o horario escolhido${detail}. Escolhe um horario dentro do funcionamento.`);
   }
 }
 

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { groupSelectedMenuOptionsForDisplay } from "../../services/menuOptionsService";
 
 function resolveTagClass(tone) {
   if (tone === "success") return "tag ok";
@@ -131,6 +132,11 @@ export default function OrderDetailsModal({
                     <div key={item.id} className="order-item-row">
                       <div>
                         <strong>{item.nome || `Item ${item.menu_id || item.id}`}</strong>
+                        {groupSelectedMenuOptionsForDisplay(item.opcoes_selecionadas).map((group) => (
+                          <p key={`${item.id}-${group.groupId}`} className="muted">
+                            {group.title}: {group.options.map((option) => option.option_name).join(", ")}
+                          </p>
+                        ))}
                         <p className="muted">{item.quantidade} x {formatMoney(item.preco_unitario)}</p>
                       </div>
                       <strong>{formatMoney(item.subtotal)}</strong>

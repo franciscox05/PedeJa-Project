@@ -1,4 +1,5 @@
-import { supabase } from "./supabaseClient";
+import { fetchGlobalDeliveryPricingConfig, supabase } from "./supabaseClient";
+import { resolveDeliveryPricingMaxKm, resolveEffectiveDeliveryPricingConfig, resolveMinimumDeliveryFee } from "./deliveryZoneService";
 import { extractUserId } from "../utils/roles";
 import { isStoreOpenNow } from "../utils/storeHours";
 
@@ -56,8 +57,18 @@ function isMissingFavoritesStorageError(error) {
   );
 }
 
-function mapFavoriteStore(loja) {
+function isMissingDeliveryConfigColumnError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("configuracao_entrega") && message.includes("column");
+}
+
+function mapFavoriteStore(loja, globalDeliveryPricingConfig = null) {
   const { statusTexto, statusCor, isIndisponivel } = resolveStoreStatus(loja);
+  const configuracaoEntrega = resolveEffectiveDeliveryPricingConfig(
+    loja.configuracao_entrega,
+    globalDeliveryPricingConfig,
+    loja.taxaentrega,
+  );
 
   return {
     id: loja.idloja,
@@ -68,7 +79,9 @@ function mapFavoriteStore(loja) {
     statusCor,
     isIndisponivel,
     contacto: loja.contacto || null,
-    taxaentrega: Number(loja.taxaentrega || 0),
+    taxaentrega: resolveMinimumDeliveryFee(configuracaoEntrega, loja.taxaentrega),
+    configuracao_entrega: configuracaoEntrega,
+    raioentrega_km: resolveDeliveryPricingMaxKm(configuracaoEntrega),
     morada: loja.morada_completa || null,
     horario_funcionamento: loja.horario_funcionamento || null,
     subCategorias: buildStoreSubCategories(loja),
@@ -96,8 +109,9 @@ export async function fetchFavoriteStoreIds(user) {
 export async function fetchFavoriteStores(user) {
   const favoriteIds = await fetchFavoriteStoreIds(user);
   if (!favoriteIds.length) return [];
+  const globalDeliveryPricing = await fetchGlobalDeliveryPricingConfig();
 
-  const { data, error } = await supabase
+  let response = await supabase
     .from("lojas")
     .select(`
       idloja,
@@ -107,6 +121,7 @@ export async function fetchFavoriteStores(user) {
       ativo,
       contacto,
       taxaentrega,
+      configuracao_entrega,
       morada_completa,
       horario_funcionamento,
       categoriaslojas (
@@ -115,9 +130,32 @@ export async function fetchFavoriteStores(user) {
     `)
     .in("idloja", favoriteIds);
 
-  if (error) throw error;
+  if (response.error && isMissingDeliveryConfigColumnError(response.error)) {
+    response = await supabase
+      .from("lojas")
+      .select(`
+        idloja,
+        nome,
+        imagemfundo,
+        icon,
+        ativo,
+        contacto,
+        taxaentrega,
+        morada_completa,
+        horario_funcionamento,
+        categoriaslojas (
+          categorias (idcategoria, categoria)
+        )
+      `)
+      .in("idloja", favoriteIds);
+  }
 
-  const byId = new Map((data || []).map((loja) => [Number(loja.idloja), mapFavoriteStore(loja)]));
+  if (response.error) throw response.error;
+
+  const byId = new Map(((response.data) || []).map((loja) => [
+    Number(loja.idloja),
+    mapFavoriteStore(loja, globalDeliveryPricing?.config),
+  ]));
   return favoriteIds.map((id) => byId.get(Number(id))).filter(Boolean);
 }
 

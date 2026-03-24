@@ -2,8 +2,100 @@ import { supabase } from "./supabaseClient";
 import { extractRestaurantId, extractUserId, resolveUserRole } from "../utils/roles";
 import { getEstadoInternoLabelPt, getEstadoInternoTone, resolveOrderEstadoInterno } from "./orderStatusMapper";
 
-const TERMINAL_ESTADO_INTERNO = new Set(["entregue", "cancelado"]);
-const TERMINAL_DELIVERY_STATUS = new Set(["DELIVERED", "FAILED", "CANCELLED"]);
+export interface ShipdayPayload extends Record<string, unknown> {}
+
+export interface DriverInfo {
+  name: string | null;
+  phone: string | null;
+  vehicle: string | null;
+}
+
+export interface OrderDetailsOrder {
+  id: number;
+  loja_id: number | string | null;
+  customer_nome: string | null;
+  customer_phone: string | null;
+  customer_email: string | null;
+  customer_address: string | null;
+  customer_address_label: string | null;
+  customer_notes: string | null;
+  subtotal: number;
+  taxa_entrega: number;
+  total: number;
+  payment_method?: string | null;
+  payment_label?: string | null;
+  status: string;
+  status_legacy_label: string;
+  estado_interno: string;
+  status_label: string;
+  status_tone: string;
+  shipday_order_id?: string | null;
+  shipday_tracking_url?: string | null;
+  previsao_entrega?: string | null;
+  veiculo_estafeta?: string | null;
+  driver_name?: string | null;
+  driver_phone?: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  submitted_at: string | null;
+  order_timing_mode: string;
+  scheduled_for?: string | null;
+  aceite_em?: string | null;
+  atribuido_em?: string | null;
+  recolhido_em?: string | null;
+  entregue_em?: string | null;
+}
+
+export interface OrderDetailsItem {
+  id: number | string;
+  order_id: number | string;
+  menu_id?: number | string | null;
+  nome: string;
+  quantidade: number;
+  preco_unitario: number;
+  subtotal: number;
+  opcoes_selecionadas?: Array<Record<string, unknown>>;
+  created_at?: string | null;
+}
+
+export interface OrderDetailsResult {
+  order: OrderDetailsOrder;
+  items: OrderDetailsItem[];
+  store: {
+    id: number | string | null;
+    nome: string;
+    contacto: string | null;
+    morada: string | null;
+    icon: string | null;
+  };
+  deliveries: Array<Record<string, unknown>>;
+  latest_delivery: Record<string, unknown> | null;
+  events: Array<Record<string, unknown>>;
+  timeline: Array<Record<string, unknown>>;
+  workflow: {
+    estado_interno: string;
+    current_label: string;
+    is_canceled: boolean;
+    steps: Array<{
+      key: string;
+      label: string;
+      index: number;
+      is_current: boolean;
+      is_completed: boolean;
+      is_pending: boolean;
+    }>;
+  };
+  tracking_url: string | null;
+  shipday_delivery_id: string | null;
+  shipday_error: string | null;
+  driver: DriverInfo;
+  estimated_delivery: string | null;
+  payment_method_label: string | null;
+  is_live: boolean;
+}
+
+const TERMINAL_ESTADO_INTERNO = new Set<string>(["entregue", "cancelado"]);
+const TERMINAL_DELIVERY_STATUS = new Set<string>(["DELIVERED", "FAILED", "CANCELLED"]);
 
 const WORKFLOW_STEPS = [
   "pendente",
@@ -16,7 +108,7 @@ const WORKFLOW_STEPS = [
   "entregue",
 ];
 
-const WORKFLOW_INDEX_BY_ESTADO = {
+const WORKFLOW_INDEX_BY_ESTADO: Record<string, number> = {
   pendente: 0,
   aceite: 1,
   atribuindo_estafeta: 2,
@@ -29,27 +121,27 @@ const WORKFLOW_INDEX_BY_ESTADO = {
   entregue: 7,
 };
 
-function toNumber(value, fallback = 0) {
+function toNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function toText(value) {
+function toText(value: unknown) {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
   return text.length > 0 ? text : null;
 }
 
-function normalizeEmail(value) {
+function normalizeEmail(value: unknown) {
   return String(value || "").trim().toLowerCase();
 }
 
-function normalizeStatus(value, fallback = "PENDING") {
+function normalizeStatus(value: unknown, fallback = "PENDING") {
   const text = String(value || fallback).trim().toUpperCase();
   return text || fallback;
 }
 
-function statusLabelPt(status) {
+function statusLabelPt(status: unknown) {
   const key = normalizeStatus(status);
   const map = {
     PENDING_PAYMENT: "Pagamento pendente",
@@ -71,20 +163,20 @@ function statusLabelPt(status) {
   return map[key] || key;
 }
 
-function statusTone(status) {
+function statusTone(status: unknown) {
   const key = normalizeStatus(status);
   if (["DELIVERED", "CONFIRMED", "APPROVED"].includes(key)) return "success";
   if (["FAILED", "CANCELLED", "REJECTED"].includes(key)) return "danger";
   return "warning";
 }
 
-function mapEstadoToneToUi(tone) {
+function mapEstadoToneToUi(tone: string | null | undefined) {
   if (tone === "ok") return "success";
   if (tone === "bad") return "danger";
   return "warning";
 }
 
-function buildWorkflowProgress(estadoInterno) {
+function buildWorkflowProgress(estadoInterno: string | null | undefined) {
   const normalizedEstado = resolveOrderEstadoInterno({ estado_interno: estadoInterno });
   const rawCurrentIndex = WORKFLOW_INDEX_BY_ESTADO[normalizedEstado] ?? 0;
   const acceptedIndex = WORKFLOW_INDEX_BY_ESTADO.aceite ?? 1;
@@ -106,13 +198,13 @@ function buildWorkflowProgress(estadoInterno) {
     })),
   };
 }
-function byLatest(a, b) {
+function byLatest(a: Record<string, unknown>, b: Record<string, unknown>) {
   const aDate = new Date(a?.updated_at || a?.created_at || 0).getTime();
   const bDate = new Date(b?.updated_at || b?.created_at || 0).getTime();
   return bDate - aDate;
 }
 
-function parsePayload(value) {
+function parsePayload(value: unknown): ShipdayPayload | null {
   if (!value) return null;
   if (typeof value === "object") return value;
   if (typeof value !== "string") return null;
@@ -123,16 +215,27 @@ function parsePayload(value) {
   }
 }
 
-function getByPath(obj, path = []) {
-  let current = obj;
+function getByPath(obj: ShipdayPayload | null, path: string[] = []) {
+  let current: unknown = obj;
   for (const segment of path) {
     if (!current || typeof current !== "object") return null;
-    current = current[segment];
+    current = (current as Record<string, unknown>)[segment];
   }
   return current;
 }
 
-function pickFirstFromPaths(payloads, paths) {
+function parseSelectedOptions(value: unknown) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function pickFirstFromPaths(payloads: Array<ShipdayPayload | null>, paths: string[][]) {
   for (const payload of payloads) {
     for (const path of paths) {
       const value = toText(getByPath(payload, path));
@@ -142,7 +245,7 @@ function pickFirstFromPaths(payloads, paths) {
   return null;
 }
 
-function uniqueNonEmptyParts(parts = []) {
+function uniqueNonEmptyParts(parts: Array<unknown> = []) {
   const seen = new Set();
   const result = [];
 
@@ -158,7 +261,7 @@ function uniqueNonEmptyParts(parts = []) {
   return result;
 }
 
-function normalizeVehicleSegment(value) {
+function normalizeVehicleSegment(value: unknown) {
   const text = toText(value);
   if (!text) return null;
 
@@ -171,24 +274,30 @@ function normalizeVehicleSegment(value) {
     .trim();
 }
 
-function _buildVehicleSummary(...parts) {
+function _buildVehicleSummary(...parts: unknown[]) {
   const normalizedParts = uniqueNonEmptyParts(parts.map((part) => normalizeVehicleSegment(part)));
   return normalizedParts.length ? normalizedParts.join(" • ") : null;
 }
 
-function normalizeVehiclePlate(value) {
+function normalizeVehiclePlate(value: unknown) {
   const text = toText(value);
   if (!text) return null;
   return text.replace(/\s+/g, "").toUpperCase();
 }
 
-function isVehiclePlateLike(value) {
+function isVehiclePlateLike(value: unknown) {
   const text = normalizeVehiclePlate(value);
   if (!text) return false;
   return /^[A-Z0-9]{2}-?[A-Z0-9]{2}-?[A-Z0-9]{2}$/.test(text);
 }
 
-function composeVehicleSummary({ description, type, make, model, plate } = {}) {
+function composeVehicleSummary({ description, type, make, model, plate }: {
+  description?: unknown;
+  type?: unknown;
+  make?: unknown;
+  model?: unknown;
+  plate?: unknown;
+} = {}) {
   const normalizedDescription = normalizeVehicleSegment(description);
   const normalizedType = normalizeVehicleSegment(type);
   const normalizedMake = normalizeVehicleSegment(make);
@@ -218,7 +327,7 @@ function composeVehicleSummary({ description, type, make, model, plate } = {}) {
   return normalizedDescription || null;
 }
 
-function scoreVehicleSummary(value) {
+function scoreVehicleSummary(value: unknown) {
   const text = normalizeVehicleSegment(value);
   if (!text) return -1;
 
@@ -231,7 +340,7 @@ function scoreVehicleSummary(value) {
   return score;
 }
 
-function formatVehicleDisplayValue(value) {
+function formatVehicleDisplayValue(value: unknown) {
   const text = normalizeVehicleSegment(value);
   if (!text) return null;
 
@@ -243,7 +352,7 @@ function formatVehicleDisplayValue(value) {
   return text;
 }
 
-function pickBestVehicleSummary(...values) {
+function pickBestVehicleSummary(...values: Array<unknown>) {
   let best = null;
   let bestScore = Number.NEGATIVE_INFINITY;
 
@@ -263,7 +372,7 @@ function pickBestVehicleSummary(...values) {
   return formatVehicleDisplayValue(best);
 }
 
-function resolveDriverInfo(payloads) {
+function resolveDriverInfo(payloads: Array<ShipdayPayload | null>): DriverInfo {
   const name = pickFirstFromPaths(payloads, [
     ["driverName"],
     ["driver", "name"],
@@ -467,7 +576,11 @@ function resolveDriverInfo(payloads) {
   };
 }
 
-function resolveTrackingUrl(deliveries = [], payloads = [], fallbackTrackingUrl = null) {
+function resolveTrackingUrl(
+  deliveries: Array<Record<string, unknown>> = [],
+  payloads: Array<ShipdayPayload | null> = [],
+  fallbackTrackingUrl: string | null = null,
+) {
   const direct = deliveries.find((item) => toText(item?.tracking_url))?.tracking_url;
   if (toText(direct)) return direct;
 
@@ -484,7 +597,7 @@ function resolveTrackingUrl(deliveries = [], payloads = [], fallbackTrackingUrl 
   return fromPayload || toText(fallbackTrackingUrl) || null;
 }
 
-function resolveEstimatedDelivery(payloads = []) {
+function resolveEstimatedDelivery(payloads: Array<ShipdayPayload | null> = []) {
   const date = pickFirstFromPaths(payloads, [
     ["expectedDeliveryDate"],
     ["deliveryDate"],
@@ -503,7 +616,7 @@ function resolveEstimatedDelivery(payloads = []) {
   return date || time || null;
 }
 
-function formatEstimatedDelivery(value) {
+function formatEstimatedDelivery(value: unknown) {
   const text = toText(value);
   if (!text) return null;
 
@@ -525,7 +638,7 @@ function formatEstimatedDelivery(value) {
   }).format(new Date(parsed))}`;
 }
 
-function resolvePaymentMethod(order, payloads = []) {
+function resolvePaymentMethod(order: Record<string, unknown>, payloads: Array<ShipdayPayload | null> = []) {
   const direct = toText(order?.payment_label)
     || toText(order?.paymentLabel)
     || toText(order?.payment_method)
@@ -549,7 +662,11 @@ function resolvePaymentMethod(order, payloads = []) {
   return value;
 }
 
-function canUserAccessOrder(order, user, { allowGuestState = false } = {}) {
+function canUserAccessOrder(
+  order: Record<string, unknown>,
+  user: Record<string, unknown> | null,
+  { allowGuestState = false }: { allowGuestState?: boolean } = {},
+) {
   if (!order) return false;
 
   const role = resolveUserRole(user);
@@ -575,7 +692,15 @@ function canUserAccessOrder(order, user, { allowGuestState = false } = {}) {
   return Boolean(allowGuestState);
 }
 
-function buildTimeline({ order, deliveries = [], events = [] }) {
+function buildTimeline({
+  order,
+  deliveries = [],
+  events = [],
+}: {
+  order: Record<string, unknown>;
+  deliveries?: Array<Record<string, unknown>>;
+  events?: Array<Record<string, unknown>>;
+}) {
   const timeline = [];
 
   timeline.push({
@@ -609,7 +734,7 @@ function buildTimeline({ order, deliveries = [], events = [] }) {
   return timeline.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 }
 
-async function fetchOrderRecordWithCompatibility(normalizedOrderId) {
+async function fetchOrderRecordWithCompatibility(normalizedOrderId: number) {
   const selectWithTiming = `
       id,
       loja_id,
@@ -636,7 +761,12 @@ async function fetchOrderRecordWithCompatibility(normalizedOrderId) {
       created_at,
       updated_at,
       submitted_at,
-      order_timing_mode
+      order_timing_mode,
+      scheduled_for,
+      aceite_em,
+      atribuido_em,
+      recolhido_em,
+      entregue_em
     `;
 
   const selectLegacy = `
@@ -672,7 +802,7 @@ async function fetchOrderRecordWithCompatibility(normalizedOrderId) {
     .eq("id", normalizedOrderId)
     .maybeSingle();
 
-  if (response.error && /submitted_at|order_timing_mode|payment_method|payment_label|previsao_entrega|veiculo_estafeta/i.test(String(response.error.message || ""))) {
+  if (response.error && /submitted_at|order_timing_mode|payment_method|payment_label|previsao_entrega|veiculo_estafeta|scheduled_for|aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(response.error.message || ""))) {
     response = await supabase
       .from("orders")
       .select(selectLegacy)
@@ -683,7 +813,7 @@ async function fetchOrderRecordWithCompatibility(normalizedOrderId) {
   return response;
 }
 
-async function fetchDeliveryEvents(deliveryIds = []) {
+async function fetchDeliveryEvents(deliveryIds: Array<number | string> = []) {
   if (!deliveryIds.length) return [];
 
   const baseSelect = "id, delivery_id, event_type, event_id, created_at";
@@ -718,7 +848,18 @@ async function fetchDeliveryEvents(deliveryIds = []) {
   return [];
 }
 
-export async function fetchOrderDetails(orderId, { user = null, allowGuestState = false, fallbackTrackingUrl = null } = {}) {
+export async function fetchOrderDetails(
+  orderId: number | string,
+  {
+    user = null,
+    allowGuestState = false,
+    fallbackTrackingUrl = null,
+  }: {
+    user?: Record<string, unknown> | null;
+    allowGuestState?: boolean;
+    fallbackTrackingUrl?: string | null;
+  } = {},
+): Promise<OrderDetailsResult> {
   const normalizedOrderId = Number(orderId);
   if (!Number.isFinite(normalizedOrderId)) {
     throw new Error("ID de pedido invalido.");
@@ -736,7 +877,7 @@ export async function fetchOrderDetails(orderId, { user = null, allowGuestState 
   const [itemsRes, lojaRes, deliveriesRes] = await Promise.all([
     supabase
       .from("order_items")
-      .select("id, order_id, menu_id, nome, quantidade, preco_unitario, subtotal, created_at")
+      .select("id, order_id, menu_id, nome, quantidade, preco_unitario, subtotal, opcoes_selecionadas, created_at")
       .eq("order_id", normalizedOrderId)
       .order("created_at", { ascending: true }),
     supabase
@@ -752,7 +893,22 @@ export async function fetchOrderDetails(orderId, { user = null, allowGuestState 
       .order("created_at", { ascending: false }),
   ]);
 
-  if (itemsRes.error) throw itemsRes.error;
+  let itemsData = itemsRes.data || [];
+  if (itemsRes.error) {
+    const itemsErrorMessage = String(itemsRes.error?.message || "").toLowerCase();
+    if (itemsErrorMessage.includes("order_items") && itemsErrorMessage.includes("opcoes_selecionadas")) {
+      const fallbackItemsRes = await supabase
+        .from("order_items")
+        .select("id, order_id, menu_id, nome, quantidade, preco_unitario, subtotal, created_at")
+        .eq("order_id", normalizedOrderId)
+        .order("created_at", { ascending: true });
+
+      if (fallbackItemsRes.error) throw fallbackItemsRes.error;
+      itemsData = fallbackItemsRes.data || [];
+    } else {
+      throw itemsRes.error;
+    }
+  }
   if (lojaRes.error) throw lojaRes.error;
   if (deliveriesRes.error) throw deliveriesRes.error;
 
@@ -802,17 +958,23 @@ export async function fetchOrderDetails(orderId, { user = null, allowGuestState 
       total: toNumber(order.total, 0),
       submitted_at: order.submitted_at || null,
       order_timing_mode: order.order_timing_mode || "ASAP",
+      scheduled_for: order.scheduled_for || (String(order.order_timing_mode || "").toUpperCase() === "SCHEDULED" ? order.created_at || null : null),
+      aceite_em: order.aceite_em || order.data_aceitacao || null,
+      atribuido_em: order.atribuido_em || null,
+      recolhido_em: order.recolhido_em || null,
+      entregue_em: order.entregue_em || null,
       status: orderStatus,
       status_legacy_label: statusLabelPt(orderStatus),
       estado_interno: orderEstadoInterno,
       status_label: getEstadoInternoLabelPt(orderEstadoInterno),
       status_tone: orderEstadoTone,
     },
-    items: (itemsRes.data || []).map((item) => ({
+    items: itemsData.map((item) => ({
       ...item,
       quantidade: toNumber(item.quantidade, 1),
       preco_unitario: toNumber(item.preco_unitario, 0),
       subtotal: toNumber(item.subtotal, 0),
+      opcoes_selecionadas: parseSelectedOptions((item as Record<string, unknown>)?.opcoes_selecionadas),
     })),
     store: lojaRes.data
       ? {
@@ -852,11 +1014,11 @@ export async function fetchOrderDetails(orderId, { user = null, allowGuestState 
   };
 }
 
-export function getStatusLabelPt(status) {
+export function getStatusLabelPt(status: unknown) {
   return statusLabelPt(status);
 }
 
-export function getStatusTone(status) {
+export function getStatusTone(status: unknown) {
   return statusTone(status);
 }
 

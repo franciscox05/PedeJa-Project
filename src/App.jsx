@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import Inicio from "./pages/inicio";
 import Categorias from "./pages/categorias";
 import Restaurantes from "./pages/lojas";
@@ -7,6 +8,7 @@ import Menus from "./pages/menus";
 import Carrinho from "./pages/carrinho";
 import PedidoConfirmado from "./pages/pedidoConfirmado";
 import DashboardAdmin from "./pages/dashboardAdmin";
+import DashboardPerformance from "./pages/dashboardPerformance";
 import DashboardRevenue from "./pages/dashboardRevenue";
 import DashboardRestaurante from "./pages/dashboardRestaurante";
 import DashboardDev from "./pages/dashboardDev";
@@ -79,6 +81,31 @@ export default function App() {
 
   return (
     <CartProvider>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4500,
+          style: {
+            background: "#111827",
+            color: "#fff",
+            borderRadius: "12px",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 18px 34px rgba(15, 23, 42, 0.22)",
+          },
+          success: {
+            iconTheme: {
+              primary: "#22c55e",
+              secondary: "#0b0d11",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#ef4444",
+              secondary: "#0b0d11",
+            },
+          },
+        }}
+      />
       <main className={`main-content${isDashboardRoute ? " main-content--dashboard" : ""}`}>
         <Routes>
           <Route path="/" element={<Inicio />} />
@@ -120,6 +147,15 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <DashboardRevenue />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/performance"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <DashboardPerformance />
               </ProtectedRoute>
             }
           />

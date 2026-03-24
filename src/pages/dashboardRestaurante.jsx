@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import "../css/pages/dashboard.css";
 import {
   fetchStoreCommissionCatalog,
+  fetchGlobalAutoAssignSettings,
   fetchStoresWithAdminSettings,
   fetchRestaurantDashboard,
+  needsScheduledShipdayBootstrap,
   resolveRestaurantStoreId,
   updateRestaurantAdminSettings,
   updateOrderWorkflowStatus,
@@ -15,8 +18,10 @@ import TrendBars from "../components/dashboard/TrendBars";
 import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import RestaurantManagementPanel from "../components/dashboard/RestaurantManagementPanel";
+import StoreSpecialHoursPanel from "../components/dashboard/StoreSpecialHoursPanel";
 import ShipdayTrackingModal from "../components/dashboard/ShipdayTrackingModal";
 import OrderDetailsModal from "../components/dashboard/OrderDetailsModal";
+import DatePickerCustom from "../components/ui/DatePickerCustom";
 import { fetchOrderDetails } from "../services/orderDetailsService";
 import {
   getEstadoInternoLabelPt,
@@ -24,6 +29,19 @@ import {
   getRestaurantActionsForEstado,
   resolveOrderEstadoInterno,
 } from "../services/orderStatusMapper";
+import {
+  assignOrderToShipdayCarrier,
+  buildLiveCarrierBoardEntries,
+  createShipdayOrderForOrder,
+  persistAssignedCarrierSelection,
+  pickBestCarrierForOrder,
+  retrieveShipdayCarriers,
+} from "../services/shipdayService";
+import { BARCELOS_CENTER } from "../services/deliveryZoneService";
+import {
+  resolveEffectiveAutoAssignConfig,
+  sanitizeAutoAssignConfig,
+} from "../services/autoAssignConfig";
 
 function normalizeSearch(value) {
   return String(value || "").trim().toLowerCase();
@@ -67,6 +85,98 @@ function handleRowKeyDown(event, action) {
   }
 }
 
+function formatOrderDeliverySlot(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getScheduledOperationalStateView(order) {
+  const normalized = String(order?.scheduled_operational_state || "").trim().toLowerCase();
+  if (!normalized) return null;
+
+  const labelMap = {
+    agendado: "Agendado",
+    a_liberar: "A libertar",
+    na_fila_imediata: "Na fila imediata",
+  };
+
+  const toneMap = {
+    agendado: "warning",
+    a_liberar: "warning",
+    na_fila_imediata: "success",
+  };
+
+  return {
+    label: labelMap[normalized] || normalized,
+    className: getToneTagClass(toneMap[normalized] || "warning"),
+  };
+}
+
+const ACCEPTED_WITHOUT_DRIVER_SLA_MS = 10 * 60 * 1000;
+const SCHEDULED_RELEASE_WINDOW_MS = 30 * 60 * 1000;
+
+function hasAssignedDriver(order) {
+  return Boolean(String(order?.driver_name || order?.shipday_driver_name || "").trim());
+}
+
+function isDriverAssignmentSlaBreached(order) {
+  if (resolveOrderEstadoInterno(order) !== "aceite") return false;
+  if (hasAssignedDriver(order)) return false;
+
+  const acceptedAt = new Date(order?.aceite_em || order?.updated_at || order?.created_at || 0).getTime();
+  if (!Number.isFinite(acceptedAt)) return false;
+
+  return Date.now() - acceptedAt >= ACCEPTED_WITHOUT_DRIVER_SLA_MS;
+}
+
+function shouldAutoAssignNow(order) {
+  if (String(order?.order_timing_mode || "").trim().toUpperCase() !== "SCHEDULED") return true;
+
+  const scheduledFor = new Date(order?.scheduled_for || order?.created_at || 0).getTime();
+  if (!Number.isFinite(scheduledFor)) return true;
+
+  return (scheduledFor - Date.now()) <= SCHEDULED_RELEASE_WINDOW_MS;
+}
+
+function buildWindowInput({ rangeMode, periodDays, customRange }) {
+  if (rangeMode === "custom") {
+    return {
+      periodDays,
+      dateFrom: customRange?.from || null,
+      dateTo: customRange?.to || null,
+    };
+  }
+
+  return {
+    periodDays,
+    dateFrom: null,
+    dateTo: null,
+  };
+}
+
+function buildPerformanceSearchParams({ periodDays, rangeMode, customRange, granularity = "day" }) {
+  const params = new URLSearchParams();
+  params.set("granularity", granularity);
+
+  if (rangeMode === "custom") {
+    params.set("mode", "custom");
+    if (customRange?.from) params.set("from", customRange.from);
+    if (customRange?.to) params.set("to", customRange.to);
+    params.set("days", String(periodDays));
+    return params.toString();
+  }
+
+  params.set("days", String(periodDays));
+  return params.toString();
+}
+
 const RESTAURANT_DASHBOARD_TABS = [
   { id: "dashboard", label: "Dashboard", description: "Fila de pedidos e entregas da loja", icon: "dashboard" },
   { id: "restaurants", label: "Gestao de Restaurantes", description: "Configuracao operacional da loja", icon: "restaurants" },
@@ -88,6 +198,8 @@ export default function DashboardRestaurante() {
   const [fixedStoreId, setFixedStoreId] = useState(extractRestaurantId(user) || "");
   const [lojaId, setLojaId] = useState(queryLojaId || extractRestaurantId(user) || "");
   const [periodDays, setPeriodDays] = useState(7);
+  const [rangeMode, setRangeMode] = useState("preset");
+  const [customRange, setCustomRange] = useState({ from: "", to: "" });
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [storeName, setStoreName] = useState("");
   const [adminStores, setAdminStores] = useState([]);
@@ -100,11 +212,23 @@ export default function DashboardRestaurante() {
   const [storeSettingsRows, setStoreSettingsRows] = useState([]);
   const [storeSettingsLoading, setStoreSettingsLoading] = useState(false);
   const [storeSettingsError, setStoreSettingsError] = useState("");
+  const [globalAutoAssign, setGlobalAutoAssign] = useState({
+    enabled: false,
+    criteria: sanitizeAutoAssignConfig(null, false).criteria,
+    updated_at: null,
+    loading: false,
+    error: "",
+  });
+  const [liveCarriers, setLiveCarriers] = useState([]);
   const [state, setState] = useState({
     orders: [],
+    immediateOrders: [],
+    scheduledOrders: [],
     deliveries: [],
     metrics: {
       totalOrders: 0,
+      scheduledOrders: 0,
+      immediateOrders: 0,
       totalRevenue: 0,
       activeDeliveries: 0,
       deliveredRate: 0,
@@ -117,6 +241,17 @@ export default function DashboardRestaurante() {
     loading: true,
     error: "",
   });
+  const scheduledShipdayBootstrapInFlightRef = useRef(new Set());
+  const autoAssignInFlightRef = useRef(new Set());
+  const ordersRef = useRef([]);
+  const dashboardWindowInput = useMemo(
+    () => buildWindowInput({ rangeMode, periodDays, customRange }),
+    [customRange, periodDays, rangeMode],
+  );
+  const performanceSearch = useMemo(
+    () => buildPerformanceSearchParams({ periodDays, rangeMode, customRange, granularity: "day" }),
+    [customRange, periodDays, rangeMode],
+  );
 
   useEffect(() => {
     let active = true;
@@ -302,6 +437,43 @@ export default function DashboardRestaurante() {
   useEffect(() => {
     let active = true;
 
+    const loadGlobalAutoAssign = async () => {
+      setGlobalAutoAssign((prev) => ({
+        ...prev,
+        loading: true,
+        error: "",
+      }));
+
+      try {
+        const settings = await fetchGlobalAutoAssignSettings();
+        if (!active) return;
+        setGlobalAutoAssign({
+          enabled: Boolean(settings?.enabled),
+          criteria: sanitizeAutoAssignConfig(settings, Boolean(settings?.enabled)).criteria,
+          updated_at: settings?.updated_at || null,
+          loading: false,
+          error: "",
+        });
+      } catch (error) {
+        if (!active) return;
+        setGlobalAutoAssign((prev) => ({
+          ...prev,
+          loading: false,
+          error: error?.message || "Nao foi possivel carregar a atribuicao automatica geral.",
+        }));
+      }
+    };
+
+    loadGlobalAutoAssign();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
     const loadCommissionCatalog = async () => {
       if (activeTab !== "restaurants" || !scopedStoreId) return;
 
@@ -339,15 +511,207 @@ export default function DashboardRestaurante() {
     }
 
     setState((prev) => ({ ...prev, loading: true }));
-    const data = await fetchRestaurantDashboard({ lojaId: scopedStoreId, periodDays });
+    const data = await fetchRestaurantDashboard({
+      lojaId: scopedStoreId,
+      periodDays: dashboardWindowInput.periodDays,
+      dateFrom: dashboardWindowInput.dateFrom,
+      dateTo: dashboardWindowInput.dateTo,
+    });
     setState({ ...data, loading: false, error: data.error || "" });
-  }, [periodDays, scopedStoreId]);
+  }, [dashboardWindowInput, scopedStoreId]);
+
+  const loadLiveCarriers = useCallback(async () => {
+    try {
+      const carriers = await retrieveShipdayCarriers();
+      setLiveCarriers(carriers);
+    } catch (error) {
+      console.error("Falha ao carregar estafetas online para a dashboard da loja", error);
+    }
+  }, []);
+
+  const ensureScheduledImmediateOrdersAreShipdayReady = useCallback(async (orders = []) => {
+    const candidates = (orders || []).filter((order) => needsScheduledShipdayBootstrap(order));
+    if (candidates.length === 0) return;
+
+    let createdAtLeastOne = false;
+
+    for (const order of candidates) {
+      const key = String(order?.id || "");
+      if (!key || scheduledShipdayBootstrapInFlightRef.current.has(key)) continue;
+
+      scheduledShipdayBootstrapInFlightRef.current.add(key);
+
+      try {
+        await createShipdayOrderForOrder({ orderId: order.id });
+        createdAtLeastOne = true;
+      } catch (error) {
+        console.error("Falha ao ativar Shipday para pedido agendado da loja", {
+          orderId: order?.id ?? null,
+          lojaId: order?.loja_id ?? scopedStoreId ?? null,
+          shipdayOrderId: order?.shipday_order_id ?? null,
+          error,
+        });
+      } finally {
+        scheduledShipdayBootstrapInFlightRef.current.delete(key);
+      }
+    }
+
+    if (createdAtLeastOne) {
+      await load();
+    }
+  }, [load, scopedStoreId]);
 
   useEffect(() => {
     load();
     const timer = setInterval(load, 15000);
     return () => clearInterval(timer);
   }, [load]);
+
+  useEffect(() => {
+    if (activeTab !== "dashboard") return undefined;
+
+    loadLiveCarriers();
+    const timer = setInterval(loadLiveCarriers, 30000);
+    return () => clearInterval(timer);
+  }, [activeTab, loadLiveCarriers]);
+
+  useEffect(() => {
+    if (state.loading) return;
+    ensureScheduledImmediateOrdersAreShipdayReady(state.immediateOrders);
+  }, [ensureScheduledImmediateOrdersAreShipdayReady, state.immediateOrders, state.loading]);
+
+  const persistCarrierAssignment = useCallback(async (order, carrier) => {
+    const result = await persistAssignedCarrierSelection({
+      orderId: order.id,
+      carrier,
+      nextEstado: "atribuindo_estafeta",
+      nextStatus: "ASSIGNED",
+      updatedAt: new Date().toISOString(),
+    });
+
+    setState((prev) => ({
+      ...prev,
+      orders: (prev.orders || []).map((candidate) => {
+        if (String(candidate.id) !== String(order.id)) return candidate;
+        return {
+          ...candidate,
+          driver_name: result.order?.driver_name || null,
+          driver_phone: result.order?.driver_phone || null,
+          veiculo_estafeta: result.order?.veiculo_estafeta || null,
+          estado_interno: result.order?.estado_interno || "atribuindo_estafeta",
+          status: result.order?.status || "ASSIGNED",
+          updated_at: result.order?.updated_at || result.patch?.updated_at || candidate.updated_at,
+        };
+      }),
+    }));
+
+    return result;
+  }, []);
+
+  const runAutoAssignForOrder = useCallback(async (order, { silent = true } = {}) => {
+    const orderId = String(order?.id || "");
+    if (!orderId || autoAssignInFlightRef.current.has(orderId)) {
+      return { skipped: true, reason: "in_flight" };
+    }
+
+    const currentStore = (storeSettingsRows || []).find((store) => String(store?.idloja) === String(order?.loja_id || scopedStoreId || ""));
+    const effectiveAutoAssignConfig = resolveEffectiveAutoAssignConfig(currentStore, globalAutoAssign);
+
+    if (!effectiveAutoAssignConfig.enabled) {
+      return { skipped: true, reason: "store_auto_assign_disabled" };
+    }
+
+    if (!shouldAutoAssignNow(order)) {
+      return { skipped: true, reason: "scheduled_order_outside_release_window" };
+    }
+
+    if (resolveOrderEstadoInterno(order) !== "aceite" || hasAssignedDriver(order)) {
+      return { skipped: true, reason: "order_not_waiting_for_driver" };
+    }
+
+    autoAssignInFlightRef.current.add(orderId);
+
+    try {
+      let preparedOrder = order;
+      let shipdayOrderId = String(order?.shipday_order_id || "").trim();
+
+      if (!shipdayOrderId) {
+        const bootstrap = await createShipdayOrderForOrder({ orderId: order.id });
+        shipdayOrderId = String(bootstrap?.shipdayOrderId || "").trim();
+        preparedOrder = {
+          ...order,
+          shipday_order_id: shipdayOrderId || order?.shipday_order_id || "",
+        };
+      }
+
+      const carriers = await retrieveShipdayCarriers();
+      const { best } = pickBestCarrierForOrder({
+        carriers,
+        orders: ordersRef.current,
+        storeLocation: BARCELOS_CENTER,
+        criteriaConfig: effectiveAutoAssignConfig.criteria,
+      });
+
+      if (!best?.carrier?.id) {
+        if (!silent) {
+          toast.error("Nao existe nenhum estafeta online e disponivel para atribuicao automatica.");
+        }
+        return { skipped: true, reason: "no_available_carrier" };
+      }
+
+      await assignOrderToShipdayCarrier({
+        order: {
+          ...preparedOrder,
+          shipday_order_id: shipdayOrderId || preparedOrder?.shipday_order_id || "",
+        },
+        carrier: best.carrier,
+      });
+
+      await persistCarrierAssignment(preparedOrder, best.carrier);
+
+      if (!silent) {
+        toast.success(`Estafeta ${best.carrier.name || best.carrier.id} atribuido automaticamente.`);
+      }
+
+      await load();
+
+      return {
+        ok: true,
+        carrier: best.carrier,
+      };
+    } catch (error) {
+      console.error("Falha na atribuicao automatica da loja", {
+        orderId: order?.id ?? null,
+        lojaId: order?.loja_id ?? scopedStoreId ?? null,
+        error,
+      });
+
+      if (!silent) {
+        toast.error(error?.message || "Nao foi possivel atribuir estafeta automaticamente.");
+      }
+
+      return { ok: false, error };
+    } finally {
+      autoAssignInFlightRef.current.delete(orderId);
+    }
+  }, [globalAutoAssign, load, persistCarrierAssignment, scopedStoreId, storeSettingsRows]);
+
+  useEffect(() => {
+    if (state.loading) return;
+
+    const autoAssignableOrders = (state.immediateOrders || []).filter((order) => {
+      const currentStore = (storeSettingsRows || []).find((store) => String(store?.idloja) === String(order?.loja_id || scopedStoreId || ""));
+      const effectiveAutoAssignConfig = resolveEffectiveAutoAssignConfig(currentStore, globalAutoAssign);
+      return effectiveAutoAssignConfig.enabled
+        && shouldAutoAssignNow(order)
+        && resolveOrderEstadoInterno(order) === "aceite"
+        && !hasAssignedDriver(order);
+    });
+
+    autoAssignableOrders.forEach((order) => {
+      runAutoAssignForOrder(order, { silent: true });
+    });
+  }, [globalAutoAssign, runAutoAssignForOrder, scopedStoreId, state.immediateOrders, state.loading, storeSettingsRows]);
 
   const latestDeliveryByOrderId = useMemo(() => {
     const map = new Map();
@@ -359,8 +723,8 @@ export default function DashboardRestaurante() {
     return map;
   }, [state.deliveries]);
   const openOrders = useMemo(
-    () => state.orders.filter((order) => !["entregue", "cancelado"].includes(resolveOrderEstadoInterno(order))).length,
-    [state.orders],
+    () => state.immediateOrders.filter((order) => !["entregue", "cancelado"].includes(resolveOrderEstadoInterno(order))).length,
+    [state.immediateOrders],
   );
   const dailyRevenue = useMemo(
     () => state.series.byDay.map((item) => ({ label: item.day, value: item.revenue })),
@@ -370,6 +734,22 @@ export default function DashboardRestaurante() {
     () => state.series.byHour.map((item) => ({ label: `${String(item.hour).padStart(2, "0")}h`, value: item.orders })),
     [state.series.byHour],
   );
+  const liveCarrierEntries = useMemo(
+    () => buildLiveCarrierBoardEntries({
+      carriers: liveCarriers,
+      orders: state.immediateOrders,
+      stores: storeSettingsRows,
+    }),
+    [liveCarriers, state.immediateOrders, storeSettingsRows],
+  );
+  const slaBreachedOrderIds = useMemo(
+    () => new Set((state.slaAlerts || []).filter((alert) => alert.driverAssignmentDelay).map((alert) => String(alert.id))),
+    [state.slaAlerts],
+  );
+
+  useEffect(() => {
+    ordersRef.current = state.orders || [];
+  }, [state.orders]);
 
   const handleLogout = () => {
     localStorage.removeItem("pedeja_user");
@@ -420,12 +800,23 @@ export default function DashboardRestaurante() {
       const result = await updateOrderWorkflowStatus(order.id, toEstado, scopedStoreId, { syncShipday: true });
 
       if (result?.shipdaySync && !result.shipdaySync.ok && !result.shipdaySync.skipped) {
-        alert(`Pedido atualizado no PedeJa, mas falhou sync Shipday: ${result.shipdaySync.error || "erro desconhecido"}`);
+        toast.error(`Pedido atualizado no PedeJa, mas falhou sync Shipday: ${result.shipdaySync.error || "erro desconhecido"}`);
+      } else {
+        toast.success(`Pedido #${order.id} atualizado para ${getEstadoInternoLabelPt(toEstado)}.`);
+      }
+
+      if (toEstado === "aceite") {
+        const refreshedOrder = {
+          ...order,
+          ...result?.order,
+          shipday_order_id: result?.shipdaySync?.shipdayOrderId || result?.order?.shipday_order_id || order?.shipday_order_id || "",
+        };
+        await runAutoAssignForOrder(refreshedOrder, { silent: false });
       }
 
       await load();
     } catch (error) {
-      alert(`Falha a atualizar estado: ${error.message}`);
+      toast.error(`Falha a atualizar estado: ${error.message}`);
     } finally {
       setUpdatingOrderId("");
     }
@@ -465,12 +856,30 @@ export default function DashboardRestaurante() {
     syncUpdatedStore(updatedStore);
   };
 
+  const handleToggleAutoAssign = async (store, nextValue) => {
+    if (!admin) {
+      throw new Error("Apenas o admin pode alterar a atribuicao automatica.");
+    }
+
+    const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
+      atribuicao_automatica_estafeta: nextValue,
+    });
+    syncUpdatedStore(updatedStore);
+  };
+
   const handleSaveCommissionSettings = async (store, payload) => {
     if (!admin) {
       throw new Error("Apenas o admin pode alterar a comissao.");
     }
 
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, payload);
+    syncUpdatedStore(updatedStore);
+  };
+
+  const handleSaveScheduleSettings = async (store, horario_funcionamento) => {
+    const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
+      horario_funcionamento,
+    });
     syncUpdatedStore(updatedStore);
   };
 
@@ -502,12 +911,52 @@ export default function DashboardRestaurante() {
           </p>
         </div>
         <div className="dashboard-actions">
-          <select value={periodDays} onChange={(event) => setPeriodDays(Number(event.target.value))}>
+          <select
+            value={rangeMode === "custom" ? "custom" : String(periodDays)}
+            onChange={(event) => {
+              if (event.target.value === "custom") {
+                setRangeMode("custom");
+                return;
+              }
+
+              setRangeMode("preset");
+              setPeriodDays(Number(event.target.value));
+            }}
+          >
             <option value={7}>Ultimos 7 dias</option>
             <option value={30}>Ultimos 30 dias</option>
             <option value={90}>Ultimos 90 dias</option>
+            <option value="custom">Intervalo personalizado</option>
           </select>
+          {rangeMode === "custom" ? (
+            <div className="dashboard-range-fields">
+              <label className="dashboard-range-field">
+                <span className="muted">De</span>
+                <DatePickerCustom
+                  mode="datetime"
+                  placeholder="Selecionar inicio"
+                  value={customRange.from}
+                  onChange={(value) => setCustomRange((prev) => ({ ...prev, from: value }))}
+                />
+              </label>
+              <label className="dashboard-range-field">
+                <span className="muted">Ate</span>
+                <DatePickerCustom
+                  mode="datetime"
+                  placeholder="Selecionar fim"
+                  value={customRange.to}
+                  min={customRange.from || null}
+                  onChange={(value) => setCustomRange((prev) => ({ ...prev, to: value }))}
+                />
+              </label>
+            </div>
+          ) : null}
           <button className="btn-dashboard" onClick={load}>Atualizar</button>
+          {(admin || fromAdmin) ? (
+            <button className="btn-dashboard secondary" onClick={() => navigate(`/dashboard/admin/performance?${performanceSearch}`)}>
+              Performance
+            </button>
+          ) : null}
           {(admin || fromAdmin) ? (
             <button className="btn-dashboard secondary" onClick={goToAdmin}>
               Voltar ao admin
@@ -566,22 +1015,36 @@ export default function DashboardRestaurante() {
       {state.error ? <p className="shipday-inline-error">{state.error}</p> : null}
 
       {activeTab === "restaurants" ? (
-        <RestaurantManagementPanel
-          title="Gestao de Restaurantes"
-          subtitle={admin
-            ? "Escolhe o modo de comissao e define overrides globais, por categoria ou por prato."
-            : "Vista apenas de leitura. O admin gere estas definicoes da loja."}
-          stores={storeSettingsRows}
-          loading={storeSettingsLoading}
-          error={storeSettingsError}
-          canEdit={admin}
-          emptyText="Sem configuracao de loja disponivel."
-          commissionCatalogByStore={commissionCatalogByStore}
-          catalogLoadingByStore={catalogLoadingByStore}
-          catalogErrorByStore={catalogErrorByStore}
-          onToggleAutoAccept={handleToggleAutoAccept}
-          onSaveCommissionSettings={handleSaveCommissionSettings}
-        />
+        <div className="dashboard-stack">
+          <RestaurantManagementPanel
+            title="Gestao de Restaurantes"
+            subtitle={admin
+              ? "Escolhe o modo de comissao e define overrides globais, por categoria ou por prato."
+              : "Vista apenas de leitura. O admin gere estas definicoes da loja."}
+            stores={storeSettingsRows}
+            loading={storeSettingsLoading}
+            error={storeSettingsError}
+            canEdit={admin}
+            isAdmin={false}
+            showCommissions={false}
+            showCommissionSettings={false}
+            showOperationalSettings={false}
+            emptyText="Sem configuracao de loja disponivel."
+            commissionCatalogByStore={commissionCatalogByStore}
+            catalogLoadingByStore={catalogLoadingByStore}
+            catalogErrorByStore={catalogErrorByStore}
+            onToggleAutoAccept={handleToggleAutoAccept}
+            onToggleAutoAssign={handleToggleAutoAssign}
+            onSaveCommissionSettings={handleSaveCommissionSettings}
+          />
+
+          <StoreSpecialHoursPanel
+            stores={storeSettingsRows}
+            loading={storeSettingsLoading}
+            canEdit
+            onSaveScheduleSettings={handleSaveScheduleSettings}
+          />
+        </div>
       ) : null}
 
       {activeTab === "dashboard" ? (
@@ -595,7 +1058,12 @@ export default function DashboardRestaurante() {
             <article className="metric-card premium">
               <div className="metric-label">Em aberto</div>
               <div className="metric-value">{openOrders}</div>
-              <div className="metric-foot">Fila ativa</div>
+              <div className="metric-foot">Fila imediata</div>
+            </article>
+            <article className="metric-card premium">
+              <div className="metric-label">Agendados</div>
+              <div className="metric-value">{state.metrics.scheduledOrders}</div>
+              <div className="metric-foot">Aguardam janela operacional</div>
             </article>
             <article className="metric-card premium">
               <div className="metric-label">Receita</div>
@@ -620,7 +1088,7 @@ export default function DashboardRestaurante() {
           </section>
 
           <section className="panel-grid admin-top-grid">
-            <LiveOperationsBoard orders={state.liveOrders} />
+            <LiveOperationsBoard orders={state.immediateOrders} carriers={liveCarrierEntries} stores={storeSettingsRows} />
 
             <article className="panel sla-panel">
               <h3>Alertas SLA da loja</h3>
@@ -665,8 +1133,83 @@ export default function DashboardRestaurante() {
           <article className="panel">
             <div className="panel-header-inline">
               <div>
-                <h3>Fila de pedidos</h3>
-                <p className="muted">Clica numa linha para ver itens, notas, morada detalhada e contacto do cliente.</p>
+                <h3>Pedidos agendados</h3>
+                <p className="muted">Passam automaticamente para a fila imediata 30 minutos antes da entrega prevista.</p>
+              </div>
+            </div>
+
+            <div className="table-wrap">
+              <table className="ops-table">
+                <thead>
+                  <tr>
+                    <th>Pedido</th>
+                    <th>Cliente</th>
+                    <th>Entrega prevista</th>
+                    <th>Operacao</th>
+                    <th>Total</th>
+                    <th>Estado</th>
+                    <th>Acoes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {state.scheduledOrders.map((order) => {
+                    const estadoInterno = resolveOrderEstadoInterno(order);
+                    const actions = getRestaurantActionsForEstado(estadoInterno);
+                    const scheduledStateView = getScheduledOperationalStateView(order);
+
+                    return (
+                      <tr
+                        key={`scheduled-${order.id}`}
+                        className="is-clickable-row"
+                        tabIndex={0}
+                        onClick={() => openOrderDetailModal(order.id)}
+                        onKeyDown={(event) => handleRowKeyDown(event, () => openOrderDetailModal(order.id))}
+                      >
+                        <td>{String(order.id).slice(0, 8)}</td>
+                        <td>{order.customer_nome || "-"}</td>
+                        <td>{formatOrderDeliverySlot(order.scheduled_for || order.created_at)}</td>
+                        <td>
+                          {scheduledStateView ? <span className={scheduledStateView.className}>{scheduledStateView.label}</span> : "-"}
+                        </td>
+                        <td>{Number(order.total || 0).toFixed(2)}EUR</td>
+                        <td><span className={getEstadoInternoTagClass(estadoInterno)}>{getEstadoInternoLabelPt(estadoInterno)}</span></td>
+                        <td>
+                          {actions.length > 0 ? (
+                            <div className="table-action-row">
+                              {actions.map((action) => (
+                                <button
+                                  key={`scheduled-${order.id}-${action.action}`}
+                                  className={`btn-dashboard small${action.variant === "secondary" ? " secondary" : ""}`}
+                                  disabled={updatingOrderId === order.id}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleOrderAction(order, action.toEstado);
+                                  }}
+                                >
+                                  {updatingOrderId === order.id ? "..." : action.label}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!state.loading && state.scheduledOrders.length === 0 ? (
+                    <tr><td colSpan={7}>Sem pedidos agendados nesta janela.</td></tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article className="panel">
+            <div className="panel-header-inline">
+              <div>
+                <h3>Fila de pedidos imediatos</h3>
+                <p className="muted">Pedidos a trabalhar agora, incluindo os agendados que ja entraram na janela operacional.</p>
               </div>
             </div>
 
@@ -684,19 +1227,24 @@ export default function DashboardRestaurante() {
                   </tr>
                 </thead>
                 <tbody>
-                  {state.orders.map((order) => {
+                  {state.immediateOrders.map((order) => {
                     const estadoInterno = resolveOrderEstadoInterno(order);
                     const actions = getRestaurantActionsForEstado(estadoInterno);
                     const latestDelivery = latestDeliveryByOrderId.get(String(order.id));
-                    const trackingUrl = order.shipday_tracking_url || latestDelivery?.tracking_url || null;
-                    const driverText = order.driver_name
+                    const hasDriverAlert = slaBreachedOrderIds.has(String(order.id)) || isDriverAssignmentSlaBreached(order);
+                    const trackingUrl = estadoInterno === "cancelado"
+                      ? null
+                      : (order.shipday_tracking_url || latestDelivery?.tracking_url || null);
+                    const driverText = estadoInterno === "cancelado"
+                      ? "-"
+                      : (order.driver_name
                       ? `${order.driver_name}${order.driver_phone ? ` (${order.driver_phone})` : ""}`
-                      : (order.driver_phone || "-");
+                      : (order.driver_phone || "-"));
 
                     return (
                       <tr
                         key={order.id}
-                        className="is-clickable-row"
+                        className={`is-clickable-row${hasDriverAlert ? " order-row-sla-alert" : ""}`}
                         tabIndex={0}
                         onClick={() => openOrderDetailModal(order.id)}
                         onKeyDown={(event) => handleRowKeyDown(event, () => openOrderDetailModal(order.id))}
@@ -704,7 +1252,10 @@ export default function DashboardRestaurante() {
                         <td>{String(order.id).slice(0, 8)}</td>
                         <td>{order.customer_nome || "-"}</td>
                         <td>{Number(order.total || 0).toFixed(2)}EUR</td>
-                        <td><span className={getEstadoInternoTagClass(estadoInterno)}>{getEstadoInternoLabelPt(estadoInterno)}</span></td>
+                        <td>
+                          <span className={getEstadoInternoTagClass(estadoInterno)}>{getEstadoInternoLabelPt(estadoInterno)}</span>
+                          {hasDriverAlert ? <span className="table-alert-indicator" title="Pedido aceite sem estafeta ha mais de 10 minutos.">!</span> : null}
+                        </td>
                         <td>{driverText}</td>
                         <td>
                           {trackingUrl ? (
@@ -749,7 +1300,7 @@ export default function DashboardRestaurante() {
                       </tr>
                     );
                   })}
-                  {!state.loading && state.orders.length === 0 ? (
+                  {!state.loading && state.immediateOrders.length === 0 ? (
                     <tr><td colSpan={7}>Sem pedidos nesta janela.</td></tr>
                   ) : null}
                 </tbody>

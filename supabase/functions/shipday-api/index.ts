@@ -59,7 +59,7 @@ async function callShipday({
 }: {
   shipdayBaseUrl: string;
   shipdayApiKey: string;
-  method: "GET" | "PUT" | "POST";
+  method: "GET" | "PUT" | "POST" | "DELETE";
   endpoint: string;
   body?: Record<string, unknown> | null;
 }) {
@@ -258,6 +258,37 @@ serve(async (req) => {
       return json({
         ok: true,
         action,
+        data: shipday.payload,
+      });
+    }
+
+    if (action === "cancel_order") {
+      const shipdayOrderId = toText(body?.shipdayOrderId || body?.shipday_order_id || body?.orderId || body?.order_id);
+
+      if (!shipdayOrderId) return json({ error: "shipdayOrderId em falta" }, 400);
+
+      const shipday = await callShipday({
+        shipdayBaseUrl,
+        shipdayApiKey,
+        method: "DELETE",
+        endpoint: `/orders/${encodeURIComponent(shipdayOrderId)}`,
+      });
+
+      if (!shipday.ok) {
+        return json(
+          {
+            error: shipday.error,
+            shipday_status: shipday.status,
+            payload: shipday.payload,
+          },
+          502,
+        );
+      }
+
+      return json({
+        ok: true,
+        action,
+        shipday_order_id: shipdayOrderId,
         data: shipday.payload,
       });
     }
@@ -551,7 +582,7 @@ serve(async (req) => {
     }
 
     return json({
-      error: "Action invalida. Usa 'get_carriers', 'assign_order', 'create_order', 'ready_for_pickup' ou 'update_status'.",
+      error: "Action invalida. Usa 'get_carriers', 'assign_order', 'cancel_order', 'create_order', 'ready_for_pickup' ou 'update_status'.",
     }, 400);
   } catch (error: any) {
     return json({ error: error?.message || "Erro interno shipday-api" }, 500);

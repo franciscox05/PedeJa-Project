@@ -1,6 +1,8 @@
 ﻿import { supabase } from "./supabaseClient";
 import { mapEstadoInternoToShipdayState, normalizeEstadoInterno } from "./orderStatusMapper";
 import { buildSupabaseFunctionHeaders, getSupabaseFunctionUrl } from "./supabaseClient";
+import { haversineDistanceKm } from "./deliveryZoneService";
+import { sanitizeAutoAssignCriteria } from "./autoAssignConfig";
 
 const SHIPDAY_API_FUNCTION = "shipday-api";
 const SHIPDAY_STATUS_FUNCTION = "update-shipday-status";
@@ -27,6 +29,49 @@ function isCarrierAlreadyUnassignedError(value) {
 function isTruthyFlag(value) {
   if (value === true) return true;
   return String(value || "").trim().toLowerCase() === "true";
+}
+
+function normalizeCarrierName(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function normalizeCarrierPhone(value) {
+  return String(value || "").replace(/\D+/g, "");
+}
+
+function toFiniteCoordinate(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function extractCarrierCoordinates(carrier = {}) {
+  const candidates = [
+    carrier,
+    carrier?.last_location,
+    carrier?.lastLocation,
+    carrier?.location,
+    carrier?.current_location,
+    carrier?.currentLocation,
+    carrier?.gps,
+    carrier?.coordinates,
+    carrier?.coordinate,
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    const lat = toFiniteCoordinate(candidate?.latitude ?? candidate?.lat ?? candidate?.y);
+    const lng = toFiniteCoordinate(candidate?.longitude ?? candidate?.lng ?? candidate?.lon ?? candidate?.x);
+
+    if (lat !== null && lng !== null) {
+      return { lat, lng };
+    }
+  }
+
+  return { lat: null, lng: null };
 }
 
 function normalizeVehicleSegment(value) {
@@ -211,6 +256,7 @@ function normalizeCarrier(carrier, index) {
     : Boolean(explicitAvailable);
   const isOnShift = isTruthyFlag(carrier?.isOnShift);
   const isActive = isTruthyFlag(carrier?.isActive) || isTruthyFlag(carrier?.active);
+  const coordinates = extractCarrierCoordinates(carrier);
 
   return {
     id: id !== null && id !== undefined ? String(id) : "",
@@ -221,8 +267,131 @@ function normalizeCarrier(carrier, index) {
     is_on_shift: isOnShift,
     is_active: isActive,
     is_available: isAvailable,
+    lat: coordinates.lat,
+    lng: coordinates.lng,
     raw: carrier,
   };
+}
+
+function isTerminalOrder(order) {
+  const estado = normalizeEstadoInterno(order?.estado_interno || order?.status);
+  return ["entregue", "cancelado"].includes(estado);
+}
+
+function doesOrderBelongToCarrier(order, carrier) {
+  const orderPhone = normalizeCarrierPhone(order?.driver_phone || order?.shipday_driver_phone);
+  const carrierPhone = normalizeCarrierPhone(carrier?.phone);
+  if (orderPhone && carrierPhone && orderPhone === carrierPhone) return true;
+
+  const orderName = normalizeCarrierName(order?.driver_name || order?.shipday_driver_name);
+  const carrierName = normalizeCarrierName(carrier?.name);
+  if (orderName && carrierName && orderName === carrierName) return true;
+
+  return false;
+}
+
+function getCarrierActiveOrdersCount(carrier, orders = []) {
+  return (orders || []).filter((order) => {
+    if (!doesOrderBelongToCarrier(order, carrier)) return false;
+    return !isTerminalOrder(order);
+  }).length;
+}
+
+function getCarrierDailyOrdersCount(carrier, orders = [], now = new Date()) {
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+  const dayStartTimestamp = startOfDay.getTime();
+
+  return (orders || []).filter((order) => {
+    if (!doesOrderBelongToCarrier(order, carrier)) return false;
+    const timestamp = new Date(order?.submitted_at || order?.created_at || 0).getTime();
+    return Number.isFinite(timestamp) && timestamp >= dayStartTimestamp;
+  }).length;
+}
+
+function resolveCarrierDistanceToStoreKm(carrier, storeLocation = null) {
+  const carrierLat = toFiniteCoordinate(carrier?.lat);
+  const carrierLng = toFiniteCoordinate(carrier?.lng);
+  const storeLat = toFiniteCoordinate(storeLocation?.lat);
+  const storeLng = toFiniteCoordinate(storeLocation?.lng);
+
+  if (carrierLat === null || carrierLng === null || storeLat === null || storeLng === null) {
+    return null;
+  }
+
+  return haversineDistanceKm(
+    { lat: carrierLat, lng: carrierLng },
+    { lat: storeLat, lng: storeLng },
+  );
+}
+
+function compareCarrierRank(a, b, criteria = sanitizeAutoAssignCriteria()) {
+  if (criteria.availability && a.availabilityRank !== b.availabilityRank) {
+    return a.availabilityRank - b.availabilityRank;
+  }
+
+  if (criteria.workload && a.activeOrdersCount !== b.activeOrdersCount) {
+    return a.activeOrdersCount - b.activeOrdersCount;
+  }
+
+  if (criteria.workload && a.dailyOrdersCount !== b.dailyOrdersCount) {
+    return a.dailyOrdersCount - b.dailyOrdersCount;
+  }
+
+  if (criteria.proximity) {
+    const distanceA = Number.isFinite(a.distanceKm) ? a.distanceKm : Number.POSITIVE_INFINITY;
+    const distanceB = Number.isFinite(b.distanceKm) ? b.distanceKm : Number.POSITIVE_INFINITY;
+    if (distanceA !== distanceB) {
+      return distanceA - distanceB;
+    }
+  }
+
+  return String(a.carrier?.name || "").localeCompare(String(b.carrier?.name || ""), "pt-PT");
+}
+
+function resolveBoardCarrierStatus(order) {
+  const estado = normalizeEstadoInterno(order?.estado_interno || order?.status);
+
+  if (!order) return "available";
+  if (["recolhido", "a_caminho", "entregue"].includes(estado)) return "delivery";
+  return "pickup";
+}
+
+function resolveBoardCarrierCoordinates(carrier, activeOrder, storesById = new Map()) {
+  const carrierLat = toFiniteCoordinate(carrier?.lat);
+  const carrierLng = toFiniteCoordinate(carrier?.lng);
+
+  if (carrierLat !== null && carrierLng !== null) {
+    return { lat: carrierLat, lng: carrierLng, source: "carrier" };
+  }
+
+  if (!activeOrder) {
+    return { lat: null, lng: null, source: "unavailable" };
+  }
+
+  const boardStatus = resolveBoardCarrierStatus(activeOrder);
+  if (boardStatus === "delivery") {
+    const customerLat = toFiniteCoordinate(activeOrder?.customer_lat || activeOrder?.lat);
+    const customerLng = toFiniteCoordinate(activeOrder?.customer_lng || activeOrder?.lng);
+    if (customerLat !== null && customerLng !== null) {
+      return { lat: customerLat, lng: customerLng, source: "customer" };
+    }
+  }
+
+  const store = storesById.get(String(activeOrder?.loja_id || ""));
+  const storeLat = toFiniteCoordinate(store?.latitude || store?.lat);
+  const storeLng = toFiniteCoordinate(store?.longitude || store?.lng);
+  if (storeLat !== null && storeLng !== null) {
+    return { lat: storeLat, lng: storeLng, source: "store" };
+  }
+
+  const fallbackCustomerLat = toFiniteCoordinate(activeOrder?.customer_lat || activeOrder?.lat);
+  const fallbackCustomerLng = toFiniteCoordinate(activeOrder?.customer_lng || activeOrder?.lng);
+  if (fallbackCustomerLat !== null && fallbackCustomerLng !== null) {
+    return { lat: fallbackCustomerLat, lng: fallbackCustomerLng, source: "customer" };
+  }
+
+  return { lat: null, lng: null, source: "unavailable" };
 }
 
 export async function retrieveShipdayCarriers() {
@@ -234,6 +403,78 @@ export async function retrieveShipdayCarriers() {
     .filter((carrier) => carrier.id && carrier.is_on_shift && carrier.is_active);
 
   return carriers;
+}
+
+export function pickBestCarrierForOrder({
+  carriers = [],
+  orders = [],
+  storeLocation = null,
+  now = new Date(),
+  criteriaConfig = null,
+} = {}) {
+  const criteria = sanitizeAutoAssignCriteria(criteriaConfig);
+  const rankedCarriers = (carriers || [])
+    .filter((carrier) => carrier?.id)
+    .map((carrier) => {
+      const activeOrdersCount = getCarrierActiveOrdersCount(carrier, orders);
+      const dailyOrdersCount = getCarrierDailyOrdersCount(carrier, orders, now);
+      const distanceKm = resolveCarrierDistanceToStoreKm(carrier, storeLocation);
+      const availabilityRank = carrier?.is_available
+        ? (activeOrdersCount === 0 ? 0 : 1)
+        : 2;
+
+      return {
+        carrier,
+        activeOrdersCount,
+        dailyOrdersCount,
+        distanceKm,
+        availabilityRank,
+        shipdayAvailabilityPenalty: carrier?.is_available ? 0 : 1,
+      };
+    })
+    .sort((a, b) => compareCarrierRank(a, b, criteria));
+
+  return {
+    best: rankedCarriers[0] || null,
+    rankedCarriers,
+  };
+}
+
+export function buildLiveCarrierBoardEntries({
+  carriers = [],
+  orders = [],
+  stores = [],
+} = {}) {
+  const storesById = new Map((stores || []).map((store) => [String(store?.idloja || store?.id || ""), store]));
+
+  return (carriers || [])
+    .map((carrier) => {
+      const activeOrder = (orders || []).find((order) => {
+        if (isTerminalOrder(order)) return false;
+        return doesOrderBelongToCarrier(order, carrier);
+      }) || null;
+
+      const boardStatus = resolveBoardCarrierStatus(activeOrder);
+      const coordinates = resolveBoardCarrierCoordinates(carrier, activeOrder, storesById);
+
+      return {
+        id: String(carrier?.id || ""),
+        name: carrier?.name || "",
+        phone: carrier?.phone || "",
+        lat: coordinates.lat,
+        lng: coordinates.lng,
+        status: boardStatus,
+        coordsSource: coordinates.source,
+        orderId: activeOrder?.id || null,
+        orderEstado: activeOrder ? normalizeEstadoInterno(activeOrder?.estado_interno || activeOrder?.status) : null,
+        lojaId: activeOrder?.loja_id || null,
+        lojaNome: activeOrder
+          ? (storesById.get(String(activeOrder?.loja_id || ""))?.nome || `Loja ${activeOrder?.loja_id || "-"}`)
+          : null,
+        raw: carrier?.raw || null,
+      };
+    })
+    .filter((carrier) => Number.isFinite(carrier.lat) && Number.isFinite(carrier.lng));
 }
 
 export async function assignShipdayOrder({ shipdayOrderId, carrierId }) {
@@ -288,6 +529,47 @@ export async function assignOrderToShipdayCarrier({ order, carrier }) {
   };
 }
 
+export async function persistAssignedCarrierSelection({
+  orderId,
+  carrier,
+  nextEstado = "atribuindo_estafeta",
+  nextStatus = "ASSIGNED",
+  updatedAt = new Date().toISOString(),
+}) {
+  const normalizedOrderId = toText(orderId);
+  if (!normalizedOrderId) {
+    throw new Error("orderId em falta para guardar estafeta atribuido.");
+  }
+
+  const patch = {
+    estado_interno: nextEstado,
+    status: nextStatus,
+    updated_at: updatedAt,
+    driver_name: toText(carrier?.name) || null,
+    driver_phone: toText(carrier?.phone) || null,
+    veiculo_estafeta: toText(carrier?.vehicle) || null,
+  };
+
+  const { data, error } = await supabase
+    .from("orders")
+    .update(patch)
+    .eq("id", normalizedOrderId)
+    .select("id, driver_name, driver_phone, veiculo_estafeta, estado_interno, status, updated_at")
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    patch,
+    order: data || {
+      id: normalizedOrderId,
+      ...patch,
+    },
+  };
+}
+
 export async function unassignOrderToShipdayCarrier({
   shipdayOrderId,
   orderId = null,
@@ -319,6 +601,46 @@ export async function createShipdayOrderForOrder({ orderId }) {
     shipdayOrderId: toText(response?.shipday_order_id || response?.data?.orderId || response?.data?.id || ""),
     data: response?.data ?? response,
   };
+}
+
+export async function cancelShipdayOrder({
+  shipdayOrderId,
+  orderId = null,
+  lojaId = null,
+}) {
+  const normalizedShipdayOrderId = toText(shipdayOrderId);
+
+  if (!normalizedShipdayOrderId) {
+    return {
+      ok: false,
+      skipped: true,
+      reason: "shipday_order_id_ausente",
+    };
+  }
+
+  try {
+    const response = await invokeShipdayApi("cancel_order", {
+      shipdayOrderId: normalizedShipdayOrderId,
+      orderId: orderId ?? undefined,
+      lojaId: lojaId ?? undefined,
+    });
+
+    return {
+      ok: true,
+      skipped: false,
+      action: "cancel_order",
+      shipdayOrderId: normalizedShipdayOrderId,
+      data: response?.data ?? response,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      skipped: false,
+      action: "cancel_order",
+      shipdayOrderId: normalizedShipdayOrderId,
+      error: String(error?.message || "Falha ao cancelar pedido no Shipday"),
+    };
+  }
 }
 
 export async function markShipdayOrderReadyForPickup({ shipdayOrderId, orderId = null }) {

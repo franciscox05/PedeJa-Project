@@ -231,6 +231,32 @@ function extractExpectedDelivery(payload: any): string | null {
   );
 }
 
+function buildTransitionTimestampPatch(
+  finalStatus: string | null,
+  currentTransitions: Record<string, string | null>,
+  timestamp: string,
+) {
+  const patch: Record<string, unknown> = {};
+
+  if (finalStatus === "aceite" && !currentTransitions.aceite_em) {
+    patch.aceite_em = timestamp;
+  }
+
+  if (finalStatus === "estafeta_aceitou" && !currentTransitions.atribuido_em) {
+    patch.atribuido_em = timestamp;
+  }
+
+  if (finalStatus === "recolhido" && !currentTransitions.recolhido_em) {
+    patch.recolhido_em = timestamp;
+  }
+
+  if (finalStatus === "entregue" && !currentTransitions.entregue_em) {
+    patch.entregue_em = timestamp;
+  }
+
+  return patch;
+}
+
 function extractVehicleDescription(payload: any): string | null {
   const description = pickFirst(
     readPath(payload, ["carrier", "vehicle_description"]),
@@ -491,8 +517,9 @@ serve(async (req) => {
     const estadoInternoMapeado = mapShipdayToEstadoInterno(rawStatus);
     const isEstadoTerminal = estadoInternoMapeado === "entregue" || estadoInternoMapeado === "cancelado";
 
+    const nowIso = new Date().toISOString();
     const patch: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
+      updated_at: nowIso,
     };
 
     const driverName = extractDriverName(payload);
@@ -503,15 +530,32 @@ serve(async (req) => {
 
     let currentEstadoInterno: string | null = null;
     let currentOrderUpdatedAt: string | null = null;
+    let currentAceiteAt: string | null = null;
+    let currentAtribuidoAt: string | null = null;
+    let currentRecolhidoAt: string | null = null;
+    let currentEntregueAt: string | null = null;
     let currentEstadoLookupSource: "id" | "shipday_order_id" | null = null;
     let currentEstadoLookupError: string | null = null;
 
     async function readCurrentEstadoById(targetOrderId: number) {
-      const { data, error } = await supabase
+      let response = await supabase
         .from("orders")
-        .select("estado_interno, updated_at")
+        .select("estado_interno, updated_at, aceite_em, atribuido_em, recolhido_em, entregue_em")
         .eq("id", targetOrderId)
         .maybeSingle();
+
+      if (
+        response.error
+        && /aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(response.error.message || ""))
+      ) {
+        response = await supabase
+          .from("orders")
+          .select("estado_interno, updated_at")
+          .eq("id", targetOrderId)
+          .maybeSingle();
+      }
+
+      const { data, error } = response;
 
       if (error) {
         currentEstadoLookupError = `lookup_por_id:${error.message}`;
@@ -526,17 +570,35 @@ serve(async (req) => {
 
       currentEstadoInterno = toText(data?.estado_interno);
       currentOrderUpdatedAt = toText(data?.updated_at);
+      currentAceiteAt = toText(data?.aceite_em);
+      currentAtribuidoAt = toText(data?.atribuido_em);
+      currentRecolhidoAt = toText(data?.recolhido_em);
+      currentEntregueAt = toText(data?.entregue_em);
       currentEstadoLookupSource = "id";
       return true;
     }
 
     async function readCurrentEstadoByShipdayId(targetShipdayOrderId: string) {
-      const { data, error } = await supabase
+      let response = await supabase
         .from("orders")
-        .select("estado_interno, updated_at")
+        .select("estado_interno, updated_at, aceite_em, atribuido_em, recolhido_em, entregue_em")
         .eq("shipday_order_id", targetShipdayOrderId)
         .limit(1)
         .maybeSingle();
+
+      if (
+        response.error
+        && /aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(response.error.message || ""))
+      ) {
+        response = await supabase
+          .from("orders")
+          .select("estado_interno, updated_at")
+          .eq("shipday_order_id", targetShipdayOrderId)
+          .limit(1)
+          .maybeSingle();
+      }
+
+      const { data, error } = response;
 
       if (error) {
         currentEstadoLookupError = `lookup_por_shipday_order_id:${error.message}`;
@@ -551,6 +613,10 @@ serve(async (req) => {
 
       currentEstadoInterno = toText(data?.estado_interno);
       currentOrderUpdatedAt = toText(data?.updated_at);
+      currentAceiteAt = toText(data?.aceite_em);
+      currentAtribuidoAt = toText(data?.atribuido_em);
+      currentRecolhidoAt = toText(data?.recolhido_em);
+      currentEntregueAt = toText(data?.entregue_em);
       currentEstadoLookupSource = "shipday_order_id";
       return true;
     }
@@ -709,6 +775,20 @@ serve(async (req) => {
       patch.estado_interno = finalStatus;
     }
 
+    Object.assign(
+      patch,
+      buildTransitionTimestampPatch(
+        finalStatus,
+        {
+          aceite_em: currentAceiteAt,
+          atribuido_em: currentAtribuidoAt,
+          recolhido_em: currentRecolhidoAt,
+          entregue_em: currentEntregueAt,
+        },
+        nowIso,
+      ),
+    );
+
     if (shouldClearCarrierByState || didAssignmentTimeout) {
       patch.driver_name = null;
       patch.driver_phone = null;
@@ -747,12 +827,16 @@ serve(async (req) => {
 
       if (
         response.error
-        && /shipday_driver_name|shipday_driver_phone|previsao_entrega|veiculo_estafeta/i.test(String(response.error.message || ""))
+        && /shipday_driver_name|shipday_driver_phone|previsao_entrega|veiculo_estafeta|aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(response.error.message || ""))
       ) {
         delete patch.shipday_driver_name;
         delete patch.shipday_driver_phone;
         delete patch.previsao_entrega;
         delete patch.veiculo_estafeta;
+        delete patch.aceite_em;
+        delete patch.atribuido_em;
+        delete patch.recolhido_em;
+        delete patch.entregue_em;
         response = await supabase
           .from("orders")
           .update(patch)
@@ -780,12 +864,16 @@ serve(async (req) => {
 
       if (
         updateResponse.error
-        && /shipday_driver_name|shipday_driver_phone|previsao_entrega|veiculo_estafeta/i.test(String(updateResponse.error.message || ""))
+        && /shipday_driver_name|shipday_driver_phone|previsao_entrega|veiculo_estafeta|aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(updateResponse.error.message || ""))
       ) {
         delete patch.shipday_driver_name;
         delete patch.shipday_driver_phone;
         delete patch.previsao_entrega;
         delete patch.veiculo_estafeta;
+        delete patch.aceite_em;
+        delete patch.atribuido_em;
+        delete patch.recolhido_em;
+        delete patch.entregue_em;
         updateResponse = await supabase.from("orders").update(patch).eq("id", numericOrderNumber);
       }
 

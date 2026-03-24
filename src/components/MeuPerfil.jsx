@@ -27,10 +27,10 @@ function formatDateTime(value) {
 
 function formatOrderMoment(order) {
   if (order?.order_timing_mode === "SCHEDULED") {
-    return `Agendado para ${formatDateTime(order.created_at)}`;
+    return `Agendado para ${formatDateTime(order.scheduled_for || order.created_at)}`;
   }
 
-  return formatDateTime(order?.created_at);
+  return formatDateTime(order?.submitted_at || order?.created_at);
 }
 
 function formatMoney(value) {
@@ -72,7 +72,7 @@ function MeuPerfil({ user, aoAtualizarUser }) {
   const isCustomer = useMemo(() => resolveUserRole(user) === "customer", [user]);
   const orderedOrders = useMemo(
     () => [...(ordersData.orders || [])].sort(
-      (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime(),
+      (a, b) => new Date(b?.submitted_at || b?.created_at || 0).getTime() - new Date(a?.submitted_at || a?.created_at || 0).getTime(),
     ),
     [ordersData.orders],
   );

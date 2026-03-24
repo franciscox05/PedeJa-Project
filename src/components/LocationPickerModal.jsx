@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BARCELOS_DELIVERY_TIERS,
+  BARCELOS_CENTER,
+  buildDeliveryPricingDistanceRings,
   computeDeliveryQuoteByDistance,
   formatDistanceKm,
-  MAX_BARCELOS_RADIUS_KM,
   PORTUGAL_MAINLAND_BOUNDS,
+  resolveDeliveryPricingMaxKm,
 } from "../services/deliveryZoneService";
 import {
   geocodeCoordsWithGoogle,
@@ -14,10 +15,7 @@ import {
 import "../css/components/LocationPickerModal.css";
 
 const RING_COLORS = ["#ef4444", "#f97316", "#f59e0b", "#06b6d4", "#6366f1", "#8b5cf6", "#10b981"];
-const FIXED_BARCELOS_CENTER = Object.freeze({
-  lat: 41.5315,
-  lng: -8.6186,
-});
+const FIXED_BARCELOS_CENTER = BARCELOS_CENTER;
 
 function isFiniteCoordinate(value) {
   const parsed = Number(value);
@@ -34,6 +32,8 @@ export default function LocationPickerModal({
   subtitle = "Arrasta o marcador ou clica no mapa para escolher o ponto exato.",
   initialLat = null,
   initialLng = null,
+  deliveryPricingConfig = null,
+  deliveryFeeFallback = null,
   onCancel,
   onConfirm,
 }) {
@@ -56,10 +56,18 @@ export default function LocationPickerModal({
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [distanceKm, setDistanceKm] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const pricingRings = useMemo(
+    () => buildDeliveryPricingDistanceRings(deliveryPricingConfig),
+    [deliveryPricingConfig],
+  );
+  const maxDeliveryKm = useMemo(
+    () => resolveDeliveryPricingMaxKm(deliveryPricingConfig),
+    [deliveryPricingConfig],
+  );
 
   const deliveryQuote = useMemo(
-    () => computeDeliveryQuoteByDistance(distanceKm),
-    [distanceKm],
+    () => computeDeliveryQuoteByDistance(distanceKm, deliveryPricingConfig, deliveryFeeFallback),
+    [deliveryFeeFallback, deliveryPricingConfig, distanceKm],
   );
 
   useEffect(() => {
@@ -107,12 +115,12 @@ export default function LocationPickerModal({
         markerRef.current = marker;
 
         circlesRef.current.forEach((circle) => circle.setMap(null));
-        circlesRef.current = BARCELOS_DELIVERY_TIERS.map((tier, index) => {
+        circlesRef.current = pricingRings.map((ring, index) => {
           const color = createCircleColor(index);
           return new window.google.maps.Circle({
             map,
             center: FIXED_BARCELOS_CENTER,
-            radius: tier.maxKm * 1000,
+            radius: ring.distanceKm * 1000,
             clickable: false,
             strokeColor: color,
             strokeOpacity: 0.45,
@@ -161,7 +169,7 @@ export default function LocationPickerModal({
       markerRef.current = null;
       mapRef.current = null;
     };
-  }, [isOpen, initialPoint.lat, initialPoint.lng]);
+  }, [isOpen, initialPoint.lat, initialPoint.lng, pricingRings]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -246,7 +254,7 @@ export default function LocationPickerModal({
 
         {!deliveryQuote.deliverable ? (
           <p className="location-picker-error">
-            {deliveryQuote.reason || `Fora da zona de entrega (maximo ${MAX_BARCELOS_RADIUS_KM} km).`}
+            {deliveryQuote.reason || `Fora da zona de entrega (maximo ${maxDeliveryKm} km).`}
           </p>
         ) : (
           <p className="location-picker-ok">Ponto dentro da zona de entrega.</p>

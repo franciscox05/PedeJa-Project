@@ -1,20 +1,30 @@
 ﻿import { supabase } from "./supabaseClient";
+import {
+  assertSupabaseClientAvailable,
+  fetchGlobalDeliveryPricingConfig,
+  GLOBAL_DELIVERY_PRICING_SETTING_KEY,
+} from "./supabaseClient";
 import { extractRestaurantId, extractUserId } from "../utils/roles";
-import { assertSupabaseClientAvailable } from "./supabaseClient";
-import { isStoreOpenNow } from "../utils/storeHours";
+import { DEFAULT_PER_KM_DELIVERY_CONFIG, sanitizeDeliveryPricingConfig } from "./deliveryZoneService";
+import { isStoreOpenNow, sanitizeScheduleWithExceptions } from "../utils/storeHours";
 import { mapEstadoInternoToLegacyStatus, mapLegacyStatusToEstadoInterno, resolveOrderEstadoInterno } from "./orderStatusMapper";
-import { createShipdayOrderForOrder, syncOrderStatusWithShipday, updateShipdayOrderStatus } from "./shipdayService";
+import { cancelShipdayOrder, createShipdayOrderForOrder, updateShipdayOrderStatus } from "./shipdayService";
 import { sanitizeCommissionConfig } from "./pricingService";
+import { sanitizeAutoAssignConfig } from "./autoAssignConfig";
 
-const ORDER_SELECT_FULL = "id, loja_id, customer_nome, customer_address, customer_lat, customer_lng, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, created_at, updated_at";
-const ORDER_SELECT_BASIC = "id, loja_id, customer_nome, customer_address, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, created_at, updated_at";
+const ORDER_SELECT_FULL = "id, loja_id, customer_nome, customer_address, customer_lat, customer_lng, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, veiculo_estafeta, submitted_at, order_timing_mode, scheduled_for, aceite_em, atribuido_em, recolhido_em, entregue_em, created_at, updated_at";
+const ORDER_SELECT_BASIC = "id, loja_id, customer_nome, customer_address, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, veiculo_estafeta, submitted_at, order_timing_mode, scheduled_for, aceite_em, atribuido_em, recolhido_em, entregue_em, created_at, updated_at";
 const ORDER_SELECT_FULL_LEGACY = "id, loja_id, customer_nome, customer_address, customer_lat, customer_lng, total, status, created_at, updated_at";
 const ORDER_SELECT_BASIC_LEGACY = "id, loja_id, customer_nome, customer_address, total, status, created_at, updated_at";
 const DELIVERY_SELECT_ADMIN = "id, order_id, external_delivery_id, status, tracking_url, shipday_error, provider_payload, created_at";
 const DELIVERY_SELECT_RESTAURANT = "id, order_id, status, tracking_url, shipday_error, provider_payload, created_at";
-const STORE_SELECT_WITH_SETTINGS = "idloja, nome, ativo, aceitacao_automatica_pedidos, comissao_pedeja_percent, configuracoes_comissao";
-const STORE_SELECT_LEGACY_SETTINGS = "idloja, nome, ativo, aceitacao_automatica_pedidos, comissao_pedeja_percent";
-const STORE_SELECT_BASIC = "idloja, nome, ativo";
+const STORE_SELECT_WITH_SETTINGS = "idloja, nome, ativo, taxaentrega, latitude, longitude, aceitacao_automatica_pedidos, atribuicao_automatica_estafeta, configuracao_auto_assign, comissao_pedeja_percent, configuracoes_comissao, configuracao_entrega, horario_funcionamento";
+const STORE_SELECT_LEGACY_SETTINGS = "idloja, nome, ativo, taxaentrega, latitude, longitude, aceitacao_automatica_pedidos, comissao_pedeja_percent, horario_funcionamento";
+const STORE_SELECT_BASIC = "idloja, nome, ativo, latitude, longitude, horario_funcionamento";
+const SCHEDULED_RELEASE_WINDOW_MS = 30 * 60 * 1000;
+const SCHEDULED_PREPARING_WINDOW_MS = 60 * 60 * 1000;
+const PLATFORM_SETTINGS_SELECT = "chave, valor, updated_at";
+const GLOBAL_AUTO_ASSIGN_SETTING_KEY = "auto_assign_carriers_default";
 const COMMISSION_MENU_SELECT = `
   idmenu,
   idloja,
@@ -39,6 +49,14 @@ function isMissingOrderColumnError(error) {
       || message.includes("shipday_tracking_url")
       || message.includes("driver_name")
       || message.includes("driver_phone")
+      || message.includes("veiculo_estafeta")
+      || message.includes("submitted_at")
+      || message.includes("order_timing_mode")
+      || message.includes("scheduled_for")
+      || message.includes("aceite_em")
+      || message.includes("atribuido_em")
+      || message.includes("recolhido_em")
+      || message.includes("entregue_em")
     );
 }
 
@@ -50,6 +68,14 @@ function withOrderCompatibility(rows = []) {
     shipday_tracking_url: order?.shipday_tracking_url || null,
     driver_name: order?.driver_name || null,
     driver_phone: order?.driver_phone || null,
+    veiculo_estafeta: order?.veiculo_estafeta || null,
+    submitted_at: order?.submitted_at || null,
+    order_timing_mode: order?.order_timing_mode || "ASAP",
+    scheduled_for: order?.scheduled_for || (String(order?.order_timing_mode || "").toUpperCase() === "SCHEDULED" ? order?.created_at || null : null),
+    aceite_em: order?.aceite_em || order?.data_aceitacao || null,
+    atribuido_em: order?.atribuido_em || null,
+    recolhido_em: order?.recolhido_em || null,
+    entregue_em: order?.entregue_em || null,
   }));
 }
 
@@ -58,8 +84,22 @@ function isMissingStoreSettingsColumnError(error) {
   return message.includes("column")
     && (
       message.includes("aceitacao_automatica_pedidos")
+      || message.includes("atribuicao_automatica_estafeta")
+      || message.includes("configuracao_auto_assign")
       || message.includes("comissao_pedeja_percent")
       || message.includes("configuracoes_comissao")
+      || message.includes("configuracao_entrega")
+      || message.includes("horario_funcionamento")
+    );
+}
+
+function isMissingPlatformSettingsTableError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("configuracoes_plataforma")
+    && (
+      message.includes("does not exist")
+      || message.includes("relation")
+      || message.includes("table")
     );
 }
 
@@ -70,9 +110,19 @@ function withStoreSettingsCompatibility(rows = []) {
 
     return {
       ...store,
+      taxaentrega: Number.isFinite(Number(store?.taxaentrega)) ? Number(store.taxaentrega) : 0,
+      latitude: Number.isFinite(Number(store?.latitude)) ? Number(store.latitude) : null,
+      longitude: Number.isFinite(Number(store?.longitude)) ? Number(store.longitude) : null,
       aceitacao_automatica_pedidos: Boolean(store?.aceitacao_automatica_pedidos),
+      atribuicao_automatica_estafeta: Boolean(store?.atribuicao_automatica_estafeta),
+      configuracao_auto_assign: sanitizeAutoAssignConfig(
+        store?.configuracao_auto_assign,
+        Boolean(store?.atribuicao_automatica_estafeta),
+      ),
       comissao_pedeja_percent: normalizedCommission,
       configuracoes_comissao: sanitizeCommissionConfig(store?.configuracoes_comissao, normalizedCommission),
+      configuracao_entrega: sanitizeDeliveryPricingConfig(store?.configuracao_entrega, store?.taxaentrega),
+      horario_funcionamento: store?.horario_funcionamento || null,
     };
   });
 }
@@ -80,6 +130,8 @@ function withStoreSettingsCompatibility(rows = []) {
 function emptyMetrics() {
   return {
     totalOrders: 0,
+    scheduledOrders: 0,
+    immediateOrders: 0,
     totalRevenue: 0,
     activeDeliveries: 0,
     deliveredRate: 0,
@@ -94,12 +146,157 @@ function daysToIso(days) {
   return date.toISOString();
 }
 
+function toIsoOrNull(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function normalizeDashboardWindow(input) {
+  if (typeof input === "number") {
+    return {
+      periodDays: input,
+      since: daysToIso(input),
+      until: null,
+    };
+  }
+
+  const periodDays = Number(input?.periodDays || 7);
+  const dateFrom = toIsoOrNull(input?.dateFrom || null);
+  const dateTo = toIsoOrNull(input?.dateTo || null);
+
+  return {
+    periodDays: [7, 30, 90].includes(periodDays) ? periodDays : 7,
+    since: dateFrom || daysToIso(periodDays),
+    until: dateTo,
+  };
+}
+
+function getAnalyticsTimestamp(order) {
+  const timestamp = new Date(order?.submitted_at || order?.created_at || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function isWithinDashboardWindow(row, { since = null, until = null } = {}) {
+  const timestamp = getAnalyticsTimestamp(row);
+  if (!timestamp) return false;
+
+  const sinceTs = since ? new Date(since).getTime() : null;
+  const untilTs = until ? new Date(until).getTime() : null;
+
+  if (Number.isFinite(sinceTs) && timestamp < sinceTs) return false;
+  if (Number.isFinite(untilTs) && timestamp > untilTs) return false;
+  return true;
+}
+
+function filterRowsByDashboardWindow(rows = [], window = {}) {
+  return (rows || []).filter((row) => isWithinDashboardWindow(row, window));
+}
+
 function formatDay(value) {
   return new Date(value).toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit" });
 }
 
 function formatHour(value) {
   return new Date(value).getHours();
+}
+
+function isScheduledOrder(order) {
+  return String(order?.order_timing_mode || "").trim().toUpperCase() === "SCHEDULED";
+}
+
+function getOrderActivityTimestamp(order) {
+  const timestamp = new Date(order?.submitted_at || order?.created_at || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function hasShipdayOrderId(order) {
+  return String(order?.shipday_order_id || "").trim().length > 0;
+}
+
+function getScheduledTargetTimestamp(order) {
+  if (!isScheduledOrder(order)) return null;
+  const timestamp = new Date(order?.scheduled_for || order?.created_at || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function getScheduledOperationalState(order, now = Date.now()) {
+  if (!isScheduledOrder(order)) return null;
+  if (isTerminalOrder(order)) return null;
+
+  const targetTimestamp = getScheduledTargetTimestamp(order);
+  if (!Number.isFinite(targetTimestamp)) return "na_fila_imediata";
+
+  const remainingMs = targetTimestamp - now;
+  if (remainingMs <= SCHEDULED_RELEASE_WINDOW_MS) return "na_fila_imediata";
+  if (remainingMs <= SCHEDULED_PREPARING_WINDOW_MS) return "a_liberar";
+  return "agendado";
+}
+
+function isTerminalOrder(order) {
+  return ["entregue", "cancelado"].includes(getOrderWorkflowStatus(order));
+}
+
+function shouldOrderBeImmediate(order, now = Date.now()) {
+  if (!isScheduledOrder(order)) return true;
+  if (isTerminalOrder(order)) return true;
+
+  const targetTimestamp = getScheduledTargetTimestamp(order);
+  if (!Number.isFinite(targetTimestamp)) return true;
+
+  return (targetTimestamp - now) <= SCHEDULED_RELEASE_WINDOW_MS;
+}
+
+export function needsScheduledShipdayBootstrap(order, now = Date.now()) {
+  const estadoInterno = getOrderWorkflowStatus(order);
+
+  if (!isScheduledOrder(order)) return false;
+  if (hasShipdayOrderId(order)) return false;
+  if (!shouldOrderBeImmediate(order, now)) return false;
+  if (isTerminalOrder(order)) return false;
+
+  return [
+    "aceite",
+    "atribuindo_estafeta",
+    "estafeta_aceitou",
+    "em_preparacao",
+    "pronto_recolha",
+    "recolhido",
+    "a_caminho",
+  ].includes(estadoInterno);
+}
+
+function classifyDashboardOrders(orders = [], now = Date.now()) {
+  const immediateOrders = [];
+  const scheduledOrders = [];
+
+  (orders || []).forEach((order) => {
+    if (shouldOrderBeImmediate(order, now)) {
+      immediateOrders.push({
+        ...order,
+        dashboard_bucket: "immediate",
+        scheduled_target_at: getScheduledTargetTimestamp(order),
+        scheduled_operational_state: getScheduledOperationalState(order, now),
+      });
+      return;
+    }
+
+    scheduledOrders.push({
+      ...order,
+      dashboard_bucket: "scheduled",
+      scheduled_target_at: getScheduledTargetTimestamp(order),
+      scheduled_operational_state: getScheduledOperationalState(order, now),
+    });
+  });
+
+  immediateOrders.sort((a, b) => getOrderActivityTimestamp(b) - getOrderActivityTimestamp(a));
+  scheduledOrders.sort((a, b) => {
+    const aTimestamp = Number.isFinite(a?.scheduled_target_at) ? a.scheduled_target_at : getOrderActivityTimestamp(a);
+    const bTimestamp = Number.isFinite(b?.scheduled_target_at) ? b.scheduled_target_at : getOrderActivityTimestamp(b);
+    return aTimestamp - bTimestamp;
+  });
+
+  return { immediateOrders, scheduledOrders };
 }
 
 function normalizeLojaId(value) {
@@ -202,6 +399,19 @@ export async function updateRestaurantAdminSettings(lojaId, patch = {}) {
     updatePayload.aceitacao_automatica_pedidos = Boolean(patch.aceitacao_automatica_pedidos);
   }
 
+  if (Object.prototype.hasOwnProperty.call(patch, "atribuicao_automatica_estafeta")) {
+    updatePayload.atribuicao_automatica_estafeta = Boolean(patch.atribuicao_automatica_estafeta);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "configuracao_auto_assign")) {
+    updatePayload.configuracao_auto_assign = sanitizeAutoAssignConfig(
+      patch.configuracao_auto_assign,
+      Object.prototype.hasOwnProperty.call(updatePayload, "atribuicao_automatica_estafeta")
+        ? updatePayload.atribuicao_automatica_estafeta
+        : false,
+    );
+  }
+
   if (Object.prototype.hasOwnProperty.call(patch, "comissao_pedeja_percent")) {
     updatePayload.comissao_pedeja_percent = normalizeCommissionValue(patch.comissao_pedeja_percent);
   }
@@ -214,6 +424,34 @@ export async function updateRestaurantAdminSettings(lojaId, patch = {}) {
       patch.configuracoes_comissao,
       fallbackGlobalPercent ?? 0,
     );
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "configuracao_entrega")) {
+    if (patch.configuracao_entrega === null) {
+      updatePayload.configuracao_entrega = null;
+    } else {
+      const sanitizedDeliveryConfig = sanitizeDeliveryPricingConfig(
+        patch.configuracao_entrega,
+        patch?.configuracao_entrega?.base_fee ?? patch?.taxaentrega ?? null,
+      );
+
+      if (!sanitizedDeliveryConfig) {
+        throw new Error("A configuracao de entrega da loja esta invalida.");
+      }
+
+      updatePayload.configuracao_entrega = sanitizedDeliveryConfig;
+      updatePayload.taxaentrega = sanitizedDeliveryConfig.base_fee;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "horario_funcionamento")) {
+    const sanitizedSchedule = sanitizeScheduleWithExceptions(patch.horario_funcionamento);
+    if (!sanitizedSchedule) {
+      throw new Error("O horario da loja esta invalido.");
+    }
+
+    updatePayload.horario_funcionamento = sanitizedSchedule;
+    updatePayload.ativo = isStoreOpenNow(sanitizedSchedule);
   }
 
   if (Object.keys(updatePayload).length === 0) {
@@ -229,13 +467,117 @@ export async function updateRestaurantAdminSettings(lojaId, patch = {}) {
 
   if (error) {
     if (isMissingStoreSettingsColumnError(error)) {
-      throw new Error("As colunas de configuracao ainda nao existem. Executa a migration 009_dashboard_restaurant_settings.sql.");
+      throw new Error("As colunas de configuracao da loja ainda nao existem. Executa as migrations mais recentes do dashboard/entrega.");
     }
 
     throw error;
   }
 
   return withStoreSettingsCompatibility(data ? [data] : [])[0] || null;
+}
+
+export async function fetchGlobalDeliveryPricingSettings() {
+  return fetchGlobalDeliveryPricingConfig();
+}
+
+export async function fetchGlobalAutoAssignSettings() {
+  const { data, error } = await supabase
+    .from("configuracoes_plataforma")
+    .select(PLATFORM_SETTINGS_SELECT)
+    .eq("chave", GLOBAL_AUTO_ASSIGN_SETTING_KEY)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingPlatformSettingsTableError(error)) {
+      return {
+        key: GLOBAL_AUTO_ASSIGN_SETTING_KEY,
+        enabled: false,
+        criteria: sanitizeAutoAssignConfig(null, false).criteria,
+        updated_at: null,
+        source: "fallback_default",
+      };
+    }
+
+    throw error;
+  }
+
+  return {
+    key: GLOBAL_AUTO_ASSIGN_SETTING_KEY,
+    enabled: Boolean(data?.valor?.enabled),
+    criteria: sanitizeAutoAssignConfig(data?.valor, Boolean(data?.valor?.enabled)).criteria,
+    updated_at: data?.updated_at || null,
+    source: data?.valor ? "database" : "fallback_default",
+  };
+}
+
+export async function saveGlobalDeliveryPricingSettings(configuracaoEntrega) {
+  const sanitizedDeliveryConfig = sanitizeDeliveryPricingConfig(
+    configuracaoEntrega,
+    DEFAULT_PER_KM_DELIVERY_CONFIG.base_fee,
+  );
+
+  if (!sanitizedDeliveryConfig) {
+    throw new Error("A configuracao global de entrega esta invalida.");
+  }
+
+  const { data, error } = await supabase
+    .from("configuracoes_plataforma")
+    .upsert({
+      chave: GLOBAL_DELIVERY_PRICING_SETTING_KEY,
+      valor: sanitizedDeliveryConfig,
+      updated_at: new Date().toISOString(),
+    })
+    .select(PLATFORM_SETTINGS_SELECT)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingPlatformSettingsTableError(error)) {
+      throw new Error("A tabela de configuracoes globais ainda nao existe. Executa a migration mais recente da entrega global.");
+    }
+
+    throw error;
+  }
+
+  return {
+    key: GLOBAL_DELIVERY_PRICING_SETTING_KEY,
+    config: sanitizeDeliveryPricingConfig(data?.valor, DEFAULT_PER_KM_DELIVERY_CONFIG.base_fee) || sanitizedDeliveryConfig,
+    updated_at: data?.updated_at || null,
+    source: "database",
+    hasCustomValue: true,
+  };
+}
+
+export async function saveGlobalAutoAssignSettings(value) {
+  const normalized = sanitizeAutoAssignConfig(
+    typeof value === "object" && value !== null ? value : { enabled: value },
+    Boolean(typeof value === "boolean" ? value : value?.enabled),
+  );
+
+  const { data, error } = await supabase
+    .from("configuracoes_plataforma")
+    .upsert({
+      chave: GLOBAL_AUTO_ASSIGN_SETTING_KEY,
+      valor: normalized,
+      updated_at: new Date().toISOString(),
+    })
+    .select(PLATFORM_SETTINGS_SELECT)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingPlatformSettingsTableError(error)) {
+      throw new Error("A tabela de configuracoes globais ainda nao existe. Executa a migration mais recente da plataforma.");
+    }
+
+    throw error;
+  }
+
+  return {
+    key: GLOBAL_AUTO_ASSIGN_SETTING_KEY,
+    enabled: Boolean(data?.valor?.enabled),
+    criteria: sanitizeAutoAssignConfig(data?.valor, Boolean(data?.valor?.enabled)).criteria,
+    updated_at: data?.updated_at || null,
+    source: "database",
+  };
 }
 
 export async function fetchStoreCommissionCatalog(lojaId) {
@@ -276,28 +618,34 @@ export async function fetchStoreCommissionCatalog(lojaId) {
 }
 
 function buildMetrics(orders, deliveries) {
+  const nonCanceledOrders = orders.filter((order) => getOrderWorkflowStatus(order) !== "cancelado");
+  const { immediateOrders, scheduledOrders } = classifyDashboardOrders(orders);
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((acc, order) => acc + safeNumber(order.total), 0);
+  const totalRevenue = nonCanceledOrders.reduce((acc, order) => acc + safeNumber(order.total), 0);
   const deliveredOrders = orders.filter((order) => getOrderWorkflowStatus(order) === "entregue").length;
   const cancelledOrders = orders.filter((order) => getOrderWorkflowStatus(order) === "cancelado").length;
 
   return {
     totalOrders,
+    scheduledOrders: scheduledOrders.length,
+    immediateOrders: immediateOrders.length,
     totalRevenue,
     activeDeliveries: deliveries.filter((d) => !["DELIVERED", "FAILED", "CANCELLED"].includes(String(d.status || "").toUpperCase())).length,
     deliveredRate: totalOrders ? (deliveredOrders / totalOrders) * 100 : 0,
     cancelRate: totalOrders ? (cancelledOrders / totalOrders) * 100 : 0,
-    avgTicket: totalOrders ? totalRevenue / totalOrders : 0,
+    avgTicket: nonCanceledOrders.length ? totalRevenue / nonCanceledOrders.length : 0,
   };
 }
 
 function buildSeries(orders) {
+  const billableOrders = orders.filter((order) => getOrderWorkflowStatus(order) !== "cancelado");
   const dailyMap = new Map();
   const hourlyMap = new Map();
 
-  orders.forEach((order) => {
-    const day = formatDay(order.created_at);
-    const hour = formatHour(order.created_at);
+  billableOrders.forEach((order) => {
+    const analyticsTimestamp = order?.submitted_at || order?.created_at;
+    const day = formatDay(analyticsTimestamp);
+    const hour = formatHour(analyticsTimestamp);
 
     if (!dailyMap.has(day)) {
       dailyMap.set(day, { day, orders: 0, revenue: 0 });
@@ -347,7 +695,9 @@ function buildStorePerformance(orders, stores) {
 
     const item = metricsByStore.get(key);
     item.orders += 1;
-    item.revenue += safeNumber(order.total);
+    if (getOrderWorkflowStatus(order) !== "cancelado") {
+      item.revenue += safeNumber(order.total);
+    }
     if (getOrderWorkflowStatus(order) === "entregue") item.delivered += 1;
   });
 
@@ -365,7 +715,7 @@ function buildSlaAlerts(orders) {
   const now = Date.now();
   const thresholds = {
     pendente: 15,
-    aceite: 20,
+    aceite: 10,
     atribuindo_estafeta: 25,
     estafeta_aceitou: 30,
     em_preparacao: 35,
@@ -374,13 +724,32 @@ function buildSlaAlerts(orders) {
     a_caminho: 80,
   };
 
+  const referenceTimestampByEstado = (order, estado) => {
+    if (estado === "aceite") {
+      return new Date(order?.aceite_em || order?.submitted_at || order?.created_at || 0).getTime();
+    }
+
+    if (estado === "estafeta_aceitou") {
+      return new Date(order?.atribuido_em || order?.updated_at || order?.created_at || 0).getTime();
+    }
+
+    if (estado === "recolhido" || estado === "a_caminho") {
+      return new Date(order?.recolhido_em || order?.updated_at || order?.created_at || 0).getTime();
+    }
+
+    return getOrderActivityTimestamp(order);
+  };
+
   return orders
     .map((order) => ({ order, estado: getOrderWorkflowStatus(order) }))
     .filter((entry) => !["entregue", "cancelado"].includes(entry.estado))
+    .filter(({ order }) => shouldOrderBeImmediate(order, now))
     .map(({ order, estado }) => {
-      const elapsedMinutes = Math.floor((now - new Date(order.created_at).getTime()) / 60000);
+      const referenceTimestamp = referenceTimestampByEstado(order, estado);
+      const elapsedMinutes = Math.floor((now - referenceTimestamp) / 60000);
       const threshold = thresholds[estado] || 45;
       const breached = elapsedMinutes > threshold;
+      const needsCarrier = estado === "aceite" && !String(order?.driver_name || order?.driver_phone || "").trim();
       return {
         id: order.id,
         customer_nome: order.customer_nome,
@@ -389,6 +758,7 @@ function buildSlaAlerts(orders) {
         elapsedMinutes,
         threshold,
         breached,
+        driverAssignmentDelay: needsCarrier && breached,
       };
     })
     .filter((item) => item.breached)
@@ -401,6 +771,7 @@ function buildLiveOrders(orders, stores) {
 
   return orders
     .filter((order) => !["entregue", "cancelado"].includes(getOrderWorkflowStatus(order)))
+    .filter((order) => shouldOrderBeImmediate(order))
     .filter((order) => order.customer_lat !== null && order.customer_lng !== null)
     .map((order) => ({
       id: order.id,
@@ -418,7 +789,7 @@ function withOrderFilters(query, { since = null, lojaId = null } = {}) {
   let nextQuery = query;
 
   if (since) {
-    nextQuery = nextQuery.gte("created_at", since);
+    nextQuery = nextQuery.or(`submitted_at.gte.${since},and(submitted_at.is.null,created_at.gte.${since})`);
   }
 
   if (lojaId !== null && lojaId !== undefined && lojaId !== "") {
@@ -428,14 +799,47 @@ function withOrderFilters(query, { since = null, lojaId = null } = {}) {
   return nextQuery;
 }
 
+function withTransitionTimestampPatch(currentOrder, normalizedEstado, timestamp) {
+  const patch = {};
+
+  if (normalizedEstado === "aceite" && !currentOrder?.aceite_em) {
+    patch.aceite_em = timestamp;
+  }
+
+  if (normalizedEstado === "estafeta_aceitou" && !currentOrder?.atribuido_em) {
+    patch.atribuido_em = timestamp;
+  }
+
+  if (normalizedEstado === "recolhido" && !currentOrder?.recolhido_em) {
+    patch.recolhido_em = timestamp;
+  }
+
+  if (normalizedEstado === "entregue" && !currentOrder?.entregue_em) {
+    patch.entregue_em = timestamp;
+  }
+
+  return patch;
+}
+
+function stripUnsupportedTransitionColumns(patch, error) {
+  const message = String(error?.message || "").toLowerCase();
+  const nextPatch = { ...patch };
+
+  ["aceite_em", "atribuido_em", "recolhido_em", "entregue_em"].forEach((columnName) => {
+    if (message.includes("column") && message.includes("orders") && message.includes(columnName)) {
+      delete nextPatch[columnName];
+    }
+  });
+
+  return nextPatch;
+}
+
 async function queryOrdersRaw({ since = null, lojaId = null, limit = 220, basic = false } = {}) {
   const select = basic ? ORDER_SELECT_BASIC : ORDER_SELECT_FULL;
-  const nowIso = new Date().toISOString();
 
   let query = supabase
     .from("orders")
     .select(select)
-    .lte("created_at", nowIso)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -458,7 +862,6 @@ async function queryOrdersRaw({ since = null, lojaId = null, limit = 220, basic 
     let legacyQuery = supabase
       .from("orders")
       .select(legacySelect)
-      .lte("created_at", nowIso)
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -483,11 +886,11 @@ async function queryOrdersRaw({ since = null, lojaId = null, limit = 220, basic 
   return response;
 }
 
-async function fetchOrdersForDashboard({ since = null, lojaId = null, limit = 220 } = {}) {
+async function fetchOrdersForDashboard({ since = null, until = null, lojaId = null, limit = 220 } = {}) {
   const withPeriod = await queryOrdersRaw({ since, lojaId, limit });
   if (withPeriod.error) return withPeriod;
 
-  const scopedRows = withPeriod.data || [];
+  const scopedRows = filterRowsByDashboardWindow(withPeriod.data || [], { since, until });
   if (scopedRows.length > 0 || !since) {
     return { data: scopedRows, error: null };
   }
@@ -495,10 +898,10 @@ async function fetchOrdersForDashboard({ since = null, lojaId = null, limit = 22
   const withoutPeriod = await queryOrdersRaw({ since: null, lojaId, limit });
   if (withoutPeriod.error) return withoutPeriod;
 
-  return { data: withoutPeriod.data || [], error: null };
+  return { data: filterRowsByDashboardWindow(withoutPeriod.data || [], { since, until }), error: null };
 }
 
-async function fetchDeliveriesForDashboard({ since = null, limit = 220 } = {}) {
+async function fetchDeliveriesForDashboard({ since = null, until = null, limit = 220 } = {}) {
   let query = supabase
     .from("deliveries")
     .select(DELIVERY_SELECT_ADMIN)
@@ -512,16 +915,20 @@ async function fetchDeliveriesForDashboard({ since = null, limit = 220 } = {}) {
   const scoped = await query;
   if (scoped.error) return scoped;
 
-  const scopedRows = scoped.data || [];
+  const scopedRows = filterRowsByDashboardWindow(scoped.data || [], { since, until });
   if (scopedRows.length > 0 || !since) {
-    return scoped;
+    return { ...scoped, data: scopedRows };
   }
 
-  return supabase
+  const fallback = await supabase
     .from("deliveries")
     .select(DELIVERY_SELECT_ADMIN)
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  return fallback.error
+    ? fallback
+    : { ...fallback, data: filterRowsByDashboardWindow(fallback.data || [], { since, until }) };
 }
 
 export async function resolveRestaurantStoreId(user) {
@@ -576,13 +983,13 @@ export async function resolveRestaurantStoreId(user) {
   return null;
 }
 
-export async function fetchAdminDashboard(periodDays = 7) {
-  const since = daysToIso(periodDays);
+export async function fetchAdminDashboard(input = 7) {
+  const { periodDays, since, until } = normalizeDashboardWindow(input);
 
   try {
     const [ordersRes, deliveriesRes, storesRes, requestsRes, storeTypesRes] = await Promise.all([
-      fetchOrdersForDashboard({ since, limit: 300 }),
-      fetchDeliveriesForDashboard({ since, limit: 300 }),
+      fetchOrdersForDashboard({ since, until, limit: until ? 1500 : 300 }),
+      fetchDeliveriesForDashboard({ since, until, limit: until ? 1500 : 300 }),
       fetchStoresWithAdminSettings(),
       supabase
         .from("restaurant_signup_requests")
@@ -599,11 +1006,14 @@ export async function fetchAdminDashboard(periodDays = 7) {
     if (deliveriesRes.error) throw deliveriesRes.error;
 
     const orders = ordersRes.data || [];
+    const classifiedOrders = classifyDashboardOrders(orders);
     const deliveries = deliveriesRes.data || [];
     const stores = storesRes || [];
 
     return {
       orders,
+      immediateOrders: classifiedOrders.immediateOrders,
+      scheduledOrders: classifiedOrders.scheduledOrders,
       deliveries,
       stores,
       requests: requestsRes.error ? [] : (requestsRes.data || []),
@@ -617,6 +1027,8 @@ export async function fetchAdminDashboard(periodDays = 7) {
   } catch (error) {
     return {
       orders: [],
+      immediateOrders: [],
+      scheduledOrders: [],
       deliveries: [],
       stores: [],
       requests: [],
@@ -631,7 +1043,7 @@ export async function fetchAdminDashboard(periodDays = 7) {
   }
 }
 
-export async function fetchRestaurantDashboard({ lojaId, periodDays = 7 }) {
+export async function fetchRestaurantDashboard({ lojaId, periodDays = 7, dateFrom = null, dateTo = null } = {}) {
   const normalizedLojaId = normalizeLojaId(lojaId);
 
   if (!normalizedLojaId) {
@@ -645,13 +1057,19 @@ export async function fetchRestaurantDashboard({ lojaId, periodDays = 7 }) {
     };
   }
 
-  const since = daysToIso(periodDays);
+  const { since, until } = normalizeDashboardWindow({ periodDays, dateFrom, dateTo });
 
   try {
-    const ordersRes = await fetchOrdersForDashboard({ since, lojaId: normalizedLojaId, limit: 300 });
+    const ordersRes = await fetchOrdersForDashboard({
+      since,
+      until,
+      lojaId: normalizedLojaId,
+      limit: until ? 1500 : 300,
+    });
     if (ordersRes.error) throw ordersRes.error;
 
     const orders = ordersRes.data || [];
+    const classifiedOrders = classifyDashboardOrders(orders);
     const orderIds = orders.map((order) => order.id);
 
     let deliveries = [];
@@ -670,7 +1088,7 @@ export async function fetchRestaurantDashboard({ lojaId, periodDays = 7 }) {
       const scopedDeliveries = await deliveryQuery;
       if (scopedDeliveries.error) throw scopedDeliveries.error;
 
-      deliveries = scopedDeliveries.data || [];
+      deliveries = filterRowsByDashboardWindow(scopedDeliveries.data || [], { since, until });
 
       if (deliveries.length === 0 && since) {
         const fallbackDeliveries = await supabase
@@ -681,13 +1099,15 @@ export async function fetchRestaurantDashboard({ lojaId, periodDays = 7 }) {
           .limit(300);
 
         if (!fallbackDeliveries.error) {
-          deliveries = fallbackDeliveries.data || [];
+          deliveries = filterRowsByDashboardWindow(fallbackDeliveries.data || [], { since, until });
         }
       }
     }
 
     return {
       orders,
+      immediateOrders: classifiedOrders.immediateOrders,
+      scheduledOrders: classifiedOrders.scheduledOrders,
       deliveries,
       metrics: buildMetrics(orders, deliveries),
       series: buildSeries(orders),
@@ -697,6 +1117,8 @@ export async function fetchRestaurantDashboard({ lojaId, periodDays = 7 }) {
   } catch (error) {
     return {
       orders: [],
+      immediateOrders: [],
+      scheduledOrders: [],
       deliveries: [],
       metrics: emptyMetrics(),
       series: { byDay: [], byHour: [] },
@@ -734,14 +1156,32 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
 
   let lookupQuery = supabase
     .from("orders")
-    .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone")
+    .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, aceite_em, atribuido_em, recolhido_em, entregue_em")
     .eq("id", orderId);
 
   if (normalizedLojaId) {
     lookupQuery = lookupQuery.eq("loja_id", normalizedLojaId);
   }
 
-  const { data: currentOrder, error: lookupError } = await lookupQuery.maybeSingle();
+  let lookupResponse = await lookupQuery.maybeSingle();
+
+  if (
+    lookupResponse.error
+    && /aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(lookupResponse.error.message || ""))
+  ) {
+    let fallbackLookupQuery = supabase
+      .from("orders")
+      .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone")
+      .eq("id", orderId);
+
+    if (normalizedLojaId) {
+      fallbackLookupQuery = fallbackLookupQuery.eq("loja_id", normalizedLojaId);
+    }
+
+    lookupResponse = await fallbackLookupQuery.maybeSingle();
+  }
+
+  const { data: currentOrder, error: lookupError } = lookupResponse;
   if (lookupError) {
     console.error("Erro ao consultar pedido antes de atualizar workflow", {
       orderId,
@@ -768,13 +1208,22 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
   }
 
   const legacyStatus = mapEstadoInternoToLegacyStatus(normalizedEstado);
+  const nowIso = new Date().toISOString();
   const patch = {
     estado_interno: normalizedEstado,
-    updated_at: new Date().toISOString(),
+    updated_at: nowIso,
+    ...withTransitionTimestampPatch(currentOrder, normalizedEstado, nowIso),
   };
 
   if (legacyStatus) {
     patch.status = legacyStatus;
+  }
+
+  if (normalizedEstado === "cancelado") {
+    patch.driver_name = null;
+    patch.driver_phone = null;
+    patch.veiculo_estafeta = null;
+    patch.shipday_tracking_url = null;
   }
 
   let updateQuery = supabase
@@ -786,9 +1235,25 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
     updateQuery = updateQuery.eq("loja_id", normalizedLojaId);
   }
 
-  const { data, error } = await updateQuery
-    .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone")
+  let response = await updateQuery
+    .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, veiculo_estafeta, aceite_em, atribuido_em, recolhido_em, entregue_em")
     .maybeSingle();
+
+  if (
+    response.error
+    && /aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(response.error.message || ""))
+  ) {
+    const fallbackPatch = stripUnsupportedTransitionColumns(patch, response.error);
+    response = await supabase
+      .from("orders")
+      .update(fallbackPatch)
+      .eq("id", orderId)
+      .eq("loja_id", normalizedLojaId ?? currentOrder.loja_id)
+      .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, veiculo_estafeta")
+      .maybeSingle();
+  }
+
+  const { data, error } = response;
 
   if (error) {
     console.error("Erro ao atualizar workflow do pedido", {
@@ -814,23 +1279,31 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
 
   if (shouldSyncShipday) {
     if (normalizedEstado === "aceite") {
-      try {
-        shipdaySync = await createShipdayOrderForOrder({ orderId: data.id });
-      } catch (shipdayCreateError) {
-        const rollbackEstado = resolveOrderEstadoInterno(currentOrder);
-        const rollbackPatch = {
-          estado_interno: rollbackEstado,
-          updated_at: new Date().toISOString(),
+      if (needsScheduledShipdayBootstrap(data) || !isScheduledOrder(data)) {
+        try {
+          shipdaySync = await createShipdayOrderForOrder({ orderId: data.id });
+        } catch (shipdayCreateError) {
+          const rollbackEstado = resolveOrderEstadoInterno(currentOrder);
+          const rollbackPatch = {
+            estado_interno: rollbackEstado,
+            updated_at: new Date().toISOString(),
+          };
+          const rollbackLegacyStatus = mapEstadoInternoToLegacyStatus(rollbackEstado);
+          if (rollbackLegacyStatus) rollbackPatch.status = rollbackLegacyStatus;
+
+          await supabase
+            .from("orders")
+            .update(rollbackPatch)
+            .eq("id", data.id);
+
+          throw shipdayCreateError;
+        }
+      } else {
+        shipdaySync = {
+          ok: false,
+          skipped: true,
+          reason: "scheduled_order_fora_da_janela_operacional",
         };
-        const rollbackLegacyStatus = mapEstadoInternoToLegacyStatus(rollbackEstado);
-        if (rollbackLegacyStatus) rollbackPatch.status = rollbackLegacyStatus;
-
-        await supabase
-          .from("orders")
-          .update(rollbackPatch)
-          .eq("id", data.id);
-
-        throw shipdayCreateError;
       }
     } else if (normalizedEstado === "pronto_recolha" || normalizedEstado === "em_preparacao") {
       shipdaySync = await updateShipdayOrderStatus({
@@ -840,15 +1313,23 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
         lojaId: data.loja_id,
       });
     } else if (data.shipday_order_id && normalizedEstado === "cancelado") {
-      shipdaySync = await syncOrderStatusWithShipday({
+      shipdaySync = await cancelShipdayOrder({
         orderId: data.id,
         lojaId: data.loja_id,
         shipdayOrderId: data.shipday_order_id,
-        estadoInterno: normalizedEstado,
       });
     } else {
       shipdaySync = { ok: false, skipped: true, reason: "estado_sem_sync_direto" };
     }
+  }
+
+  if (normalizedEstado === "cancelado" && shipdaySync && !shipdaySync.ok && !shipdaySync.skipped) {
+    console.error("Pedido cancelado localmente, mas Shipday nao confirmou o cancelamento remoto", {
+      orderId: data.id,
+      lojaId: data.loja_id,
+      shipdayOrderId: data.shipday_order_id || null,
+      response: shipdaySync,
+    });
   }
 
   return { order: data, shipdaySync };

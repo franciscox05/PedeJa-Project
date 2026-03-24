@@ -1,3 +1,9 @@
+import {
+  normalizeSelectedMenuOptions,
+  sanitizeMenuOptionsConfig,
+  sumSelectedMenuOptions,
+} from "./menuOptionsService";
+
 function toFiniteNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -165,7 +171,11 @@ export function calculateMarkupPrice(basePrice, commissionPercent = 0) {
 export function resolveDisplayPrice(item, pricingSource = null) {
   const basePrice = toFiniteNumber(item?.preco_base ?? item?.preco, 0);
   const commissionPercent = resolveCommissionPercentForItem(item, pricingSource);
-  return calculateMarkupPrice(basePrice, commissionPercent);
+  const selectedOptionsTotal = sumSelectedMenuOptions(
+    normalizeSelectedMenuOptions(item?.opcoes_selecionadas || item?.selected_options, commissionPercent),
+    "price_cliente",
+  );
+  return Number((calculateMarkupPrice(basePrice, commissionPercent) + selectedOptionsTotal).toFixed(2));
 }
 
 export function normalizePricedItem(item, pricingSource = null) {
@@ -173,6 +183,11 @@ export function normalizePricedItem(item, pricingSource = null) {
   const source = resolveCommissionSource(pricingSource, item);
   const appliedPercent = resolveCommissionPercentForItem(item, pricingSource);
   const categoryName = resolveMenuItemCategoryName(item);
+  const configuracaoOpcoes = sanitizeMenuOptionsConfig(item?.configuracao_opcoes || item?.menu_option_groups);
+  const selectedOptions = normalizeSelectedMenuOptions(item?.opcoes_selecionadas || item?.selected_options, appliedPercent);
+  const selectedOptionsTotalBase = sumSelectedMenuOptions(selectedOptions, "price_base");
+  const selectedOptionsTotalDisplay = sumSelectedMenuOptions(selectedOptions, "price_cliente");
+  const baseDisplayPrice = calculateMarkupPrice(basePrice, appliedPercent);
 
   return {
     ...item,
@@ -182,7 +197,12 @@ export function normalizePricedItem(item, pricingSource = null) {
     comissao_pedeja_percent: source.globalPercent,
     comissao_pedeja_percent_aplicada: appliedPercent,
     configuracoes_comissao: source.config,
-    preco_cliente: calculateMarkupPrice(basePrice, appliedPercent),
+    configuracao_opcoes: configuracaoOpcoes,
+    opcoes_selecionadas: selectedOptions,
+    selected_options_total_base: Number(selectedOptionsTotalBase.toFixed(2)),
+    selected_options_total_display: Number(selectedOptionsTotalDisplay.toFixed(2)),
+    preco_cliente: baseDisplayPrice,
+    preco_cliente_total: Number((baseDisplayPrice + selectedOptionsTotalDisplay).toFixed(2)),
   };
 }
 

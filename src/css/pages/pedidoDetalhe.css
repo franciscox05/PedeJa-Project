@@ -84,10 +84,19 @@
   background: #111827;
 }
 
+.pedido-btn.danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
 .pedido-btn.ghost {
   background: #fff;
   border: 1px solid #d8dde7;
   color: #111827;
+}
+
+.pedido-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .pedido-status-row {
@@ -95,6 +104,23 @@
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.pedido-cancel-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #ffd5d8;
+  background: linear-gradient(135deg, #fff8f8, #fffdfd);
+}
+
+.pedido-cancel-card strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #991b1b;
 }
 
 .pedido-status-pill {
@@ -376,6 +402,101 @@
   background: #fee2e2;
   text-decoration: none;
 }
+
+.pedido-tracking-embed-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px;
+}
+
+.pedido-tracking-embed-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.pedido-tracking-embed-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pedido-tracking-frame-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  min-height: 320px;
+  background: #f8fafc;
+}
+
+.pedido-tracking-frame-wrap--expanded {
+  min-height: 78vh;
+}
+
+.pedido-tracking-frame {
+  width: 100%;
+  min-height: 320px;
+  height: 320px;
+  border: none;
+  background: #fff;
+}
+
+.pedido-tracking-frame--expanded {
+  height: 78vh;
+  min-height: 78vh;
+}
+
+.pedido-tracking-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(15, 23, 42, 0.68);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.pedido-tracking-overlay-card {
+  width: min(1240px, 96vw);
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.28);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.pedido-skeleton-line {
+  display: inline-block;
+  width: 140px;
+  height: 1em;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: pedido-skeleton-shimmer 1.4s infinite linear;
+  vertical-align: middle;
+}
+
+.pedido-skeleton-line--short {
+  width: 84px;
+}
+
+.pedido-skeleton-line--medium {
+  width: 128px;
+}
+
+@keyframes pedido-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 @media (max-width: 900px) {
   .pedido-detalhe-container {
     padding-top: 150px;
@@ -391,6 +512,11 @@
     grid-template-columns: 1fr;
   }
 
+  .pedido-cancel-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .pedido-workflow-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -398,6 +524,18 @@
   .pedido-timeline-item {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .pedido-tracking-frame-wrap,
+  .pedido-tracking-frame {
+    min-height: 260px;
+    height: 260px;
+  }
+
+  .pedido-tracking-frame-wrap--expanded,
+  .pedido-tracking-frame--expanded {
+    min-height: 70vh;
+    height: 70vh;
   }
 }
 

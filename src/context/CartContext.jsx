@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useContext, useEffect } from "react";
 import { normalizePricedItem } from "../services/pricingService";
+import { buildCartLineId } from "../services/menuOptionsService";
 
 const CartContext = createContext();
 
@@ -11,7 +12,12 @@ export function CartProvider({ children }) {
 
     try {
       const parsed = JSON.parse(savedCart);
-      return Array.isArray(parsed) ? parsed.map((item) => normalizePricedItem(item)) : [];
+      return Array.isArray(parsed)
+        ? parsed.map((item) => {
+          const normalized = normalizePricedItem(item);
+          return { ...normalized, cart_line_id: buildCartLineId(normalized) };
+        })
+        : [];
     } catch {
       return [];
     }
@@ -32,10 +38,11 @@ export function CartProvider({ children }) {
     }
 
     const normalizedItem = normalizePricedItem(item);
+    const cartLineId = buildCartLineId(normalizedItem);
 
     // 1. Modo forcado (substituir tudo)
     if (limparPrimeiro) {
-      setCart([{ ...normalizedItem, qtd: 1 }]);
+      setCart([{ ...normalizedItem, cart_line_id: cartLineId, qtd: 1 }]);
       return true;
     }
 
@@ -51,13 +58,15 @@ export function CartProvider({ children }) {
 
     // 3. Adicionar normalmente
     setCart((prevCart) => {
-      const existingItem = prevCart.find((i) => i.idmenu === item.idmenu);
+      const existingItem = prevCart.find((i) => (i.cart_line_id || buildCartLineId(i)) === cartLineId);
       if (existingItem) {
         return prevCart.map((i) =>
-          i.idmenu === item.idmenu ? { ...i, ...normalizedItem, qtd: i.qtd + 1 } : i,
+          (i.cart_line_id || buildCartLineId(i)) === cartLineId
+            ? { ...i, ...normalizedItem, cart_line_id: cartLineId, qtd: i.qtd + 1 }
+            : i,
         );
       }
-      return [...prevCart, { ...normalizedItem, qtd: 1 }];
+      return [...prevCart, { ...normalizedItem, cart_line_id: cartLineId, qtd: 1 }];
     });
 
     return true;
@@ -66,7 +75,7 @@ export function CartProvider({ children }) {
   const decreaseQuantity = (id) => {
     setCart((prevCart) => {
       return prevCart.map((item) => {
-        if (item.idmenu === id) {
+        if ((item.cart_line_id || buildCartLineId(item)) === id) {
           return { ...item, qtd: Math.max(1, item.qtd - 1) };
         }
         return item;
@@ -75,7 +84,7 @@ export function CartProvider({ children }) {
   };
 
   const removeFromCart = (id) => {
-    setCart((prevCart) => prevCart.filter((item) => item.idmenu !== id));
+    setCart((prevCart) => prevCart.filter((item) => (item.cart_line_id || buildCartLineId(item)) !== id));
   };
 
   return (

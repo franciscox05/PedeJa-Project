@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   deleteUserAddress,
   fetchUserAddresses,
@@ -9,6 +9,7 @@ import {
 } from "../services/addressService";
 import { computeBarcelosDeliveryQuote } from "../services/deliveryZoneService";
 import { geocodeAddressWithGoogle } from "../services/googleMapsService";
+import { fetchGlobalDeliveryPricingConfig } from "../services/supabaseClient";
 import LocationPickerModal from "./LocationPickerModal";
 
 function isFiniteCoordinate(value) {
@@ -16,7 +17,17 @@ function isFiniteCoordinate(value) {
   return Number.isFinite(parsed);
 }
 
+function normalizeAddressIdentity(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
 export default function AddressManager({ userId, onDefaultAddressChange }) {
+  const formRef = useRef(null);
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -24,6 +35,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
   const [suggestions, setSuggestions] = useState([]);
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [editAddress, setEditAddress] = useState(null);
+  const [globalDeliveryPricingConfig, setGlobalDeliveryPricingConfig] = useState(null);
   const [form, setForm] = useState({
     label: "Casa",
     custom_label: "",
@@ -34,7 +46,9 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
     is_default: false,
   });
 
-  const loadAddresses = async () => {
+  const isEditing = Boolean(editAddress);
+
+  const loadAddresses = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     try {
@@ -47,11 +61,30 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [onDefaultAddressChange, userId]);
 
   useEffect(() => {
     loadAddresses();
-  }, [userId]);
+  }, [loadAddresses]);
+
+  useEffect(() => {
+    let active = true;
+
+    fetchGlobalDeliveryPricingConfig()
+      .then((settings) => {
+        if (!active) return;
+        setGlobalDeliveryPricingConfig(settings?.config || null);
+      })
+      .catch((error) => {
+        if (!active) return;
+        console.error("Falha ao carregar configuracao global de entrega na gestao de moradas", error);
+        setGlobalDeliveryPricingConfig(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -78,9 +111,53 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
     });
   };
 
+  const cancelEditing = () => {
+    setShowMapPicker(false);
+    setEditAddress(null);
+    setSuggestions([]);
+    resetForm();
+  };
+
+  const hydrateFormFromAddress = (address, nextCoords = {}) => {
+    const normalizedLabel = String(address?.label || "").trim();
+    const useCustomLabel = normalizedLabel && !["Casa", "Trabalho"].includes(normalizedLabel);
+
+    setForm({
+      label: useCustomLabel ? "Outro" : (normalizedLabel || "Casa"),
+      custom_label: useCustomLabel ? normalizedLabel : "",
+      address_line: address?.address_line || "",
+      lat: isFiniteCoordinate(nextCoords?.lat ?? address?.lat) ? Number(nextCoords?.lat ?? address?.lat) : null,
+      lng: isFiniteCoordinate(nextCoords?.lng ?? address?.lng) ? Number(nextCoords?.lng ?? address?.lng) : null,
+      place_id: nextCoords?.place_id ?? address?.place_id ?? null,
+      is_default: Boolean(address?.is_default),
+    });
+  };
+
   const resolveLabel = () => {
     if (form.label !== "Outro") return form.label;
     return String(form.custom_label || "").trim();
+  };
+
+  const validateDuplicates = (nextLabel, nextAddressLine) => {
+    const normalizedLabel = normalizeAddressIdentity(nextLabel);
+    const normalizedAddress = normalizeAddressIdentity(nextAddressLine);
+    const currentId = editAddress?.id ?? editAddress?.idmorada ?? null;
+
+    const sameLabel = addresses.find((address) => (
+      String(address.id) !== String(currentId)
+      && normalizeAddressIdentity(address.label) === normalizedLabel
+    ));
+    if (sameLabel) {
+      throw new Error(`Ja existe uma morada com a etiqueta "${nextLabel}".`);
+    }
+
+    const sameAddress = addresses.find((address) => (
+      String(address.id) !== String(currentId)
+      && normalizeAddressIdentity(address.address_line) === normalizedAddress
+    ));
+    if (sameAddress) {
+      throw new Error(`Ja existe uma morada guardada com este endereco (${sameAddress.label}).`);
+    }
   };
 
   const ensureCoordinatesByAddressLine = async (addressLine, lat, lng, place_id = null) => {
@@ -106,6 +183,13 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
     };
   };
 
+  const refreshGlobalDeliveryPricing = async () => {
+    const settings = await fetchGlobalDeliveryPricingConfig();
+    const nextConfig = settings?.config || null;
+    setGlobalDeliveryPricingConfig(nextConfig);
+    return nextConfig;
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!userId || !form.address_line.trim()) return;
@@ -118,31 +202,55 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
 
     setSaving(true);
     try {
+      const latestDeliveryPricingConfig = await refreshGlobalDeliveryPricing();
       const coords = await ensureCoordinatesByAddressLine(form.address_line, form.lat, form.lng, form.place_id);
-      const quote = computeBarcelosDeliveryQuote(coords);
+      validateDuplicates(finalLabel, coords.address_line || form.address_line);
+
+      const quote = computeBarcelosDeliveryQuote(
+        coords,
+        latestDeliveryPricingConfig,
+      );
       if (!quote.deliverable) {
         throw new Error(quote.reason || "Morada fora da zona de entrega.");
       }
 
-      const created = await saveUserAddress({
-        ...form,
-        address_line: coords.address_line || form.address_line,
-        lat: coords.lat,
-        lng: coords.lng,
-        place_id: coords.place_id,
-        user_id: userId,
-        label: finalLabel,
-      });
+      if (editAddress) {
+        await updateUserAddress({
+          id: editAddress.id,
+          label: finalLabel,
+          address_line: coords.address_line || form.address_line,
+          lat: coords.lat,
+          lng: coords.lng,
+          place_id: coords.place_id,
+        });
 
-      if (form.is_default) {
-        await setDefaultAddress(userId, created.id);
+        if (form.is_default) {
+          await setDefaultAddress(userId, editAddress.id);
+        }
+
+        cancelEditing();
+      } else {
+        const created = await saveUserAddress({
+          ...form,
+          address_line: coords.address_line || form.address_line,
+          lat: coords.lat,
+          lng: coords.lng,
+          place_id: coords.place_id,
+          user_id: userId,
+          label: finalLabel,
+        });
+
+        if (form.is_default) {
+          await setDefaultAddress(userId, created.id);
+        }
+
+        resetForm();
       }
 
-      resetForm();
       setSuggestions([]);
       await loadAddresses();
     } catch (error) {
-      alert(`Falha ao guardar morada: ${error.message}`);
+      alert(`Falha ao ${editAddress ? "atualizar" : "guardar"} morada: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -157,60 +265,38 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
     }
   };
 
-  const openEditModal = async (address) => {
-    setRowLoadingId(address.id);
+  const openEditModal = (address) => {
+    setEditAddress(address);
+    hydrateFormFromAddress(address);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+
+  const openMapPicker = async () => {
+    const activeAddress = editAddress;
+    const baseAddressLine = form.address_line || activeAddress?.address_line || "";
+    if (!baseAddressLine.trim()) {
+      alert("Escreve primeiro a morada antes de ajustares o ponto no mapa.");
+      return;
+    }
+
+    setRowLoadingId(activeAddress?.id || "new");
     try {
-      let lat = address.lat;
-      let lng = address.lng;
-      let placeId = address.place_id || null;
-      let addressLine = address.address_line;
-
-      if (!isFiniteCoordinate(lat) || !isFiniteCoordinate(lng)) {
-        const geocoded = await geocodeAddressWithGoogle(address.address_line);
-        lat = geocoded.lat;
-        lng = geocoded.lng;
-        placeId = geocoded.place_id || null;
-        addressLine = geocoded.address_line || address.address_line;
+      await refreshGlobalDeliveryPricing();
+      if (!isFiniteCoordinate(form.lat) || !isFiniteCoordinate(form.lng)) {
+        const geocoded = await geocodeAddressWithGoogle(baseAddressLine);
+        setForm((prev) => ({
+          ...prev,
+          address_line: geocoded.address_line || prev.address_line,
+          lat: geocoded.lat,
+          lng: geocoded.lng,
+          place_id: geocoded.place_id || null,
+        }));
       }
-
-      setEditAddress({
-        ...address,
-        lat,
-        lng,
-        place_id: placeId,
-        address_line: addressLine,
-      });
       setShowMapPicker(true);
     } catch (error) {
       alert(`Nao foi possivel abrir o editor de mapa: ${error.message}`);
-    } finally {
-      setRowLoadingId(null);
-    }
-  };
-
-  const handleEditConfirm = async (location) => {
-    if (!editAddress) return;
-    setRowLoadingId(editAddress.id);
-    try {
-      const quote = computeBarcelosDeliveryQuote({ lat: location.lat, lng: location.lng });
-      if (!quote.deliverable) {
-        throw new Error(quote.reason || "Morada fora da zona de entrega.");
-      }
-
-      await updateUserAddress({
-        id: editAddress.id,
-        label: editAddress.label,
-        address_line: location.address_line || editAddress.address_line,
-        lat: location.lat,
-        lng: location.lng,
-        place_id: location.place_id || null,
-      });
-
-      setShowMapPicker(false);
-      setEditAddress(null);
-      await loadAddresses();
-    } catch (error) {
-      alert(`Falha ao atualizar morada: ${error.message}`);
     } finally {
       setRowLoadingId(null);
     }
@@ -285,7 +371,16 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
         ))}
       </div>
 
-      <form onSubmit={handleSave} className="profile-address-form">
+      <form ref={formRef} onSubmit={handleSave} className="profile-address-form">
+        <div className="profile-section-header">
+          <h3>{isEditing ? `Editar morada: ${editAddress.label}` : "Adicionar nova morada"}</h3>
+          <p>
+            {isEditing
+              ? "Atualiza primeiro a etiqueta e a morada escrita. Depois, se precisares, ajusta o ponto no mapa."
+              : "Escreve a morada completa e, se precisares, confirma o ponto exato no mapa."}
+          </p>
+        </div>
+
         <div className="profile-field profile-inline-field">
           <label htmlFor="profileAddressLabel">Etiqueta</label>
           <select
@@ -331,8 +426,15 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
         </div>
 
         <div className="profile-address-tools">
-          <button type="button" className="profile-btn secondary compact" onClick={() => setShowMapPicker(true)}>
-            Marcar no mapa
+          <button
+            type="button"
+            className="profile-btn secondary compact"
+            onClick={openMapPicker}
+            disabled={rowLoadingId === (editAddress?.id || "new")}
+          >
+            {rowLoadingId === (editAddress?.id || "new")
+              ? "A preparar mapa..."
+              : (isEditing ? "Ajustar no mapa" : "Marcar no mapa")}
           </button>
           {isFiniteCoordinate(form.lat) && isFiniteCoordinate(form.lng) ? (
             <p className="profile-address-coords">
@@ -379,26 +481,26 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
         </label>
 
         <button type="submit" className="profile-btn primary" disabled={saving}>
-          {saving ? "A guardar..." : "Guardar morada"}
+          {saving ? (isEditing ? "A atualizar..." : "A guardar...") : (isEditing ? "Guardar alteracoes" : "Guardar morada")}
         </button>
+        {isEditing ? (
+          <button type="button" className="profile-btn ghost" onClick={cancelEditing}>
+            Cancelar edicao
+          </button>
+        ) : null}
       </form>
 
       <LocationPickerModal
         isOpen={showMapPicker}
         title={editAddress ? `Editar morada: ${editAddress.label}` : "Selecionar morada no mapa"}
         subtitle={editAddress ? "Ajusta o pino para corrigir a localizacao desta morada." : "Marca a tua localizacao exata para evitar erros de entrega."}
-        initialLat={editAddress ? editAddress.lat : form.lat}
-        initialLng={editAddress ? editAddress.lng : form.lng}
+        initialLat={form.lat}
+        initialLng={form.lng}
+        deliveryPricingConfig={globalDeliveryPricingConfig}
         onCancel={() => {
           setShowMapPicker(false);
-          setEditAddress(null);
         }}
         onConfirm={async (location) => {
-          if (editAddress) {
-            await handleEditConfirm(location);
-            return;
-          }
-
           setShowMapPicker(false);
           setForm((prev) => ({
             ...prev,
