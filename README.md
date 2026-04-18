@@ -1,50 +1,42 @@
-# PedeJa Platform
+# 🛵 PedeJa Platform
 
-Website de entregas com fluxo de checkout, operacao em tempo real e dashboards por papel.
+Um sistema completo e escalável de entregas de comida (Food Delivery) com fluxo de checkout integrado, operações em tempo real e dashboards de gestão específicos para cada papel do ecossistema.
 
-## Perfis
-- Cliente
-- Admin
-- Restaurante
-- DevOps
+<p align="left">
+  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
+  <img src="https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" />
+  <img src="https://img.shields.io/badge/Supabase-181818?style=for-the-badge&logo=supabase&logoColor=white" />
+</p>
 
-## Funcionalidades chave
-- Checkout com despacho para Shipday
-- Dashboard Admin enterprise (KPIs, alertas SLA, top lojas, aprovacoes)
-- Dashboard Restaurante (fila operacional + SLA + analytics)
-- Dashboard DevOps (webhooks e monitor de integracoes)
-- Registo com pedido de perfil restaurante (aprovacao admin)
-- Moradas do perfil com label (Casa/Trabalho/Outro) + autocomplete + default
-- Carrinho com selecao automatica de moradas guardadas
+## 👥 Perfis de Utilizador
 
-## Stack
-- React + Vite
-- Supabase (DB + Edge Functions)
-- Shipday Drive
+A plataforma adapta a sua interface e permissões consoante o papel do utilizador:
+* **Cliente:** Navegação, gestão de carrinho, moradas e checkout.
+* **Admin:** Dashboard Enterprise (KPIs, alertas de SLA, top lojas, aprovações de novos restaurantes).
+* **Restaurante:** Fila operacional em tempo real, monitorização de SLA e analytics de vendas.
+* **DevOps:** Monitor de integrações e visualização de webhooks.
 
-## Arranque local
+## ✨ Funcionalidades Chave
+
+* **Gestão de Moradas Avançada:** Perfis com *labels* (Casa/Trabalho/Outro), autocompletar e seleção automática no carrinho.
+* **Checkout & Logística:** Despacho automático de pedidos via integração com **Shipday**.
+* **Onboarding de Parceiros:** Sistema de registo com pedido de perfil de Restaurante (sujeito a aprovação do Admin).
+* **Operação em Tempo Real:** Atualizações dinâmicas na fila operacional e alertas de SLA para evitar atrasos.
+
+## 🛠️ Stack Tecnológico
+
+* **Frontend:** React + Vite
+* **Backend & Base de Dados:** Supabase (Database + Edge Functions)
+* **Logística:** Integração com a API do Shipday Drive
+
+---
+
+## 🚀 Como Correr Localmente
+
+### Pré-requisitos
+* Node.js instalado
+* Conta Supabase e Shipday configuradas (para as variáveis de ambiente)
+
+### 1. Instalação
 ```bash
 npm install
-npm run dev
-```
-
-## Env frontend
-Copiar `.env.example` para `.env` e preencher:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_GEOCODING_API_URL` (opcional; default Nominatim)
-
-## SQL migrations a aplicar (ordem)
-1. `supabase/sql/001_orders_and_shipday.sql`
-2. `supabase/sql/002_security_profiles_addresses.sql`
-3. `supabase/sql/003_operational_enhancements.sql`\n4. `supabase/sql/004_user_id_text_compat.sql`
-
-## Edge functions
-- `supabase/functions/create-order/index.ts`
-- `supabase/functions/shipday-webhook/index.ts`
-
-## Rotas principais
-- `/dashboard/admin`
-- `/dashboard/restaurante`
-- `/dashboard/dev`
-\n\n## Shipday payload\nA function create-order envia para Shipday: estaurantName, estaurantAddress, estaurantPhoneNumber e orderItem (name/unitPrice/quantity), alem dos dados do cliente e totais.\n
