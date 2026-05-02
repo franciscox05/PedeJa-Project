@@ -7,6 +7,7 @@ import {
   submitPartnerRequest,
   updateRestaurantProfile,
   uploadStoreImage,
+  getImageUrl,
 } from "../services/partnerService";
 import { searchAddressSuggestions } from "../services/addressService";
 import { extractRestaurantId, extractUserId, resolveUserRole } from "../utils/roles";
@@ -287,7 +288,22 @@ export default function Parceiros() {
     return "";
   };
 
-  const handleSubmit = async (e) => {
+  // --- HANDLERS DE IMAGEM COM PREVIEW LOCAL ---
+  const handleImageChange = (e, tipo) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Criamos um URL temporário para o utilizador ver a imagem antes do upload
+    const localPreview = URL.createObjectURL(file);
+
+    setImageState((prev) => ({
+      ...prev,
+      [tipo === "icon" ? "iconFile" : "backgroundFile"]: file,
+      [tipo === "icon" ? "iconUrl" : "backgroundUrl"]: localPreview,
+    }));
+  };
+
+const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus({ type: "", message: "" });
 
@@ -296,8 +312,6 @@ export default function Parceiros() {
       setStatus({ type: "error", message: validationError });
       return;
     }
-
-    const validBlocks = scheduleBlocks.filter((block) => block.days.length > 0 && block.open && block.close && block.open !== block.close);
 
     setLoading(true);
 
@@ -340,29 +354,30 @@ export default function Parceiros() {
       let backgroundUrl = imageState.backgroundUrl;
       let iconUrl = imageState.iconUrl;
 
+        // Se o utilizador selecionou um ficheiro novo, fazemos o upload para a pasta correta
       if (imageState.backgroundFile) {
-        backgroundUrl = await uploadStoreImage(imageState.backgroundFile, `${uploadScope}/background`);
+        // Agora usamos o scope fixo para bater certo com a estrutura da DB
+        backgroundUrl = await uploadStoreImage(imageState.backgroundFile, "restaurantes/background");
       }
 
       if (imageState.iconFile) {
-        iconUrl = await uploadStoreImage(imageState.iconFile, `${uploadScope}/icon`);
+        // Agora usamos o scope fixo para bater certo com a estrutura da DB
+        iconUrl = await uploadStoreImage(imageState.iconFile, "restaurantes/icon");
       }
 
       const payload = {
-        nome: user.username || "Utilizador",
-        email: user.email,
-        telefone: form.telefone,
         restaurante_nome: form.restauranteNome,
         nif: form.nif,
+        telefone: form.telefone,
         idtipoloja: Number(form.idtipoloja),
         morada_completa: addressQuery.trim(),
-        horario_funcionamento: buildSchedule(validBlocks),
-        latitude: resolvedLocation.lat,
-        longitude: resolvedLocation.lng,
-        place_id: resolvedLocation.place_id,
+        horario_funcionamento: buildSchedule(scheduleBlocks.filter(b => b.days.length > 0)),
+        latitude: location.lat,
+        longitude: location.lng,
+        place_id: location.place_id,
         imagemfundo: backgroundUrl,
-        icon: iconUrl,
-        user_id: String(userId || user.email || ""),
+        icon: iconUrl,              
+        user_id: String(extractUserId(user) || user.email || ""),
       };
 
       if (isEditMode) {
@@ -578,29 +593,48 @@ export default function Parceiros() {
             </div>
 
             <div className="form-field">
-              <label>Imagem de fundo (obrigatorio)</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImageState((prev) => ({ ...prev, backgroundFile: e.target.files?.[0] || null }))}
-              />
-            </div>
+            <label>Imagem de fundo (Banner)</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleImageChange(e, "background")}
+            />
+          </div>
 
-            <div className="form-field">
-              <label>Icon da loja (obrigatorio)</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImageState((prev) => ({ ...prev, iconFile: e.target.files?.[0] || null }))}
-              />
-            </div>
+          <div className="form-field">
+            <label>Icon da loja (Logo)</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleImageChange(e, "icon")}
+            />
+          </div>
 
-            {(imageState.backgroundUrl || imageState.iconUrl) && (
-              <div className="form-field full" style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                {imageState.backgroundUrl ? <img src={imageState.backgroundUrl} alt="Imagem atual" style={{ width: "220px", borderRadius: "12px" }} /> : null}
-                {imageState.iconUrl ? <img src={imageState.iconUrl} alt="Icon atual" style={{ width: "84px", height: "84px", borderRadius: "12px" }} /> : null}
-              </div>
-            )}
+            {/* PREVIEW DAS IMAGENS ATUALIZADO */}
+          {(imageState.backgroundUrl || imageState.iconUrl) && (
+            <div className="form-field full" style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
+              {imageState.backgroundUrl && (
+                <div style={{ textAlign: "center" }}>
+                  <p className="hint">Fundo atual/selecionado:</p>
+                  <img 
+                    src={getImageUrl(imageState.backgroundUrl)} 
+                    alt="Preview Fundo" 
+                    style={{ width: "220px", height: "120px", borderRadius: "12px", objectCover: "cover", border: "1px solid #ddd" }} 
+                  />
+                </div>
+              )}
+              {imageState.iconUrl && (
+                <div style={{ textAlign: "center" }}>
+                  <p className="hint">Ícone:</p>
+                  <img 
+                    src={getImageUrl(imageState.iconUrl)} 
+                    alt="Preview Icon" 
+                    style={{ width: "84px", height: "84px", borderRadius: "12px", objectCover: "cover", border: "1px solid #ddd" }} 
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
             <div className="form-field full">
               <label>Horario de funcionamento</label>
