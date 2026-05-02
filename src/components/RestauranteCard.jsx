@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { getImageUrl } from "../services/partnerService";
+
 import iconInfo from "../assets/img/info.png";
 import iconAberto from "../assets/img/dot_green.png";
 import iconFechado from "../assets/img/dot_red.png";
@@ -15,21 +17,6 @@ const DAY_LABELS = {
   6: "Sab",
   0: "Dom",
 };
-
-function resolveStoreImage(value, folder) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-
-  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:") || raw.startsWith("blob:")) {
-    return raw;
-  }
-
-  if (raw.startsWith("/")) {
-    return raw;
-  }
-
-  return `/src/assets/img/restaurantes/${folder}/${raw}`;
-}
 
 function summarizeSchedule(schedule) {
   const weekly = Array.isArray(schedule?.weekly) ? schedule.weekly : [];
@@ -90,8 +77,8 @@ function RestauranteCard({
       ? iconFechado
       : iconAberto;
 
-  const backgroundImage = resolveStoreImage(restaurante.imagemfundo, "fundo");
-  const iconImage = resolveStoreImage(restaurante.icon, "icon");
+  const backgroundImage = getImageUrl(restaurante.imagemfundo);
+  const iconImage = getImageUrl(restaurante.icon);
 
   const subCategoryNames = useMemo(
     () => (restaurante.subCategorias || []).map((cat) => cat.categoria).filter(Boolean),

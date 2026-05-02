@@ -15,6 +15,19 @@ function normalizeImageUrl(value) {
   return text || null;
 }
 
+export function getImageUrl(path) {
+  if (!path) return null;
+  
+  // Se for um link completo, retorna-o
+  if (path.startsWith('http')) return path;
+
+  // Garante que o supabase está importado neste ficheiro
+  const { data } = supabase.storage.from("store-images").getPublicUrl(path);
+  return data?.publicUrl || null;
+}
+
+// --- FUNÇÕES DE API ---
+
 export async function fetchStoreTypes() {
   const { data, error } = await supabase
     .from("tiposloja")
@@ -37,11 +50,10 @@ export async function uploadStoreImage(file, scope = "requests") {
   });
 
   if (error) {
-    throw new Error(`Falha no upload da imagem (${file.name}). Confirma se o bucket store-images existe e esta publico.`);
+    throw new Error(`Falha no upload da imagem (${file.name}).`);
   }
 
-  const { data } = supabase.storage.from("store-images").getPublicUrl(path);
-  return data?.publicUrl || null;
+  return path; 
 }
 
 async function resolveLojaIdFromStaff(userTextId) {
