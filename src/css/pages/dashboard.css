@@ -638,6 +638,31 @@
   overflow: hidden;
 }
 
+.live-board .geo-canvas.geo-canvas-live-map {
+  border: 1px solid #d4dcf0;
+  background: #eef3fb;
+}
+
+.geo-map-target {
+  width: 100%;
+  height: 100%;
+}
+
+.geo-map-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .live-board-header {
   display: flex;
   justify-content: space-between;
@@ -676,6 +701,31 @@
 .geo-point.ok { background: #22c55e; }
 .geo-point.warn { background: #f59e0b; }
 .geo-point.bad { background: #ef4444; }
+.geo-point.order {
+  width: 13px;
+  height: 13px;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 7px rgba(245, 158, 11, 0.16);
+}
+.geo-point.order.ok {
+  box-shadow: 0 0 0 7px rgba(34, 197, 94, 0.16);
+}
+.geo-point.order.bad {
+  box-shadow: 0 0 0 7px rgba(239, 68, 68, 0.16);
+}
+.geo-point.order.is-selected,
+.geo-point.store.is-selected {
+  box-shadow: 0 0 0 10px rgba(37, 99, 235, 0.18);
+}
+.geo-point.store {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  background: #0f172a;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 7px rgba(15, 23, 42, 0.14);
+}
 .geo-point.carrier {
   width: 16px;
   height: 16px;
@@ -684,7 +734,7 @@
 }
 
 .geo-point.carrier.available { background: #2563eb; }
-.geo-point.carrier.pickup { background: #f59e0b; }
+.geo-point.carrier.pickup { background: #7c3aed; }
 .geo-point.carrier.delivery { background: #22c55e; }
 
 .geo-point.carrier.is-selected {
@@ -701,7 +751,7 @@
 }
 
 .geo-point.carrier.available .geo-point-pulse { color: #2563eb; }
-.geo-point.carrier.pickup .geo-point-pulse { color: #f59e0b; }
+.geo-point.carrier.pickup .geo-point-pulse { color: #7c3aed; }
 .geo-point.carrier.delivery .geo-point-pulse { color: #22c55e; }
 
 @keyframes geoPulse {
@@ -735,8 +785,9 @@
 .dot.warn { background: #f59e0b; }
 .dot.bad { background: #ef4444; }
 .dot.available { background: #2563eb; }
-.dot.pickup { background: #f59e0b; }
+.dot.pickup { background: #7c3aed; }
 .dot.delivery { background: #22c55e; }
+.dot.store { background: #0f172a; }
 
 .order-row-sla-alert {
   animation: dashboardSlaBlink 1.4s ease-in-out infinite;
@@ -960,6 +1011,10 @@
   background: white;
   padding: 9px 10px;
   font-weight: 600;
+}
+
+.customer-search-field {
+  min-width: min(420px, 100%);
 }
 
 .restaurant-settings-panel {

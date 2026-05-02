@@ -7,7 +7,6 @@ import {
   fetchGlobalAutoAssignSettings,
   fetchStoresWithAdminSettings,
   fetchRestaurantDashboard,
-  needsScheduledShipdayBootstrap,
   resolveRestaurantStoreId,
   updateRestaurantAdminSettings,
   updateOrderWorkflowStatus,
@@ -241,7 +240,6 @@ export default function DashboardRestaurante() {
     loading: true,
     error: "",
   });
-  const scheduledShipdayBootstrapInFlightRef = useRef(new Set());
   const autoAssignInFlightRef = useRef(new Set());
   const ordersRef = useRef([]);
   const dashboardWindowInput = useMemo(
@@ -529,38 +527,6 @@ export default function DashboardRestaurante() {
     }
   }, []);
 
-  const ensureScheduledImmediateOrdersAreShipdayReady = useCallback(async (orders = []) => {
-    const candidates = (orders || []).filter((order) => needsScheduledShipdayBootstrap(order));
-    if (candidates.length === 0) return;
-
-    let createdAtLeastOne = false;
-
-    for (const order of candidates) {
-      const key = String(order?.id || "");
-      if (!key || scheduledShipdayBootstrapInFlightRef.current.has(key)) continue;
-
-      scheduledShipdayBootstrapInFlightRef.current.add(key);
-
-      try {
-        await createShipdayOrderForOrder({ orderId: order.id });
-        createdAtLeastOne = true;
-      } catch (error) {
-        console.error("Falha ao ativar Shipday para pedido agendado da loja", {
-          orderId: order?.id ?? null,
-          lojaId: order?.loja_id ?? scopedStoreId ?? null,
-          shipdayOrderId: order?.shipday_order_id ?? null,
-          error,
-        });
-      } finally {
-        scheduledShipdayBootstrapInFlightRef.current.delete(key);
-      }
-    }
-
-    if (createdAtLeastOne) {
-      await load();
-    }
-  }, [load, scopedStoreId]);
-
   useEffect(() => {
     load();
     const timer = setInterval(load, 15000);
@@ -574,11 +540,6 @@ export default function DashboardRestaurante() {
     const timer = setInterval(loadLiveCarriers, 30000);
     return () => clearInterval(timer);
   }, [activeTab, loadLiveCarriers]);
-
-  useEffect(() => {
-    if (state.loading) return;
-    ensureScheduledImmediateOrdersAreShipdayReady(state.immediateOrders);
-  }, [ensureScheduledImmediateOrdersAreShipdayReady, state.immediateOrders, state.loading]);
 
   const persistCarrierAssignment = useCallback(async (order, carrier) => {
     const result = await persistAssignedCarrierSelection({
@@ -696,23 +657,6 @@ export default function DashboardRestaurante() {
     }
   }, [globalAutoAssign, load, persistCarrierAssignment, scopedStoreId, storeSettingsRows]);
 
-  useEffect(() => {
-    if (state.loading) return;
-
-    const autoAssignableOrders = (state.immediateOrders || []).filter((order) => {
-      const currentStore = (storeSettingsRows || []).find((store) => String(store?.idloja) === String(order?.loja_id || scopedStoreId || ""));
-      const effectiveAutoAssignConfig = resolveEffectiveAutoAssignConfig(currentStore, globalAutoAssign);
-      return effectiveAutoAssignConfig.enabled
-        && shouldAutoAssignNow(order)
-        && resolveOrderEstadoInterno(order) === "aceite"
-        && !hasAssignedDriver(order);
-    });
-
-    autoAssignableOrders.forEach((order) => {
-      runAutoAssignForOrder(order, { silent: true });
-    });
-  }, [globalAutoAssign, runAutoAssignForOrder, scopedStoreId, state.immediateOrders, state.loading, storeSettingsRows]);
-
   const latestDeliveryByOrderId = useMemo(() => {
     const map = new Map();
     (state.deliveries || []).forEach((delivery) => {
@@ -736,11 +680,13 @@ export default function DashboardRestaurante() {
   );
   const liveCarrierEntries = useMemo(
     () => buildLiveCarrierBoardEntries({
-      carriers: liveCarriers,
-      orders: state.immediateOrders,
-      stores: storeSettingsRows,
+      carriers: liveCarriers || [],
+      orders: state.immediateOrders || [],
+      stores: storeSettingsRows || [],
+      deliveries: state.deliveries || [],
+      mode: "restaurant",
     }),
-    [liveCarriers, state.immediateOrders, storeSettingsRows],
+    [liveCarriers, state.deliveries, state.immediateOrders, storeSettingsRows],
   );
   const slaBreachedOrderIds = useMemo(
     () => new Set((state.slaAlerts || []).filter((alert) => alert.driverAssignmentDelay).map((alert) => String(alert.id))),
@@ -907,7 +853,7 @@ export default function DashboardRestaurante() {
           <p className="kicker">Store Operations</p>
           <h1 className="dashboard-title">Dashboard {storeName || "Restaurante"}</h1>
           <p className="dashboard-subtitle">
-            {state.metrics.totalOrders} pedidos na janela atual - {state.metrics.totalRevenue.toFixed(2)}EUR faturados
+            {state.metrics.totalOrders} pedidos na janela atual - {state.metrics.totalRevenue.toFixed(2)}EUR faturados (entregues e sem taxa de entrega)
           </p>
         </div>
         <div className="dashboard-actions">
@@ -1068,12 +1014,12 @@ export default function DashboardRestaurante() {
             <article className="metric-card premium">
               <div className="metric-label">Receita</div>
               <div className="metric-value">{state.metrics.totalRevenue.toFixed(2)}EUR</div>
-              <div className="metric-foot">Janela atual</div>
+              <div className="metric-foot">Apenas entregues (sem taxa de entrega)</div>
             </article>
             <article className="metric-card premium">
               <div className="metric-label">Ticket medio</div>
               <div className="metric-value">{state.metrics.avgTicket.toFixed(2)}EUR</div>
-              <div className="metric-foot">Valor por pedido</div>
+              <div className="metric-foot">Valor medio por pedido entregue</div>
             </article>
             <article className="metric-card premium">
               <div className="metric-label">Concluido</div>
@@ -1088,7 +1034,13 @@ export default function DashboardRestaurante() {
           </section>
 
           <section className="panel-grid admin-top-grid">
-            <LiveOperationsBoard orders={state.immediateOrders} carriers={liveCarrierEntries} stores={storeSettingsRows} />
+            <LiveOperationsBoard
+              mode="restaurant"
+              storeId={scopedStoreId}
+              orders={state.immediateOrders}
+              carriers={liveCarrierEntries}
+              stores={storeSettingsRows}
+            />
 
             <article className="panel sla-panel">
               <h3>Alertas SLA da loja</h3>

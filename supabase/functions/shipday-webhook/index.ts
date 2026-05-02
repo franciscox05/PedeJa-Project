@@ -512,7 +512,10 @@ serve(async (req) => {
     const carrierPayload = extractCarrierPayload(payload);
     const shouldClearCarrier = carrierPayload !== undefined && isCarrierEmpty(carrierPayload);
     const shouldClearCarrierByState =
-      shipdayState === "REJECTED" || shipdayState === "DELETED";
+      shipdayState === "REJECTED"
+      || shipdayState === "DELETED"
+      || shipdayState === "NOT_ACCEPTED"
+      || shipdayState === "UNASSIGNED";
 
     const estadoInternoMapeado = mapShipdayToEstadoInterno(rawStatus);
     const isEstadoTerminal = estadoInternoMapeado === "entregue" || estadoInternoMapeado === "cancelado";
@@ -680,7 +683,7 @@ serve(async (req) => {
       && shipdayState === "UNASSIGNED"
       && elapsedSinceUpdateMs !== null
       && elapsedSinceUpdateMs >= ASSIGNING_TIMEOUT_MS;
-    const isAssignmentAccepted = ["ASSIGNED", "ACTIVE", "STARTED"].includes(shipdayState);
+    const isAssignmentAccepted = ["ASSIGNED", "ACTIVE", "ACCEPTED"].includes(shipdayState);
     const isRealAssignmentCancellation = ["REJECTED", "DELETED"].includes(shipdayState);
     const shouldKeepAssigningState =
       isAwaitingCarrierDecision
@@ -907,6 +910,81 @@ serve(async (req) => {
         order_number: orderNumber,
         estado_interno: finalStatus ?? null,
       });
+    }
+
+    for (const row of updatedRows) {
+      const targetOrderId = Number(row?.id);
+      if (!Number.isFinite(targetOrderId) || targetOrderId <= 0) continue;
+
+      try {
+        const deliveryPatch: Record<string, unknown> = {
+          updated_at: nowIso,
+          provider_payload: payload,
+        };
+
+        if (shipdayState) {
+          deliveryPatch.status = shipdayState;
+        }
+
+        if (shouldClearCarrierByState || didAssignmentTimeout) {
+          deliveryPatch.tracking_url = null;
+        } else if (trackingUrl) {
+          deliveryPatch.tracking_url = trackingUrl;
+        }
+
+        const { data: latestDelivery, error: latestDeliveryError } = await supabase
+          .from("deliveries")
+          .select("id")
+          .eq("order_id", targetOrderId)
+          .order("id", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestDeliveryError) {
+          console.warn("shipday-webhook delivery lookup warning", {
+            orderId: targetOrderId,
+            message: latestDeliveryError.message,
+          });
+          continue;
+        }
+
+        if (latestDelivery?.id) {
+          const { error: updateDeliveryError } = await supabase
+            .from("deliveries")
+            .update(deliveryPatch)
+            .eq("id", latestDelivery.id);
+
+          if (updateDeliveryError) {
+            console.warn("shipday-webhook delivery update warning", {
+              orderId: targetOrderId,
+              deliveryId: latestDelivery.id,
+              message: updateDeliveryError.message,
+            });
+          }
+        } else {
+          const { error: insertDeliveryError } = await supabase
+            .from("deliveries")
+            .insert({
+              order_id: targetOrderId,
+              provider: "SHIPDAY",
+              status: shipdayState || "UPDATED",
+              tracking_url: shouldClearCarrierByState || didAssignmentTimeout ? null : trackingUrl,
+              provider_payload: payload,
+            });
+
+          if (insertDeliveryError) {
+            console.warn("shipday-webhook delivery insert warning", {
+              orderId: targetOrderId,
+              message: insertDeliveryError.message,
+            });
+          }
+        }
+      } catch (deliverySyncError: any) {
+        console.warn("shipday-webhook delivery sync warning", {
+          orderId: targetOrderId,
+          message: String(deliverySyncError?.message || deliverySyncError),
+        });
+      }
     }
 
     return json({

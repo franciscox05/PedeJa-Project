@@ -1,13 +1,7 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { normalizePricedItem, resolveDisplayPrice } from "../services/pricingService";
-import {
-  buildDefaultMenuOptionSelections,
-  buildSelectedMenuOptions,
-  getMenuOptionTypeLabel,
-  hasMissingRequiredMenuOptions,
-  sanitizeMenuOptionsConfig,
-} from "../services/menuOptionsService";
+import MenuProductModal from "./MenuProductModal";
 
 function resolveCategoryName(prato) {
   if (prato?.categoria_menu) {
@@ -24,29 +18,17 @@ export default function MenuCard({ prato }) {
   const { addToCart } = useCart();
   const [animacao, setAnimacao] = useState(false);
   const [notificacao, setNotificacao] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showStoreSwitchModal, setShowStoreSwitchModal] = useState(false);
   const [showSoldOutNotice, setShowSoldOutNotice] = useState(false);
-  const [optionSelections, setOptionSelections] = useState({});
-  const [selectionError, setSelectionError] = useState("");
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [pendingItem, setPendingItem] = useState(null);
 
   const isSoldOut = prato?.ativo === false;
   const categoryName = useMemo(() => resolveCategoryName(prato), [prato]);
   const pricedPrato = useMemo(() => normalizePricedItem(prato), [prato]);
-  const optionGroups = useMemo(() => sanitizeMenuOptionsConfig(prato?.configuracao_opcoes), [prato]);
-  const hasConfigurableOptions = optionGroups.length > 0;
-  const appliedCommissionPercent = Number(pricedPrato?.comissao_pedeja_percent_aplicada || 0);
-  const selectedOptions = useMemo(
-    () => buildSelectedMenuOptions(optionGroups, optionSelections, appliedCommissionPercent),
-    [appliedCommissionPercent, optionGroups, optionSelections],
-  );
-  const configuredPrato = useMemo(
-    () => normalizePricedItem({ ...pricedPrato, opcoes_selecionadas: selectedOptions }),
-    [pricedPrato, selectedOptions],
-  );
   const displayPrice = useMemo(
-    () => configuredPrato.preco_cliente_total ?? configuredPrato.preco_cliente ?? resolveDisplayPrice(prato),
-    [configuredPrato, prato],
+    () => pricedPrato.preco_cliente_total ?? pricedPrato.preco_cliente ?? resolveDisplayPrice(prato),
+    [pricedPrato, prato],
   );
 
   const dispararSucesso = () => {
@@ -61,111 +43,45 @@ export default function MenuCard({ prato }) {
     setTimeout(() => setShowSoldOutNotice(false), 2000);
   };
 
-  const handleAdd = (event) => {
+  const openProductModal = (event) => {
     event?.stopPropagation?.();
+    setShowProductModal(true);
+  };
 
+  const handleAddFromModal = (itemPayload) => {
     if (isSoldOut) {
       dispararAvisoEsgotado();
-      return;
+      return false;
     }
 
     const sessaoUtilizador = localStorage.getItem("pedeja_user");
-
     if (!sessaoUtilizador) {
       window.dispatchEvent(new Event("abrirLogin"));
-      return;
+      return false;
     }
 
-    if (hasConfigurableOptions && !showDetails) {
-      setOptionSelections(buildDefaultMenuOptionSelections(optionGroups));
-      setSelectionError("");
-      setShowDetails(true);
-      return;
-    }
-
-    if (hasMissingRequiredMenuOptions(optionGroups, optionSelections)) {
-      setSelectionError("Seleciona as opcoes obrigatorias antes de adicionar ao carrinho.");
-      if (!showDetails) setShowDetails(true);
-      return;
-    }
-
-    const sucesso = addToCart(configuredPrato);
-
+    const sucesso = addToCart(itemPayload);
     if (sucesso) {
-      setSelectionError("");
       dispararSucesso();
-      setShowDetails(false);
-    } else {
-      setShowModal(true);
+      return true;
     }
+
+    setPendingItem(itemPayload);
+    setShowStoreSwitchModal(true);
+    return false;
   };
 
   const confirmarTroca = () => {
-    if (isSoldOut) {
-      dispararAvisoEsgotado();
-      setShowModal(false);
+    if (!pendingItem) {
+      setShowStoreSwitchModal(false);
       return;
     }
 
-    if (hasMissingRequiredMenuOptions(optionGroups, optionSelections)) {
-      setSelectionError("Seleciona as opcoes obrigatorias antes de adicionar ao carrinho.");
-      setShowModal(false);
-      setShowDetails(true);
-      return;
-    }
-
-    addToCart(configuredPrato, true);
-    setShowModal(false);
+    addToCart(pendingItem, true);
+    setPendingItem(null);
+    setShowStoreSwitchModal(false);
+    setShowProductModal(false);
     dispararSucesso();
-  };
-
-  const openDetails = () => {
-    setOptionSelections(buildDefaultMenuOptionSelections(optionGroups));
-    setSelectionError("");
-    setShowDetails(true);
-  };
-
-  const closeDetails = () => {
-    setSelectionError("");
-    setShowDetails(false);
-  };
-
-  const toggleOption = (group, optionId) => {
-    setOptionSelections((prev) => {
-      const current = Array.isArray(prev?.[group.id]) ? prev[group.id] : [];
-      const exists = current.includes(optionId);
-
-      if (group.maxSelections <= 1) {
-        if (exists) {
-          return {
-            ...prev,
-            [group.id]: group.required ? [optionId] : [],
-          };
-        }
-
-        return {
-          ...prev,
-          [group.id]: [optionId],
-        };
-      }
-
-      if (exists) {
-        return {
-          ...prev,
-          [group.id]: current.filter((id) => id !== optionId),
-        };
-      }
-
-      if (current.length >= group.maxSelections) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [group.id]: [...current, optionId],
-      };
-    });
-    setSelectionError("");
   };
 
   return (
@@ -173,7 +89,7 @@ export default function MenuCard({ prato }) {
       <div className="col-12 col-lg-6">
         <div
           className={`menu-item-card ${isSoldOut ? "menu-item-card-sold-out" : ""}`}
-          onClick={openDetails}
+          onClick={openProductModal}
           style={{
             backgroundColor: "white",
             borderRadius: "15px",
@@ -225,9 +141,10 @@ export default function MenuCard({ prato }) {
               <div style={{ fontSize: "1.05rem", color: "#222", fontWeight: "700", lineHeight: "1.2" }}>
                 {prato.nome}
               </div>
-              {isSoldOut && <span className="menu-item-badge-soldout">Esgotado</span>}
+              {isSoldOut ? <span className="menu-item-badge-soldout">Esgotado</span> : null}
             </div>
-            </div>
+            <small style={{ color: "#64748b", fontWeight: 600 }}>{categoryName}</small>
+          </div>
 
           <div
             style={{
@@ -244,125 +161,31 @@ export default function MenuCard({ prato }) {
               {displayPrice.toFixed(2)}EUR
             </span>
 
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openDetails();
-                }}
-                className="menu-mini-btn info"
-                title="Ver detalhes"
-              >
-                i
-              </button>
-              <button
-                onClick={handleAdd}
-                disabled={isSoldOut}
-                className={`menu-mini-btn add ${isSoldOut ? "disabled" : ""}`}
-                style={{
-                  transform: animacao ? "scale(1.2)" : "scale(1)",
-                  transition: "transform 0.2s",
-                }}
-                title={isSoldOut ? "Prato esgotado" : "Adicionar ao carrinho"}
-              >
-                +
-              </button>
-            </div>
+            <button
+              onClick={openProductModal}
+              disabled={isSoldOut}
+              className={`menu-mini-btn add ${isSoldOut ? "disabled" : ""}`}
+              style={{
+                transform: animacao ? "scale(1.2)" : "scale(1)",
+                transition: "transform 0.2s",
+              }}
+              title={isSoldOut ? "Prato esgotado" : "Personalizar e adicionar ao carrinho"}
+            >
+              +
+            </button>
           </div>
         </div>
       </div>
 
-      {showDetails && (
-        <div className="menu-details-backdrop" onClick={closeDetails}>
-          <div className="menu-details-sheet" onClick={(e) => e.stopPropagation()}>
-            <button className="menu-details-close" onClick={closeDetails}>x</button>
+      <MenuProductModal
+        isOpen={showProductModal}
+        prato={prato}
+        isSoldOut={isSoldOut}
+        onClose={() => setShowProductModal(false)}
+        onAdd={handleAddFromModal}
+      />
 
-            <div className="menu-details-top">
-              {prato.imagem ? (
-                <img src={prato.imagem} alt={prato.nome} className="menu-details-image" />
-              ) : (
-                <div className="menu-details-image placeholder">
-                  <span className="material-icons">restaurant</span>
-                </div>
-              )}
-            </div>
-
-            <div className="menu-details-content">
-              <div className="menu-details-title-row">
-                <h3>{prato.nome}</h3>
-                {isSoldOut ? <span className="menu-item-badge-soldout">Esgotado</span> : <span className="menu-item-badge-ok">Disponivel</span>}
-              </div>
-
-              <p className="menu-details-description">{prato.desc ?? prato.descricao ?? prato.desricao ?? "Sem descricao adicional."}</p>
-
-              <div className="menu-details-meta">
-                <div>
-                  <span>Categoria</span>
-                  <strong>{categoryName}</strong>
-                </div>
-                <div>
-                  <span>Preco</span>
-                  <strong>{displayPrice.toFixed(2)}EUR</strong>
-                </div>
-              </div>
-
-              {optionGroups.length > 0 ? (
-                <div className="menu-options-configurator">
-                  <h4>Complementos e extras</h4>
-                  {optionGroups.map((group) => {
-                    const selectedIds = Array.isArray(optionSelections?.[group.id]) ? optionSelections[group.id] : [];
-
-                    return (
-                      <div key={group.id} className="menu-options-group">
-                        <div className="menu-options-group-head">
-                          <strong>{group.title}</strong>
-                          <span>
-                            {getMenuOptionTypeLabel(group.type)}
-                            {group.required ? " • Obrigatorio" : " • Opcional"}
-                            {group.maxSelections > 1 ? ` • max ${group.maxSelections}` : ""}
-                          </span>
-                        </div>
-
-                        <div className="menu-options-list">
-                          {group.options.map((option) => {
-                            const checked = selectedIds.includes(option.id);
-                            const optionPrice = Number(
-                              (Number(option.price || 0) * (1 + (appliedCommissionPercent || 0) / 100)).toFixed(2),
-                            );
-
-                            return (
-                              <label key={option.id} className={`menu-option-row ${checked ? "selected" : ""}`}>
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => toggleOption(group, option.id)}
-                                />
-                                <span>{option.name}</span>
-                                <strong>{optionPrice > 0 ? `+${optionPrice.toFixed(2)}EUR` : "Incluido"}</strong>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {selectionError ? <p className="menu-options-error">{selectionError}</p> : null}
-                </div>
-              ) : null}
-
-              <div className="menu-details-actions">
-                <button className="btn-details secondary" onClick={closeDetails}>Fechar</button>
-                <button className="btn-details primary" onClick={handleAdd} disabled={isSoldOut}>
-                  {isSoldOut ? "Indisponivel" : "Adicionar ao carrinho"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showModal && (
+      {showStoreSwitchModal && (
         <div
           style={{
             position: "fixed",
@@ -374,7 +197,7 @@ export default function MenuCard({ prato }) {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            zIndex: 9999,
+            zIndex: 1190,
             padding: "20px",
           }}
         >
@@ -398,7 +221,10 @@ export default function MenuCard({ prato }) {
             </p>
             <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowStoreSwitchModal(false);
+                  setPendingItem(null);
+                }}
                 style={{
                   padding: "10px 20px",
                   borderRadius: "8px",
@@ -434,5 +260,3 @@ export default function MenuCard({ prato }) {
     </>
   );
 }
-
-

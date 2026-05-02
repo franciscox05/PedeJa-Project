@@ -1,18 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   createMenu,
   createMenuOptionLibraryGroup,
+  duplicateMenuOptionLibraryGroup,
   deleteMenu,
   deleteMenuOptionLibraryGroup,
   fetchMenuOptionLibrary,
   fetchMenus,
+  reorderMenuOptionLibraryGroups,
   toggleDisponivel,
   toggleVisibilidade,
   updateMenu,
   updateMenuOptionLibraryGroup,
   uploadMenuImage,
 } from "../services/menuManagerService";
+import MenuOptionBuilderModal from "../components/MenuOptionBuilderModal";
 import {
   describeMenuOptionSelectionMode,
   getMenuOptionTypeLabel,
@@ -67,6 +70,7 @@ const createEmptyLibraryOption = (index = 0) => ({
   defaultSelected: false,
 });
 const createEmptyLibraryForm = () => ({ title: "", type: "extra", required: false, maxSelections: 1, options: [createEmptyLibraryOption(0)] });
+const getLibraryGroupKey = (group) => String(group?.library_group_id || group?.id || "");
 const createEmptyForm = () => ({
   nome: "",
   desc: "",
@@ -132,8 +136,12 @@ export default function MenuManager() {
   const [libraryGroups, setLibraryGroups] = useState([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySaving, setLibrarySaving] = useState(false);
+  const [libraryOrdering, setLibraryOrdering] = useState(false);
+  const [libraryGroupOrderDraft, setLibraryGroupOrderDraft] = useState([]);
+  const [libraryGroupOrderDirty, setLibraryGroupOrderDirty] = useState(false);
   const [libraryEditingId, setLibraryEditingId] = useState(null);
   const [libraryForm, setLibraryForm] = useState(createEmptyLibraryForm());
+  const [modifierManagerTarget, setModifierManagerTarget] = useState(null);
 
   useEffect(() => {
     if (!imageFile) {
@@ -244,14 +252,21 @@ export default function MenuManager() {
   const loadLibraryGroups = useCallback(async () => {
     if (!scopedLoja) {
       setLibraryGroups([]);
+      setLibraryGroupOrderDraft([]);
+      setLibraryGroupOrderDirty(false);
       return;
     }
     setLibraryLoading(true);
     try {
-      setLibraryGroups(await fetchMenuOptionLibrary(scopedLoja));
+      const groups = await fetchMenuOptionLibrary(scopedLoja);
+      setLibraryGroups(groups);
+      setLibraryGroupOrderDraft((groups || []).map((group) => getLibraryGroupKey(group)).filter(Boolean));
+      setLibraryGroupOrderDirty(false);
     } catch (err) {
       setError(err.message || "Falha ao carregar a biblioteca de extras.");
       setLibraryGroups([]);
+      setLibraryGroupOrderDraft([]);
+      setLibraryGroupOrderDirty(false);
     } finally {
       setLibraryLoading(false);
     }
@@ -279,6 +294,26 @@ export default function MenuManager() {
     localStorage.removeItem("pedeja_cart");
     navigate("/", { replace: true });
   };
+  const openModifierManager = (menuLike) => {
+    const menuId = Number(menuLike?.idmenu || editingId);
+    if (!Number.isFinite(menuId)) {
+      setError("Guarda primeiro o prato para gerir modificadores.");
+      return;
+    }
+    setModifierManagerTarget({
+      idmenu: menuId,
+      nome: String(menuLike?.nome || form.nome || "").trim() || `Prato #${menuId}`,
+    });
+  };
+  const closeModifierManager = () => setModifierManagerTarget(null);
+  const activeModifierMenuItem = useMemo(() => {
+    if (!modifierManagerTarget?.idmenu) return null;
+    const liveMenu = (menus || []).find((item) => String(item.idmenu) === String(modifierManagerTarget.idmenu));
+    return liveMenu || modifierManagerTarget;
+  }, [menus, modifierManagerTarget]);
+  const handleModifierManagerSaved = useCallback(async () => {
+    await Promise.all([loadMenus(), loadLibraryGroups()]);
+  }, [loadMenus, loadLibraryGroups]);
 
   const patchLibraryForm = (patch) => setLibraryForm((prev) => ({ ...prev, ...patch }));
   const handleAddLibraryOption = () => setLibraryForm((prev) => ({
@@ -293,6 +328,104 @@ export default function MenuManager() {
     ...prev,
     options: prev.options.map((option) => option.id === optionId ? { ...option, ...patch } : option),
   }));
+  const handleMoveLibraryOption = (optionId, direction) => setLibraryForm((prev) => {
+    const options = Array.isArray(prev.options) ? [...prev.options] : [];
+    const currentIndex = options.findIndex((option) => option.id === optionId);
+    if (currentIndex < 0) return prev;
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= options.length) return prev;
+
+    [options[currentIndex], options[targetIndex]] = [options[targetIndex], options[currentIndex]];
+    return { ...prev, options };
+  });
+  const handleMoveLibraryGroup = (group, direction) => {
+    const groupId = getLibraryGroupKey(group);
+    if (!groupId) return;
+
+    const currentOrder = (
+      Array.isArray(libraryGroupOrderDraft) && libraryGroupOrderDraft.length > 0
+        ? libraryGroupOrderDraft
+        : orderedLibraryGroups.map((entry) => getLibraryGroupKey(entry))
+    )
+      .map((entry) => String(entry || "").trim())
+      .filter(Boolean);
+    const currentIndex = currentOrder.findIndex((entry) => entry === groupId);
+    if (currentIndex < 0) return;
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= currentOrder.length) return;
+
+    const nextOrder = [...currentOrder];
+    [nextOrder[currentIndex], nextOrder[targetIndex]] = [nextOrder[targetIndex], nextOrder[currentIndex]];
+
+    setLibraryGroupOrderDraft(nextOrder);
+    setLibraryGroupOrderDirty(true);
+  };
+  const handleResetLibraryGroupOrder = () => {
+    const defaultOrder = (Array.isArray(libraryGroups) ? libraryGroups : [])
+      .map((group) => getLibraryGroupKey(group))
+      .filter(Boolean);
+    setLibraryGroupOrderDraft(defaultOrder);
+    setLibraryGroupOrderDirty(false);
+  };
+  const handleSaveLibraryGroupOrder = async () => {
+    if (!libraryGroupOrderDirty || !scopedLoja) return;
+    setLibraryOrdering(true);
+    setError("");
+    try {
+      const order = [...new Set(
+        (Array.isArray(libraryGroupOrderDraft) ? libraryGroupOrderDraft : [])
+          .map((entry) => String(entry || "").trim())
+          .filter(Boolean),
+      )];
+
+      if (order.length === 0) {
+        setLibraryOrdering(false);
+        return;
+      }
+
+      await reorderMenuOptionLibraryGroups(scopedLoja, order);
+      await Promise.all([loadLibraryGroups(), loadMenus()]);
+      setLibraryGroupOrderDirty(false);
+    } catch (err) {
+      setError(err.message || "Erro ao guardar a ordem dos grupos da biblioteca.");
+    } finally {
+      setLibraryOrdering(false);
+    }
+  };
+  const handleDuplicateLibraryGroup = async (group) => {
+    const sourceGroupId = group?.library_group_id || group?.id;
+    if (!sourceGroupId) return;
+
+    const suggestedName = `${group?.title || "Grupo"} (Copia)`;
+    const duplicatedName = window.prompt("Nome do grupo duplicado:", suggestedName);
+    if (!duplicatedName || !duplicatedName.trim()) return;
+
+    setLibrarySaving(true);
+    setError("");
+    try {
+      const duplicated = await duplicateMenuOptionLibraryGroup(scopedLoja, sourceGroupId, {
+        title: duplicatedName.trim(),
+      });
+
+      if (duplicated?.id || duplicated?.library_group_id) {
+        setLibraryGroupOrderDraft((prev) => {
+          const current = Array.isArray(prev) ? prev.map((entry) => String(entry)) : [];
+          const nextId = String(duplicated.id || duplicated.library_group_id);
+          if (current.includes(nextId)) return current;
+          return [...current, nextId];
+        });
+        setLibraryGroupOrderDirty(true);
+      }
+
+      await Promise.all([loadLibraryGroups(), loadMenus()]);
+    } catch (err) {
+      setError(err.message || "Erro ao duplicar grupo da biblioteca.");
+    } finally {
+      setLibrarySaving(false);
+    }
+  };
   const handleToggleLibraryGroupForMenu = (groupId) => setForm((prev) => {
     const current = new Set((prev.menu_option_group_ids || []).map(String));
     const normalized = String(groupId);
@@ -722,6 +855,19 @@ export default function MenuManager() {
     (libraryGroups || []).filter((group) => selectedLibraryGroupIds.has(String(group.library_group_id || group.id)))
   ), [libraryGroups, selectedLibraryGroupIds]);
   const formLegacyGroups = useMemo(() => sanitizeMenuOptionsConfig(form.configuracao_opcoes || []).filter((group) => !group.library_group_id), [form.configuracao_opcoes]);
+  const orderedLibraryGroups = useMemo(() => {
+    const source = Array.isArray(libraryGroups) ? libraryGroups : [];
+    if (!Array.isArray(libraryGroupOrderDraft) || libraryGroupOrderDraft.length === 0) {
+      return source;
+    }
+
+    const byId = new Map(source.map((group) => [getLibraryGroupKey(group), group]));
+    const ordered = libraryGroupOrderDraft
+      .map((groupId) => byId.get(String(groupId)))
+      .filter(Boolean);
+    const leftovers = source.filter((group) => !libraryGroupOrderDraft.includes(getLibraryGroupKey(group)));
+    return [...ordered, ...leftovers];
+  }, [libraryGroupOrderDraft, libraryGroups]);
 
   const renderCatalogTab = () => (
     <>
@@ -811,10 +957,16 @@ export default function MenuManager() {
                   <h4>Extras, complementares e sugestoes</h4>
                   <p className="menu-builder-caption muted">Associa grupos globais ao prato. O preco vem sempre da biblioteca.</p>
                 </div>
-                <button className="btn-dashboard secondary small" type="button" onClick={() => setActiveTab(MENU_MANAGER_TABS.LIBRARY)}>
-                  Gerir biblioteca
-                </button>
+                <div className="menu-card-actions">
+                  <button className="btn-dashboard secondary small" type="button" onClick={() => setActiveTab(MENU_MANAGER_TABS.LIBRARY)}>
+                    Gerir biblioteca
+                  </button>
+                  <button className="btn-dashboard small" type="button" onClick={() => openModifierManager({ idmenu: editingId, nome: form.nome })} disabled={!editingId}>
+                    Gerir opcoes / modificadores
+                  </button>
+                </div>
               </div>
+              {!editingId && <p className="menu-builder-caption muted">Guarda primeiro o prato para abrir o gestor de modificadores por menu.</p>}
 
               {libraryLoading ? (
                 <p className="menu-builder-empty muted">A carregar grupos globais...</p>
@@ -840,7 +992,7 @@ export default function MenuManager() {
                   </div>
 
                   <div className="menu-library-association-grid">
-                    {libraryGroups.map((group) => {
+                    {orderedLibraryGroups.map((group) => {
                       const groupId = String(group.library_group_id || group.id);
                       const checked = selectedLibraryGroupIds.has(groupId);
                       return (
@@ -1012,6 +1164,7 @@ export default function MenuManager() {
                       </div>
                       <div className="menu-card-actions">
                         <button className="btn-dashboard small" type="button" onClick={() => startEdit(item)}>{missingDetails ? "Completar dados" : "Editar"}</button>
+                        <button className="btn-dashboard small" type="button" onClick={() => openModifierManager(item)}>Gerir opcoes</button>
                         <button className="btn-dashboard small secondary" type="button" onClick={() => handleToggle(item)}>{item.ativo !== false ? "Marcar esgotado" : "Marcar disponivel"}</button>
                         <button className="btn-dashboard small secondary" type="button" onClick={() => handleToggleVisibility(item)}>{item.visivel !== false ? "Esconder prato" : "Mostrar na app"}</button>
                         <button className="btn-dashboard small secondary" type="button" onClick={() => handleDelete(item.idmenu, item.nome)}>Apagar</button>
@@ -1098,6 +1251,24 @@ export default function MenuManager() {
                   </label>
 
                   <div className="menu-option-builder-actions">
+                    <button
+                      className="btn-dashboard secondary small"
+                      type="button"
+                      onClick={() => handleMoveLibraryOption(option.id, "up")}
+                      disabled={index === 0}
+                      title="Mover item para cima"
+                    >
+                      Subir
+                    </button>
+                    <button
+                      className="btn-dashboard secondary small"
+                      type="button"
+                      onClick={() => handleMoveLibraryOption(option.id, "down")}
+                      disabled={index >= libraryForm.options.length - 1}
+                      title="Mover item para baixo"
+                    >
+                      Descer
+                    </button>
                     <button className="btn-dashboard secondary small" type="button" onClick={() => handleRemoveLibraryOption(option.id)}>Remover</button>
                   </div>
                 </div>
@@ -1119,39 +1290,96 @@ export default function MenuManager() {
             <h3>Biblioteca atual</h3>
             <p className="muted">Associa estes grupos aos pratos na aba "Categorias e pratos".</p>
           </div>
+          <div className="menu-library-order-controls">
+            <span className="menu-library-count">{orderedLibraryGroups.length} grupos</span>
+            <button
+              className="btn-dashboard secondary small"
+              type="button"
+              onClick={handleResetLibraryGroupOrder}
+              disabled={!libraryGroupOrderDirty || librarySaving || libraryOrdering}
+            >
+              Repor ordem
+            </button>
+            <button
+              className="btn-dashboard small"
+              type="button"
+              onClick={handleSaveLibraryGroupOrder}
+              disabled={!libraryGroupOrderDirty || librarySaving || libraryOrdering}
+            >
+              {libraryOrdering ? "A guardar..." : "Guardar ordem"}
+            </button>
+          </div>
         </div>
 
         {libraryLoading ? (
           <p className="muted">A carregar biblioteca...</p>
-        ) : libraryGroups.length === 0 ? (
+        ) : orderedLibraryGroups.length === 0 ? (
           <p className="muted">Ainda nao existem grupos globais para esta loja.</p>
         ) : (
           <div className="menu-library-list">
-            {libraryGroups.map((group) => (
-              <article className="menu-library-card" key={group.library_group_id || group.id}>
-                <div className="menu-library-card-head">
-                  <div>
-                    <h4>{group.title}</h4>
-                    <p className="muted">{getMenuOptionTypeLabel(group.type)} · {describeMenuOptionSelectionMode(group)}</p>
-                  </div>
-                  <span className="menu-library-count">{group.linked_menu_count || 0} pratos</span>
-                </div>
+            {orderedLibraryGroups.map((group) => {
+              const groupId = group.library_group_id || group.id;
+              const position = orderedLibraryGroups.findIndex((entry) => String(getLibraryGroupKey(entry)) === String(getLibraryGroupKey(group)));
+              const orderLabel = position >= 0 ? position + 1 : "?";
+              const canMoveUp = position > 0;
+              const canMoveDown = position >= 0 && position < orderedLibraryGroups.length - 1;
 
-                <div className="menu-library-card-items">
-                  {(group.options || []).map((option) => (
-                    <div className="menu-library-card-item" key={option.id}>
-                      <span>{option.name}</span>
-                      <strong>{option.price > 0 ? `+${formatCurrency(option.price)}` : "Sem extra"}</strong>
+              return (
+                <article className="menu-library-card" key={groupId}>
+                  <div className="menu-library-card-head">
+                    <div>
+                      <h4>{group.title}</h4>
+                      <p className="muted">{getMenuOptionTypeLabel(group.type)} - {describeMenuOptionSelectionMode(group)}</p>
                     </div>
-                  ))}
-                </div>
+                    <div className="menu-option-group-order-controls">
+                      <span className="menu-library-count">#{orderLabel} - {group.linked_menu_count || 0} pratos</span>
+                      <div className="menu-option-group-order-buttons">
+                        <button
+                          className="btn-dashboard secondary small"
+                          type="button"
+                          onClick={() => handleMoveLibraryGroup(group, "up")}
+                          disabled={!canMoveUp || librarySaving || libraryOrdering}
+                          title="Mover grupo para cima"
+                        >
+                          Subir
+                        </button>
+                        <button
+                          className="btn-dashboard secondary small"
+                          type="button"
+                          onClick={() => handleMoveLibraryGroup(group, "down")}
+                          disabled={!canMoveDown || librarySaving || libraryOrdering}
+                          title="Mover grupo para baixo"
+                        >
+                          Descer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="menu-card-actions">
-                  <button className="btn-dashboard small" type="button" onClick={() => startEditLibraryGroup(group)}>Editar grupo</button>
-                  <button className="btn-dashboard small secondary" type="button" onClick={() => handleDeleteLibraryGroup(group)}>Apagar grupo</button>
-                </div>
-              </article>
-            ))}
+                  <div className="menu-library-card-items">
+                    {(group.options || []).map((option) => (
+                      <div className="menu-library-card-item" key={option.id}>
+                        <span>{option.name}</span>
+                        <strong>{option.price > 0 ? `+${formatCurrency(option.price)}` : "Sem extra"}</strong>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="menu-card-actions">
+                    <button className="btn-dashboard small" type="button" onClick={() => startEditLibraryGroup(group)}>Editar grupo</button>
+                    <button
+                      className="btn-dashboard small secondary"
+                      type="button"
+                      onClick={() => handleDuplicateLibraryGroup(group)}
+                      disabled={librarySaving || libraryOrdering}
+                    >
+                      Duplicar
+                    </button>
+                    <button className="btn-dashboard small secondary" type="button" onClick={() => handleDeleteLibraryGroup(group)}>Apagar grupo</button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </article>
@@ -1216,6 +1444,15 @@ export default function MenuManager() {
       </section>
 
       {activeTab === MENU_MANAGER_TABS.CATALOG ? renderCatalogTab() : renderLibraryTab()}
+
+      <MenuOptionBuilderModal
+        isOpen={Boolean(modifierManagerTarget)}
+        lojaId={scopedLoja}
+        menuItem={activeModifierMenuItem}
+        onClose={closeModifierManager}
+        onSaved={handleModifierManagerSaved}
+      />
     </div>
   );
 }
+

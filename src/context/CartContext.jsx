@@ -5,6 +5,11 @@ import { buildCartLineId } from "../services/menuOptionsService";
 
 const CartContext = createContext();
 
+function normalizeSpecialInstructions(value) {
+  const text = String(value || "").trim();
+  return text || "";
+}
+
 export function CartProvider({ children }) {
   const [cart, setCart] = useState(() => {
     const savedCart = localStorage.getItem("pedeja_cart");
@@ -37,19 +42,37 @@ export function CartProvider({ children }) {
       return false;
     }
 
-    const normalizedItem = normalizePricedItem(item);
-    const cartLineId = buildCartLineId(normalizedItem);
+    const requestedQuantity = Math.max(
+      1,
+      Number(item?.quantityToAdd || item?.quantity_to_add || item?.qtd_to_add || 1) || 1,
+    );
+    const specialInstructions = normalizeSpecialInstructions(
+      item?.instrucoes_especiais ?? item?.specialInstructions ?? item?.special_instructions,
+    );
+    const normalizedItem = normalizePricedItem({
+      ...item,
+      instrucoes_especiais: specialInstructions || null,
+      specialInstructions,
+      special_instructions: specialInstructions,
+    });
+    const normalizedLineItem = {
+      ...normalizedItem,
+      instrucoes_especiais: specialInstructions || null,
+      specialInstructions,
+      special_instructions: specialInstructions,
+    };
+    const cartLineId = buildCartLineId(normalizedLineItem);
 
     // 1. Modo forcado (substituir tudo)
     if (limparPrimeiro) {
-      setCart([{ ...normalizedItem, cart_line_id: cartLineId, qtd: 1 }]);
+      setCart([{ ...normalizedLineItem, cart_line_id: cartLineId, qtd: requestedQuantity }]);
       return true;
     }
 
     // 2. Verificacao de seguranca: carrinho de 1 loja
     if (cart.length > 0) {
       const lojaNoCarrinho = cart[0].idloja;
-      const lojaDoNovoItem = item.idloja;
+      const lojaDoNovoItem = normalizedLineItem.idloja;
 
       if (lojaNoCarrinho && lojaDoNovoItem && lojaNoCarrinho !== lojaDoNovoItem) {
         return false;
@@ -62,11 +85,11 @@ export function CartProvider({ children }) {
       if (existingItem) {
         return prevCart.map((i) =>
           (i.cart_line_id || buildCartLineId(i)) === cartLineId
-            ? { ...i, ...normalizedItem, cart_line_id: cartLineId, qtd: i.qtd + 1 }
+            ? { ...i, ...normalizedLineItem, cart_line_id: cartLineId, qtd: i.qtd + requestedQuantity }
             : i,
         );
       }
-      return [...prevCart, { ...normalizedItem, cart_line_id: cartLineId, qtd: 1 }];
+      return [...prevCart, { ...normalizedLineItem, cart_line_id: cartLineId, qtd: requestedQuantity }];
     });
 
     return true;

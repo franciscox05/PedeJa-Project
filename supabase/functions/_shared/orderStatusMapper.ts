@@ -19,8 +19,13 @@ export const SHIPDAY_TO_ESTADO_INTERNO: Partial<Record<string, EstadoInterno>> =
   ACCEPTED: "estafeta_aceitou",
   ASSIGNED: "estafeta_aceitou",
   ACTIVE: "estafeta_aceitou",
-  STARTED: "estafeta_aceitou",
+  STARTED: "iniciado",
+  DISPATCHED: "a_caminho",
+  OUT_FOR_DELIVERY: "a_caminho",
+  ALREADY_DELIVERING: "a_caminho",
   REJECTED: "aceite",
+  NOT_ACCEPTED: "aceite",
+  UNASSIGNED: "aceite",
   DELETED: "aceite",
   READY: "pronto_recolha",
   READY_FOR_PICKUP: "pronto_recolha",
@@ -28,6 +33,8 @@ export const SHIPDAY_TO_ESTADO_INTERNO: Partial<Record<string, EstadoInterno>> =
   READY_TO_DELIVER: "a_caminho",
   ON_THE_WAY: "a_caminho",
   DELIVERED: "entregue",
+  SUCCESSFUL: "entregue",
+  COMPLETED: "entregue",
   ALREADY_DELIVERED: "entregue",
   FAILED: "cancelado",
   CANCELLED: "cancelado",
@@ -77,8 +84,12 @@ export function resolveNextEstadoInterno(currentEstadoInterno: unknown, shipdayS
   const normalizedShipdayState = normalizeShipdayState(shipdayState);
 
   if (current === "atribuindo_estafeta") {
-    if (["ASSIGNED", "ACTIVE", "STARTED"].includes(normalizedShipdayState)) {
+    if (["ASSIGNED", "ACTIVE", "ACCEPTED"].includes(normalizedShipdayState)) {
       return "estafeta_aceitou";
+    }
+
+    if (normalizedShipdayState === "STARTED") {
+      return "iniciado";
     }
 
     if (["REJECTED", "DELETED"].includes(normalizedShipdayState)) {

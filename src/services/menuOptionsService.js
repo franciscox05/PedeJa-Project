@@ -15,6 +15,18 @@ function toBoolean(value, fallback = false) {
   return ["true", "1", "yes", "sim"].includes(text);
 }
 
+function toPositiveInt(value, fallback = 1) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.trunc(parsed));
+}
+
+function toNonNegativeInt(value, fallback = 0) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.trunc(parsed));
+}
+
 function parseJsonArray(value) {
   if (Array.isArray(value)) return value;
   if (typeof value !== "string") return [];
@@ -25,6 +37,15 @@ function parseJsonArray(value) {
   } catch {
     return [];
   }
+}
+
+function normalizeDependencyOptionIds(value) {
+  const parsed = parseJsonArray(value);
+  const normalized = parsed
+    .map((entry) => toText(entry))
+    .filter(Boolean);
+
+  return [...new Set(normalized)];
 }
 
 function normalizeId(prefix, value, index) {
@@ -72,19 +93,40 @@ export function sanitizeMenuOptionsConfig(rawConfig) {
           name: toText(option?.name || option?.nome || option?.label),
           price: toPrice(option?.price ?? option?.preco),
           defaultSelected: toBoolean(option?.defaultSelected ?? option?.default_selected, false),
+          dependsOnOptionIds: normalizeDependencyOptionIds(
+            option?.dependsOnOptionIds
+            ?? option?.depends_on_option_ids
+            ?? option?.depends_on_item_ids,
+          ),
         }))
         .filter((option) => option.name);
 
       if (!title || options.length === 0) return null;
 
-      const maxSelections = Math.max(1, Number(group?.maxSelections ?? group?.max_selecoes ?? 1) || 1);
+      const required = toBoolean(group?.required ?? group?.obrigatorio ?? group?.is_required, false);
+      const maxSelections = toPositiveInt(
+        group?.maxSelections ?? group?.max_selecoes ?? group?.max_choices ?? 1,
+        1,
+      );
+      const rawMinSelections = group?.minSelections ?? group?.min_selecoes ?? group?.min_choices;
+      const defaultMinSelections = required ? 1 : 0;
+      const minSelections = Math.min(
+        maxSelections,
+        toNonNegativeInt(rawMinSelections, defaultMinSelections),
+      );
 
       return {
         id: normalizeId("group", group?.id, groupIndex),
         title,
         type: normalizeMenuOptionType(group?.type || group?.tipo),
-        required: toBoolean(group?.required ?? group?.obrigatorio, false),
+        required,
+        minSelections: required ? Math.max(1, minSelections) : minSelections,
         maxSelections,
+        dependsOnOptionIds: normalizeDependencyOptionIds(
+          group?.dependsOnOptionIds
+          ?? group?.depends_on_option_ids
+          ?? group?.depends_on_item_ids,
+        ),
         options,
       };
     })
@@ -100,6 +142,11 @@ export function buildMenuOptionGroupFromLibraryRecord(group = {}, rawItems = [],
       name: toText(item?.nome || item?.name || item?.label),
       price: toPrice(item?.preco ?? item?.price),
       defaultSelected: toBoolean(item?.default_selected ?? item?.defaultSelected, false),
+      dependsOnOptionIds: normalizeDependencyOptionIds(
+        item?.depends_on_option_ids
+        ?? item?.depends_on_item_ids
+        ?? item?.dependsOnOptionIds,
+      ),
     }))
     .filter((item) => item.name);
 
@@ -108,8 +155,12 @@ export function buildMenuOptionGroupFromLibraryRecord(group = {}, rawItems = [],
       id: normalizeId("group", group?.id, 0),
       title: group?.titulo || group?.title || group?.name,
       type: group?.tipo || group?.type,
-      required: group?.obrigatorio ?? group?.required,
-      maxSelections: group?.max_selecoes ?? group?.maxSelections ?? 1,
+      required: group?.obrigatorio ?? group?.required ?? group?.is_required,
+      minSelections: group?.min_selecoes ?? group?.minSelections ?? group?.min_choices,
+      maxSelections: group?.max_selecoes ?? group?.maxSelections ?? group?.max_choices ?? 1,
+      dependsOnOptionIds: group?.depends_on_option_ids
+        ?? group?.depends_on_item_ids
+        ?? group?.dependsOnOptionIds,
       options: items,
     },
   ]);
@@ -148,13 +199,19 @@ export function mergeMenuOptionConfigurations(linkedGroups = [], embeddedGroups 
 }
 
 export function describeMenuOptionSelectionMode(group = {}) {
-  const maxSelections = Math.max(1, Number(group?.maxSelections ?? group?.max_selecoes ?? 1) || 1);
-  const required = Boolean(group?.required ?? group?.obrigatorio);
+  const maxSelections = toPositiveInt(group?.maxSelections ?? group?.max_selecoes ?? group?.max_choices ?? 1, 1);
+  const minSelections = toNonNegativeInt(group?.minSelections ?? group?.min_selecoes ?? group?.min_choices ?? 0, 0);
+  const required = Boolean(group?.required ?? group?.obrigatorio ?? group?.is_required);
+  const effectiveMin = required ? Math.max(1, Math.min(minSelections || 1, maxSelections)) : Math.min(minSelections, maxSelections);
 
-  if (required && maxSelections <= 1) return "Escolha unica obrigatoria";
-  if (!required && maxSelections <= 1) return "Escolha unica opcional";
-  if (required) return `Obrigatorio · ate ${maxSelections} escolhas`;
-  return `Opcional · ate ${maxSelections} escolhas`;
+  if (required && maxSelections <= 1) return "Obrigatorio - escolha 1";
+  if (!required && maxSelections <= 1) return "Opcional - ate 1";
+  if (required) {
+    if (effectiveMin > 1) return `Obrigatorio - de ${effectiveMin} ate ${maxSelections}`;
+    return `Obrigatorio - ate ${maxSelections}`;
+  }
+  if (effectiveMin > 0) return `Opcional - de ${effectiveMin} ate ${maxSelections}`;
+  return `Opcional - ate ${maxSelections}`;
 }
 
 export function buildDefaultMenuOptionSelections(groups = []) {
@@ -166,11 +223,6 @@ export function buildDefaultMenuOptionSelections(groups = []) {
 
     if (selectedIds.length > 0) {
       acc[group.id] = selectedIds;
-      return acc;
-    }
-
-    if (group.required && group.options[0]) {
-      acc[group.id] = [group.options[0].id];
     }
 
     return acc;
@@ -179,10 +231,60 @@ export function buildDefaultMenuOptionSelections(groups = []) {
 
 export function hasMissingRequiredMenuOptions(groups = [], selections = {}) {
   return sanitizeMenuOptionsConfig(groups).some((group) => {
+    if (!Array.isArray(group?.options) || group.options.length === 0) return false;
     if (!group.required) return false;
     const selectedIds = Array.isArray(selections?.[group.id]) ? selections[group.id] : [];
-    return selectedIds.length === 0;
+    const requiredMin = Math.max(1, toNonNegativeInt(group?.minSelections ?? 1, 1));
+    return selectedIds.length < requiredMin;
   });
+}
+
+export function validateMenuOptionSelections(groups = [], selections = {}) {
+  const normalizedGroups = sanitizeMenuOptionsConfig(groups);
+  const byGroup = {};
+  let hasBlockingError = false;
+  let missingRequired = false;
+  let overLimit = false;
+
+  normalizedGroups.forEach((group) => {
+    if (!Array.isArray(group?.options) || group.options.length === 0) return;
+    const validOptionIds = new Set(group.options.map((option) => option.id));
+    const selectedIds = [
+      ...new Set(
+        (Array.isArray(selections?.[group.id]) ? selections[group.id] : [])
+          .filter((optionId) => validOptionIds.has(optionId)),
+      ),
+    ];
+    const selectedCount = selectedIds.length;
+    const minSelections = group.required
+      ? Math.max(1, toNonNegativeInt(group?.minSelections ?? 1, 1))
+      : toNonNegativeInt(group?.minSelections ?? 0, 0);
+    const maxSelections = toPositiveInt(group?.maxSelections ?? 1, 1);
+
+    if (selectedCount > maxSelections) {
+      byGroup[group.id] = `Escolhe no maximo ${maxSelections}.`;
+      hasBlockingError = true;
+      overLimit = true;
+      return;
+    }
+
+    if (selectedCount < minSelections) {
+      byGroup[group.id] = minSelections <= 1
+        ? "Escolha obrigatoria."
+        : `Escolhe pelo menos ${minSelections}.`;
+      hasBlockingError = true;
+      if (group.required) {
+        missingRequired = true;
+      }
+    }
+  });
+
+  return {
+    byGroup,
+    hasBlockingError,
+    missingRequired,
+    overLimit,
+  };
 }
 
 function applyOptionMarkup(price, commissionPercent = 0) {
@@ -196,7 +298,19 @@ function applyOptionMarkup(price, commissionPercent = 0) {
 
 export function buildSelectedMenuOptions(groups = [], selections = {}, commissionPercent = 0) {
   return sanitizeMenuOptionsConfig(groups).flatMap((group) => {
-    const selectedIds = Array.isArray(selections?.[group.id]) ? selections[group.id] : [];
+    const validOptionIds = new Set(group.options.map((option) => option.id));
+    let selectedIds = [
+      ...new Set(
+        (Array.isArray(selections?.[group.id]) ? selections[group.id] : [])
+          .filter((optionId) => validOptionIds.has(optionId)),
+      ),
+    ];
+
+    if (group.maxSelections <= 1) {
+      selectedIds = selectedIds.slice(0, 1);
+    } else {
+      selectedIds = selectedIds.slice(0, toPositiveInt(group.maxSelections, 1));
+    }
 
     return group.options
       .filter((option) => selectedIds.includes(option.id))
@@ -272,6 +386,21 @@ export function buildCartLineId(item = {}) {
     .map((option) => `${option.group_id}:${option.option_id}`)
     .sort()
     .join("|");
+  const specialInstructions = toText(
+    item?.instrucoes_especiais
+    ?? item?.specialInstructions
+    ?? item?.special_instructions,
+  ).toLowerCase();
+  const identitySegments = [];
 
-  return selectedSignature ? `${menuId}::${selectedSignature}` : menuId;
+  if (selectedSignature) {
+    identitySegments.push(selectedSignature);
+  }
+  if (specialInstructions) {
+    identitySegments.push(`note:${specialInstructions}`);
+  }
+
+  return identitySegments.length > 0
+    ? `${menuId}::${identitySegments.join("|")}`
+    : menuId;
 }

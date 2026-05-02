@@ -12,8 +12,8 @@ import { cancelShipdayOrder, createShipdayOrderForOrder, updateShipdayOrderStatu
 import { sanitizeCommissionConfig } from "./pricingService";
 import { sanitizeAutoAssignConfig } from "./autoAssignConfig";
 
-const ORDER_SELECT_FULL = "id, loja_id, customer_nome, customer_address, customer_lat, customer_lng, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, veiculo_estafeta, submitted_at, order_timing_mode, scheduled_for, aceite_em, atribuido_em, recolhido_em, entregue_em, created_at, updated_at";
-const ORDER_SELECT_BASIC = "id, loja_id, customer_nome, customer_address, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, veiculo_estafeta, submitted_at, order_timing_mode, scheduled_for, aceite_em, atribuido_em, recolhido_em, entregue_em, created_at, updated_at";
+const ORDER_SELECT_FULL = "id, loja_id, customer_nome, customer_address, customer_lat, customer_lng, subtotal, taxa_entrega, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, shipday_driver_name, shipday_driver_phone, veiculo_estafeta, submitted_at, order_timing_mode, scheduled_for, aceite_em, atribuido_em, recolhido_em, entregue_em, created_at, updated_at";
+const ORDER_SELECT_BASIC = "id, loja_id, customer_nome, customer_address, subtotal, taxa_entrega, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, shipday_driver_name, shipday_driver_phone, veiculo_estafeta, submitted_at, order_timing_mode, scheduled_for, aceite_em, atribuido_em, recolhido_em, entregue_em, created_at, updated_at";
 const ORDER_SELECT_FULL_LEGACY = "id, loja_id, customer_nome, customer_address, customer_lat, customer_lng, total, status, created_at, updated_at";
 const ORDER_SELECT_BASIC_LEGACY = "id, loja_id, customer_nome, customer_address, total, status, created_at, updated_at";
 const DELIVERY_SELECT_ADMIN = "id, order_id, external_delivery_id, status, tracking_url, shipday_error, provider_payload, created_at";
@@ -45,10 +45,14 @@ function isMissingOrderColumnError(error) {
     && message.includes("orders")
     && (
       message.includes("estado_interno")
+      || message.includes("subtotal")
+      || message.includes("taxa_entrega")
       || message.includes("shipday_order_id")
       || message.includes("shipday_tracking_url")
       || message.includes("driver_name")
       || message.includes("driver_phone")
+      || message.includes("shipday_driver_name")
+      || message.includes("shipday_driver_phone")
       || message.includes("veiculo_estafeta")
       || message.includes("submitted_at")
       || message.includes("order_timing_mode")
@@ -63,19 +67,38 @@ function isMissingOrderColumnError(error) {
 function withOrderCompatibility(rows = []) {
   return (rows || []).map((order) => ({
     ...order,
-    estado_interno: order?.estado_interno || mapLegacyStatusToEstadoInterno(order?.status) || "pendente",
-    shipday_order_id: order?.shipday_order_id || null,
-    shipday_tracking_url: order?.shipday_tracking_url || null,
-    driver_name: order?.driver_name || null,
-    driver_phone: order?.driver_phone || null,
-    veiculo_estafeta: order?.veiculo_estafeta || null,
-    submitted_at: order?.submitted_at || null,
-    order_timing_mode: order?.order_timing_mode || "ASAP",
-    scheduled_for: order?.scheduled_for || (String(order?.order_timing_mode || "").toUpperCase() === "SCHEDULED" ? order?.created_at || null : null),
-    aceite_em: order?.aceite_em || order?.data_aceitacao || null,
-    atribuido_em: order?.atribuido_em || null,
-    recolhido_em: order?.recolhido_em || null,
-    entregue_em: order?.entregue_em || null,
+    ...(() => {
+      const driverName = order?.driver_name || order?.shipday_driver_name || null;
+      const driverPhone = order?.driver_phone || order?.shipday_driver_phone || null;
+      const hasDriver = Boolean(String(driverName || driverPhone || "").trim());
+      const baseEstado = order?.estado_interno || mapLegacyStatusToEstadoInterno(order?.status) || "pendente";
+      const normalizedBaseEstado = resolveOrderEstadoInterno({ estado_interno: baseEstado, status: order?.status });
+      const estadoInterno = hasDriver && normalizedBaseEstado === "pendente"
+        ? "atribuindo_estafeta"
+        : hasDriver && normalizedBaseEstado === "aceite"
+          ? "estafeta_aceitou"
+          : normalizedBaseEstado;
+
+      return {
+        subtotal: Number.isFinite(Number(order?.subtotal)) ? Number(order.subtotal) : null,
+        taxa_entrega: Number.isFinite(Number(order?.taxa_entrega)) ? Number(order.taxa_entrega) : 0,
+        estado_interno: estadoInterno,
+        shipday_order_id: order?.shipday_order_id || null,
+        shipday_tracking_url: order?.shipday_tracking_url || null,
+        driver_name: driverName,
+        driver_phone: driverPhone,
+        shipday_driver_name: order?.shipday_driver_name || order?.driver_name || null,
+        shipday_driver_phone: order?.shipday_driver_phone || order?.driver_phone || null,
+        veiculo_estafeta: order?.veiculo_estafeta || null,
+        submitted_at: order?.submitted_at || null,
+        order_timing_mode: order?.order_timing_mode || "ASAP",
+        scheduled_for: order?.scheduled_for || (String(order?.order_timing_mode || "").toUpperCase() === "SCHEDULED" ? order?.created_at || null : null),
+        aceite_em: order?.aceite_em || order?.data_aceitacao || null,
+        atribuido_em: order?.atribuido_em || null,
+        recolhido_em: order?.recolhido_em || null,
+        entregue_em: order?.entregue_em || null,
+      };
+    })(),
   }));
 }
 
@@ -199,6 +222,69 @@ function formatDay(value) {
 
 function formatHour(value) {
   return new Date(value).getHours();
+}
+
+function formatWeekdayPt(weekdayIndex) {
+  const labels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+  const normalized = Number(weekdayIndex);
+  return Number.isFinite(normalized) && normalized >= 0 && normalized <= 6
+    ? labels[normalized]
+    : "-";
+}
+
+function formatHourLabel(hour) {
+  const normalized = Number(hour);
+  if (!Number.isFinite(normalized) || normalized < 0 || normalized > 23) return "-";
+  return `${String(normalized).padStart(2, "0")}h`;
+}
+
+function maskEmail(value) {
+  const text = String(value || "").trim();
+  if (!text.includes("@")) return "-";
+  const [rawLocal, rawDomain] = text.split("@");
+  const local = String(rawLocal || "").trim();
+  const domain = String(rawDomain || "").trim();
+  if (!local || !domain) return "-";
+
+  if (local.length <= 2) {
+    return `${local[0] || "*"}***@${domain}`;
+  }
+
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
+function topKeyByCount(counterMap = new Map()) {
+  let winnerKey = null;
+  let winnerCount = 0;
+  counterMap.forEach((count, key) => {
+    if (count > winnerCount) {
+      winnerKey = key;
+      winnerCount = count;
+    }
+  });
+  return { key: winnerKey, count: winnerCount };
+}
+
+function isCustomerPermissionLabel(value) {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (!normalized) return true;
+  if (normalized.includes("admin")) return false;
+  if (normalized.includes("dev") || normalized.includes("ops") || normalized.includes("tecnico")) return false;
+  if (
+    normalized.includes("restaur")
+    || normalized.includes("restaurant")
+    || normalized.includes("loja")
+    || normalized.includes("merchant")
+    || normalized.includes("store")
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 function isScheduledOrder(order) {
@@ -637,6 +723,40 @@ function buildMetrics(orders, deliveries) {
   };
 }
 
+function getRestaurantOrderRevenue(order) {
+  const subtotal = safeNumber(order?.subtotal);
+  const total = safeNumber(order?.total);
+  const deliveryFee = safeNumber(order?.taxa_entrega);
+
+  if (subtotal > 0) return subtotal;
+
+  const net = total - deliveryFee;
+  if (Number.isFinite(net) && net > 0) return net;
+
+  return total > 0 ? total : 0;
+}
+
+function buildRestaurantMetrics(orders, deliveries) {
+  const { immediateOrders, scheduledOrders } = classifyDashboardOrders(orders);
+  const totalOrders = orders.length;
+  const deliveredOrders = orders.filter((order) => getOrderWorkflowStatus(order) === "entregue");
+  const cancelledOrders = orders.filter((order) => getOrderWorkflowStatus(order) === "cancelado").length;
+
+  const totalRevenue = deliveredOrders.reduce((acc, order) => acc + getRestaurantOrderRevenue(order), 0);
+  const deliveredOrdersCount = deliveredOrders.length;
+
+  return {
+    totalOrders,
+    scheduledOrders: scheduledOrders.length,
+    immediateOrders: immediateOrders.length,
+    totalRevenue,
+    activeDeliveries: deliveries.filter((d) => !["DELIVERED", "FAILED", "CANCELLED"].includes(String(d.status || "").toUpperCase())).length,
+    deliveredRate: totalOrders ? (deliveredOrdersCount / totalOrders) * 100 : 0,
+    cancelRate: totalOrders ? (cancelledOrders / totalOrders) * 100 : 0,
+    avgTicket: deliveredOrdersCount ? totalRevenue / deliveredOrdersCount : 0,
+  };
+}
+
 function buildSeries(orders) {
   const billableOrders = orders.filter((order) => getOrderWorkflowStatus(order) !== "cancelado");
   const dailyMap = new Map();
@@ -984,7 +1104,7 @@ export async function resolveRestaurantStoreId(user) {
 }
 
 export async function fetchAdminDashboard(input = 7) {
-  const { periodDays, since, until } = normalizeDashboardWindow(input);
+  const { since, until } = normalizeDashboardWindow(input);
 
   try {
     const [ordersRes, deliveriesRes, storesRes, requestsRes, storeTypesRes] = await Promise.all([
@@ -1039,6 +1159,244 @@ export async function fetchAdminDashboard(input = 7) {
       slaAlerts: [],
       liveOrders: [],
       error: error.message,
+    };
+  }
+}
+
+function buildRestaurantSeries(orders) {
+  const deliveredOrders = orders.filter((order) => getOrderWorkflowStatus(order) === "entregue");
+  const demandOrders = orders.filter((order) => getOrderWorkflowStatus(order) !== "cancelado");
+  const dailyMap = new Map();
+  const hourlyMap = new Map();
+
+  deliveredOrders.forEach((order) => {
+    const analyticsTimestamp = order?.submitted_at || order?.created_at;
+    const day = formatDay(analyticsTimestamp);
+
+    if (!dailyMap.has(day)) {
+      dailyMap.set(day, { day, orders: 0, revenue: 0 });
+    }
+
+    const dayEntry = dailyMap.get(day);
+    dayEntry.orders += 1;
+    dayEntry.revenue += getRestaurantOrderRevenue(order);
+  });
+
+  demandOrders.forEach((order) => {
+    const analyticsTimestamp = order?.submitted_at || order?.created_at;
+    const hour = formatHour(analyticsTimestamp);
+
+    if (!hourlyMap.has(hour)) {
+      hourlyMap.set(hour, { hour, orders: 0 });
+    }
+
+    const hourEntry = hourlyMap.get(hour);
+    hourEntry.orders += 1;
+  });
+
+  const byDay = Array.from(dailyMap.values()).sort((a, b) => {
+    const [da, ma] = a.day.split("/").map(Number);
+    const [db, mb] = b.day.split("/").map(Number);
+    return ma === mb ? da - db : ma - mb;
+  });
+
+  const byHour = Array.from({ length: 24 }, (_, hour) => {
+    const current = hourlyMap.get(hour);
+    return { hour, orders: current?.orders || 0 };
+  });
+
+  return { byDay, byHour };
+}
+
+export async function fetchAdminCustomerInsights(input = 30) {
+  const { since, until } = normalizeDashboardWindow(input);
+
+  try {
+    const [
+      usersRes,
+      ordersRes,
+      storesRes,
+      adminsRes,
+      staffAccessRes,
+      permissionsRes,
+    ] = await Promise.all([
+      supabase
+        .from("utilizadores")
+        .select("idutilizador, username, email, dataregisto")
+        .order("dataregisto", { ascending: false })
+        .limit(5000),
+      supabase
+        .from("orders")
+        .select("id, loja_id, customer_user_id, total, status, estado_interno, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20000),
+      supabase
+        .from("lojas")
+        .select("idloja, nome"),
+      supabase
+        .from("app_admins")
+        .select("user_id"),
+      supabase
+        .from("restaurant_staff_access")
+        .select("user_id"),
+      supabase
+        .from("utilizadorespermissoes")
+        .select("idutilizador, permissoes(permissao)"),
+    ]);
+
+    if (usersRes.error) throw usersRes.error;
+    if (ordersRes.error && !isMissingOrderColumnError(ordersRes.error, "estado_interno")) throw ordersRes.error;
+    if (storesRes.error) throw storesRes.error;
+    if (adminsRes.error) throw adminsRes.error;
+    if (staffAccessRes.error) throw staffAccessRes.error;
+    if (permissionsRes.error) throw permissionsRes.error;
+
+    let ordersRaw = ordersRes.data || [];
+    if (ordersRes.error && isMissingOrderColumnError(ordersRes.error, "estado_interno")) {
+      const legacyOrdersRes = await supabase
+        .from("orders")
+        .select("id, loja_id, customer_user_id, total, status, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20000);
+      if (legacyOrdersRes.error) throw legacyOrdersRes.error;
+      ordersRaw = legacyOrdersRes.data || [];
+    }
+
+    const orders = withOrderCompatibility(ordersRaw || [])
+      .filter((order) => isWithinDashboardWindow(order, { since, until }));
+
+    const storeNameById = new Map((storesRes.data || []).map((store) => [String(store.idloja), store.nome || `Loja ${store.idloja}`]));
+
+    const excludedUserIds = new Set([
+      ...(adminsRes.data || []).map((row) => String(row.user_id || "").trim()).filter(Boolean),
+      ...(staffAccessRes.data || []).map((row) => String(row.user_id || "").trim()).filter(Boolean),
+    ]);
+
+    (permissionsRes.data || []).forEach((row) => {
+      const permissionName = Array.isArray(row.permissoes)
+        ? row.permissoes[0]?.permissao
+        : row.permissoes?.permissao;
+      if (!isCustomerPermissionLabel(permissionName)) {
+        excludedUserIds.add(String(row.idutilizador || "").trim());
+      }
+    });
+
+    const customers = (usersRes.data || [])
+      .filter((user) => user?.idutilizador !== null && user?.idutilizador !== undefined)
+      .filter((user) => !excludedUserIds.has(String(user.idutilizador)));
+
+    const ordersByCustomerId = new Map();
+    orders.forEach((order) => {
+      const userId = String(order?.customer_user_id || "").trim();
+      if (!userId) return;
+      if (!ordersByCustomerId.has(userId)) {
+        ordersByCustomerId.set(userId, []);
+      }
+      ordersByCustomerId.get(userId).push(order);
+    });
+
+    const customerRows = customers.map((customer) => {
+      const customerId = String(customer.idutilizador);
+      const customerOrders = ordersByCustomerId.get(customerId) || [];
+      const paidOrders = customerOrders.filter((order) => getOrderWorkflowStatus(order) !== "cancelado");
+      const totalSpent = paidOrders.reduce((acc, order) => acc + safeNumber(order.total), 0);
+      const totalOrders = customerOrders.length;
+      const averageTicket = paidOrders.length > 0 ? totalSpent / paidOrders.length : 0;
+      const deliveredOrders = customerOrders.filter((order) => getOrderWorkflowStatus(order) === "entregue").length;
+      const cancelledOrders = customerOrders.filter((order) => getOrderWorkflowStatus(order) === "cancelado").length;
+
+      const ordersByStore = new Map();
+      const ordersByWeekday = new Map();
+      const ordersByHour = new Map();
+
+      paidOrders.forEach((order) => {
+        const storeIdKey = String(order?.loja_id || "");
+        if (storeIdKey) {
+          ordersByStore.set(storeIdKey, (ordersByStore.get(storeIdKey) || 0) + 1);
+        }
+
+        const ts = new Date(order?.created_at || 0).getTime();
+        if (!Number.isFinite(ts)) return;
+        const date = new Date(ts);
+        const weekday = date.getDay();
+        const hour = date.getHours();
+        ordersByWeekday.set(weekday, (ordersByWeekday.get(weekday) || 0) + 1);
+        ordersByHour.set(hour, (ordersByHour.get(hour) || 0) + 1);
+      });
+
+      const topStore = topKeyByCount(ordersByStore);
+      const topWeekday = topKeyByCount(ordersByWeekday);
+      const topHour = topKeyByCount(ordersByHour);
+
+      const lastOrderAt = customerOrders
+        .map((order) => new Date(order?.created_at || 0).getTime())
+        .filter((ts) => Number.isFinite(ts))
+        .sort((a, b) => b - a)[0] || null;
+
+      return {
+        customer_id: customerId,
+        name: customer.username || `Cliente ${customerId}`,
+        email_masked: maskEmail(customer.email),
+        member_since: customer.dataregisto || null,
+        orders_count: totalOrders,
+        delivered_count: deliveredOrders,
+        cancelled_count: cancelledOrders,
+        total_spent: totalSpent,
+        avg_ticket: averageTicket,
+        favorite_store_id: topStore.key,
+        favorite_store_name: topStore.key ? (storeNameById.get(String(topStore.key)) || `Loja ${topStore.key}`) : "-",
+        favorite_store_orders: topStore.count || 0,
+        peak_weekday: topWeekday.key !== null ? formatWeekdayPt(topWeekday.key) : "-",
+        peak_weekday_orders: topWeekday.count || 0,
+        peak_hour: topHour.key !== null ? formatHourLabel(topHour.key) : "-",
+        peak_hour_orders: topHour.count || 0,
+        last_order_at: lastOrderAt ? new Date(lastOrderAt).toISOString() : null,
+      };
+    });
+
+    customerRows.sort((a, b) => {
+      if (b.total_spent !== a.total_spent) return b.total_spent - a.total_spent;
+      if (b.orders_count !== a.orders_count) return b.orders_count - a.orders_count;
+      return String(a.name || "").localeCompare(String(b.name || ""), "pt-PT");
+    });
+
+    const customersWithOrders = customerRows.filter((row) => row.orders_count > 0).length;
+    const totalOrders = customerRows.reduce((acc, row) => acc + row.orders_count, 0);
+    const totalSpent = customerRows.reduce((acc, row) => acc + row.total_spent, 0);
+    const avgTicket = totalOrders > 0 ? totalSpent / totalOrders : 0;
+    const avgSpentPerCustomer = customersWithOrders > 0 ? totalSpent / customersWithOrders : 0;
+    const activeCustomers30d = customerRows.filter((row) => {
+      if (!row.last_order_at) return false;
+      const lastOrderTs = new Date(row.last_order_at).getTime();
+      if (!Number.isFinite(lastOrderTs)) return false;
+      return (Date.now() - lastOrderTs) <= (30 * 24 * 60 * 60 * 1000);
+    }).length;
+
+    return {
+      metrics: {
+        totalCustomers: customerRows.length,
+        customersWithOrders,
+        activeCustomers30d,
+        totalOrders,
+        totalSpent,
+        avgTicket,
+        avgSpentPerCustomer,
+      },
+      customers: customerRows,
+    };
+  } catch (error) {
+    return {
+      metrics: {
+        totalCustomers: 0,
+        customersWithOrders: 0,
+        activeCustomers30d: 0,
+        totalOrders: 0,
+        totalSpent: 0,
+        avgTicket: 0,
+        avgSpentPerCustomer: 0,
+      },
+      customers: [],
+      error: error?.message || "Nao foi possivel carregar analytics de clientes.",
     };
   }
 }
@@ -1109,8 +1467,8 @@ export async function fetchRestaurantDashboard({ lojaId, periodDays = 7, dateFro
       immediateOrders: classifiedOrders.immediateOrders,
       scheduledOrders: classifiedOrders.scheduledOrders,
       deliveries,
-      metrics: buildMetrics(orders, deliveries),
-      series: buildSeries(orders),
+      metrics: buildRestaurantMetrics(orders, deliveries),
+      series: buildRestaurantSeries(orders),
       slaAlerts: buildSlaAlerts(orders),
       liveOrders: buildLiveOrders(orders, [{ idloja: normalizedLojaId, nome: `Loja ${normalizedLojaId}` }]),
     };

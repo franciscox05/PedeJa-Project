@@ -135,6 +135,34 @@ async function invokeInternalFunction(
   return parsed;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function invokeShipdayCreateOrderWithRetry(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  body: Record<string, unknown>,
+  options: { attempts?: number; baseDelayMs?: number } = {},
+) {
+  const attempts = Math.max(1, Number(options.attempts || 6));
+  const baseDelayMs = Math.max(100, Number(options.baseDelayMs || 900));
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await invokeInternalFunction(supabaseUrl, serviceRoleKey, "shipday-api", body);
+    } catch (error: any) {
+      lastError = error instanceof Error ? error : new Error(String(error?.message || error));
+      if (attempt < attempts) {
+        await sleep(baseDelayMs * attempt);
+      }
+    }
+  }
+
+  throw lastError || new Error("Falha ao sincronizar pedido com Shipday.");
+}
+
 async function insertOrderWithCompatibility(
   supabase: ReturnType<typeof createClient>,
   orderPayload: Record<string, unknown>,
@@ -247,6 +275,301 @@ async function fetchGlobalDeliveryPricingConfig(
   return response.data?.valor ?? null;
 }
 
+async function fetchGlobalAutoAssignConfig(
+  supabase: ReturnType<typeof createClient>,
+) {
+  const response = await supabase
+    .from("configuracoes_plataforma")
+    .select("valor")
+    .eq("chave", "auto_assign_carriers_default")
+    .maybeSingle();
+
+  if (response.error) {
+    if (isMissingPlatformSettingsTableError(response.error)) {
+      return null;
+    }
+
+    throw response.error;
+  }
+
+  return response.data?.valor ?? null;
+}
+
+function resolveEffectiveAutoAssignEnabled(
+  loja: Record<string, unknown> | null | undefined,
+  globalAutoAssignConfig: unknown,
+) {
+  const globalEnabled = typeof globalAutoAssignConfig === "boolean"
+    ? globalAutoAssignConfig
+    : Boolean(
+      globalAutoAssignConfig
+      && typeof globalAutoAssignConfig === "object"
+      && (globalAutoAssignConfig as Record<string, unknown>).enabled === true,
+    );
+
+  const storeConfig = loja?.configuracao_auto_assign;
+  const storeConfigEnabled = typeof storeConfig === "boolean"
+    ? storeConfig
+    : Boolean(
+      storeConfig
+      && typeof storeConfig === "object"
+      && (storeConfig as Record<string, unknown>).enabled === true,
+    );
+
+  const storeEnabled = Boolean(loja?.atribuicao_automatica_estafeta) || storeConfigEnabled;
+
+  return globalEnabled || storeEnabled;
+}
+
+function parseShipdayCarriersPayload(payload: any) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.carriers)) return payload.carriers;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.result)) return payload.result;
+  if (Array.isArray(payload?.data?.carriers)) return payload.data.carriers;
+  return [];
+}
+
+function toTruthyFlag(value: unknown, fallback = true) {
+  if (value === null || value === undefined || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  const normalized = String(value).trim().toLowerCase();
+  return ["1", "true", "yes", "y", "sim"].includes(normalized);
+}
+
+function toFiniteCoordinate(value: unknown) {
+  const parsed = Number(String(value ?? "").replace(",", ".").trim());
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeVehicleSegment(value: unknown) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text
+    .replace(/\bmotorcycle\b/gi, "Mota")
+    .replace(/\bbike\b/gi, "Bicicleta")
+    .replace(/\bbicycle\b/gi, "Bicicleta")
+    .replace(/\bcar\b/gi, "Carro")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildCarrierVehicleSummary(carrier: Record<string, unknown>) {
+  const type = normalizeVehicleSegment(
+    carrier?.vehicle_type
+      || carrier?.vehicleType
+      || carrier?.type
+      || (carrier?.vehicle as Record<string, unknown> | undefined)?.type,
+  );
+  const make = normalizeVehicleSegment(
+    carrier?.vehicle_make
+      || carrier?.vehicleMake
+      || carrier?.make
+      || (carrier?.vehicle as Record<string, unknown> | undefined)?.make,
+  );
+  const model = normalizeVehicleSegment(
+    carrier?.vehicle_model
+      || carrier?.vehicleModel
+      || carrier?.model
+      || (carrier?.vehicle as Record<string, unknown> | undefined)?.model,
+  );
+  const plate = String(
+    carrier?.license_plate
+      || carrier?.licensePlate
+      || carrier?.plate_number
+      || carrier?.plateNumber
+      || carrier?.plate
+      || carrier?.registration
+      || (carrier?.vehicle as Record<string, unknown> | undefined)?.license_plate
+      || (carrier?.vehicle as Record<string, unknown> | undefined)?.licensePlate
+      || (carrier?.vehicle as Record<string, unknown> | undefined)?.plate_number
+      || (carrier?.vehicle as Record<string, unknown> | undefined)?.plateNumber
+      || (carrier?.vehicle as Record<string, unknown> | undefined)?.plate
+      || (carrier?.vehicle as Record<string, unknown> | undefined)?.registration
+      || "",
+  ).replace(/\s+/g, "").toUpperCase();
+
+  const parts = [type, make, model].filter(Boolean);
+  const base = parts.join(" ").trim();
+  if (base && plate) return `${base} (${plate})`;
+  return base || plate || null;
+}
+
+function normalizeCarrierForAutoAssign(carrierRaw: any, index: number) {
+  const id = String(
+    carrierRaw?.id
+      || carrierRaw?.carrierId
+      || carrierRaw?.driverId
+      || carrierRaw?.userId
+      || carrierRaw?.employeeId
+      || "",
+  ).trim();
+
+  if (!id) return null;
+
+  const firstName = String(carrierRaw?.firstName || "").trim();
+  const lastName = String(carrierRaw?.lastName || "").trim();
+  const fullName = `${firstName} ${lastName}`.trim();
+  const name = String(
+    carrierRaw?.name
+      || carrierRaw?.fullName
+      || carrierRaw?.driverName
+      || fullName
+      || `Estafeta ${index + 1}`,
+  ).trim();
+
+  const phone = String(
+    carrierRaw?.phone
+      || carrierRaw?.phoneNumber
+      || carrierRaw?.mobile
+      || carrierRaw?.mobileNumber
+      || carrierRaw?.driverPhoneNumber
+      || "",
+  ).trim();
+
+  const status = String(
+    carrierRaw?.status
+      || carrierRaw?.availability
+      || carrierRaw?.state
+      || (carrierRaw?.active === false ? "INACTIVE" : "ACTIVE"),
+  ).trim().toUpperCase();
+
+  const explicitAvailable = carrierRaw?.isAvailable ?? carrierRaw?.available ?? carrierRaw?.online ?? carrierRaw?.is_available;
+  const explicitOnShift = carrierRaw?.isOnShift ?? carrierRaw?.onShift ?? carrierRaw?.is_on_shift;
+  const explicitActive = carrierRaw?.isActive ?? carrierRaw?.active ?? carrierRaw?.is_active;
+
+  const statusUnavailable = ["INACTIVE", "OFFLINE", "UNAVAILABLE", "BUSY"].includes(status);
+  const isAvailable = explicitAvailable === null || explicitAvailable === undefined
+    ? !statusUnavailable
+    : toTruthyFlag(explicitAvailable, true);
+  const isOnShift = explicitOnShift === null || explicitOnShift === undefined
+    ? true
+    : toTruthyFlag(explicitOnShift, true);
+  const isActive = explicitActive === null || explicitActive === undefined
+    ? true
+    : toTruthyFlag(explicitActive, true);
+
+  const lat = toFiniteCoordinate(
+    carrierRaw?.latitude
+      ?? carrierRaw?.lat
+      ?? carrierRaw?.last_location?.latitude
+      ?? carrierRaw?.last_location?.lat
+      ?? carrierRaw?.location?.latitude
+      ?? carrierRaw?.location?.lat,
+  );
+  const lng = toFiniteCoordinate(
+    carrierRaw?.longitude
+      ?? carrierRaw?.lng
+      ?? carrierRaw?.lon
+      ?? carrierRaw?.last_location?.longitude
+      ?? carrierRaw?.last_location?.lng
+      ?? carrierRaw?.location?.longitude
+      ?? carrierRaw?.location?.lng,
+  );
+
+  return {
+    id,
+    name: name || `Estafeta ${id}`,
+    phone,
+    status,
+    isAvailable,
+    isOnShift,
+    isActive,
+    lat,
+    lng,
+    vehicle: buildCarrierVehicleSummary(carrierRaw),
+  };
+}
+
+function pickBestCarrierForAutoAssign(carriersRaw: any[]) {
+  const candidates = (carriersRaw || [])
+    .map((carrierRaw, index) => normalizeCarrierForAutoAssign(carrierRaw, index))
+    .filter(Boolean) as Array<{
+    id: string;
+    name: string;
+    phone: string;
+    status: string;
+    isAvailable: boolean;
+    isOnShift: boolean;
+    isActive: boolean;
+    lat: number | null;
+    lng: number | null;
+    vehicle: string | null;
+  }>;
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => {
+    const rankA = a.isActive && a.isOnShift && a.isAvailable ? 0 : a.isAvailable ? 1 : 2;
+    const rankB = b.isActive && b.isOnShift && b.isAvailable ? 0 : b.isAvailable ? 1 : 2;
+    if (rankA !== rankB) return rankA - rankB;
+    return a.name.localeCompare(b.name, "pt-PT");
+  });
+
+  return candidates[0] || null;
+}
+
+function isMissingAssignOrderColumnError(error: { message?: string } | null | undefined, columnName: string) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("column")
+    && message.includes("orders")
+    && message.includes(String(columnName || "").toLowerCase());
+}
+
+function stripUnsupportedAssignColumns(
+  patch: Record<string, unknown>,
+  error: { message?: string } | null | undefined,
+) {
+  const message = String(error?.message || "").toLowerCase();
+  const nextPatch = { ...patch };
+  ["driver_name", "driver_phone", "veiculo_estafeta", "atribuido_em"].forEach((columnName) => {
+    if (message.includes("column") && message.includes("orders") && message.includes(columnName)) {
+      delete nextPatch[columnName];
+    }
+  });
+  return nextPatch;
+}
+
+async function persistAutoAssignedCarrierOnOrder(
+  supabase: ReturnType<typeof createClient>,
+  orderId: number,
+  patch: Record<string, unknown>,
+) {
+  let response = await supabase
+    .from("orders")
+    .update(patch)
+    .eq("id", orderId);
+
+  if (
+    response.error
+    && (
+      isMissingAssignOrderColumnError(response.error, "driver_name")
+      || isMissingAssignOrderColumnError(response.error, "driver_phone")
+      || isMissingAssignOrderColumnError(response.error, "veiculo_estafeta")
+      || isMissingAssignOrderColumnError(response.error, "atribuido_em")
+    )
+  ) {
+    const fallbackPatch = stripUnsupportedAssignColumns(patch, response.error);
+    response = await supabase
+      .from("orders")
+      .update(fallbackPatch)
+      .eq("id", orderId);
+  }
+
+  return response;
+}
+
+function resolveShipdayOrderIdFromCreateResult(result: any) {
+  return String(
+    result?.shipday_order_id
+      || result?.data?.orderId
+      || result?.data?.id
+      || result?.orderId
+      || result?.id
+      || "",
+  ).trim();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -291,16 +614,37 @@ serve(async (req) => {
 
     let lojaResponse = await supabase
       .from("lojas")
-      .select("idloja, nome, taxaentrega, aceitacao_automatica_pedidos, configuracao_entrega")
+      .select("idloja, nome, taxaentrega, aceitacao_automatica_pedidos, atribuicao_automatica_estafeta, configuracao_auto_assign, configuracao_entrega")
       .eq("idloja", lojaId)
       .maybeSingle();
 
-    if (lojaResponse.error && isMissingStoreColumnError(lojaResponse.error, "configuracao_entrega")) {
+    if (
+      lojaResponse.error
+      && (
+        isMissingStoreColumnError(lojaResponse.error, "configuracao_entrega")
+        || isMissingStoreColumnError(lojaResponse.error, "configuracao_auto_assign")
+        || isMissingStoreColumnError(lojaResponse.error, "atribuicao_automatica_estafeta")
+      )
+    ) {
       lojaResponse = await supabase
         .from("lojas")
-        .select("idloja, nome, taxaentrega, aceitacao_automatica_pedidos")
+        .select("idloja, nome, taxaentrega, aceitacao_automatica_pedidos, atribuicao_automatica_estafeta, configuracao_auto_assign")
         .eq("idloja", lojaId)
         .maybeSingle();
+
+      if (
+        lojaResponse.error
+        && (
+          isMissingStoreColumnError(lojaResponse.error, "configuracao_auto_assign")
+          || isMissingStoreColumnError(lojaResponse.error, "atribuicao_automatica_estafeta")
+        )
+      ) {
+        lojaResponse = await supabase
+          .from("lojas")
+          .select("idloja, nome, taxaentrega, aceitacao_automatica_pedidos")
+          .eq("idloja", lojaId)
+          .maybeSingle();
+      }
     }
 
     const { data: loja, error: lojaError } = lojaResponse;
@@ -360,8 +704,10 @@ serve(async (req) => {
     const scheduledForIso = isScheduledOrder && scheduledForDate
       ? scheduledForDate.toISOString()
       : null;
+    const globalAutoAssignConfig = await fetchGlobalAutoAssignConfig(supabase);
     const autoAcceptEnabled = Boolean(loja.aceitacao_automatica_pedidos);
-    const shouldCreateShipdayImmediately = autoAcceptEnabled && !isScheduledOrder;
+    const autoAssignEnabled = resolveEffectiveAutoAssignEnabled(loja, globalAutoAssignConfig);
+    const shouldCreateShipdayImmediately = autoAcceptEnabled || autoAssignEnabled;
     const initialStatus = autoAcceptEnabled ? "CONFIRMED" : "PENDING";
     const initialEstadoInterno = autoAcceptEnabled ? "aceite" : "pendente";
     const acceptedAt = autoAcceptEnabled ? submittedAt : null;
@@ -422,14 +768,25 @@ serve(async (req) => {
 
     let shipdayResult: any = null;
     let shipdayErrorMessage: string | null = null;
+    let autoAssignResult: Record<string, unknown> | null = null;
+    let autoAssignErrorMessage: string | null = null;
+    const shouldAttemptAutoAssignNow = Boolean(
+      autoAssignEnabled
+      && autoAcceptEnabled
+      && !isScheduledOrder,
+    );
 
     if (shouldCreateShipdayImmediately) {
       try {
-        shipdayResult = await invokeInternalFunction(supabaseUrl, serviceRoleKey, "shipday-api", {
+        shipdayResult = await invokeShipdayCreateOrderWithRetry(supabaseUrl, serviceRoleKey, {
           action: "create_order",
           orderId,
           paymentMethod: storedPaymentMethod,
           paymentLabel: storedPaymentLabel,
+          autoAssign: shouldAttemptAutoAssignNow,
+        }, {
+          attempts: 8,
+          baseDelayMs: 1000,
         });
       } catch (shipdayError: any) {
         shipdayErrorMessage = String(
@@ -443,6 +800,78 @@ serve(async (req) => {
       }
     }
 
+    const createdShipdayOrderId = resolveShipdayOrderIdFromCreateResult(shipdayResult);
+    const initialAutoAssignResult = shipdayResult?.auto_assign && typeof shipdayResult.auto_assign === "object"
+      ? shipdayResult.auto_assign as Record<string, unknown>
+      : null;
+
+    if (shouldAttemptAutoAssignNow && initialAutoAssignResult) {
+      autoAssignResult = initialAutoAssignResult;
+    }
+
+    if (shouldAttemptAutoAssignNow && !autoAssignResult?.ok && createdShipdayOrderId) {
+      const maxAutoAssignAttempts = 4;
+
+      for (let attempt = 1; attempt <= maxAutoAssignAttempts; attempt += 1) {
+        try {
+          const assignResult = await invokeInternalFunction(
+            supabaseUrl,
+            serviceRoleKey,
+            "shipday-api",
+            {
+              action: "auto_assign_order",
+              orderId,
+              shipdayOrderId: createdShipdayOrderId,
+            },
+          );
+
+          autoAssignResult = assignResult && typeof assignResult === "object"
+            ? assignResult as Record<string, unknown>
+            : null;
+
+          if (autoAssignResult?.ok || autoAssignResult?.skipped) {
+            break;
+          }
+
+          autoAssignErrorMessage = String(
+            autoAssignResult?.error
+            || autoAssignResult?.reason
+            || "Falha na atribuicao automatica de estafeta.",
+          );
+        } catch (autoAssignError: any) {
+          autoAssignErrorMessage = String(
+            autoAssignError?.message || "Falha na atribuicao automatica de estafeta.",
+          );
+        }
+
+        if (attempt < maxAutoAssignAttempts) {
+          await sleep(1000 * attempt);
+        }
+      }
+    }
+
+    if (shouldAttemptAutoAssignNow && !autoAssignResult?.ok && !autoAssignResult?.skipped && !autoAssignErrorMessage) {
+      autoAssignErrorMessage = "Falha na atribuicao automatica de estafeta.";
+    }
+
+    const autoAssignedCarrier = autoAssignResult?.carrier && typeof autoAssignResult.carrier === "object"
+      ? {
+        carrier_id: String((autoAssignResult.carrier as Record<string, unknown>).id || "").trim() || null,
+        carrier_name: String((autoAssignResult.carrier as Record<string, unknown>).name || "").trim() || null,
+        carrier_phone: String((autoAssignResult.carrier as Record<string, unknown>).phone || "").trim() || null,
+        carrier_vehicle: String((autoAssignResult.carrier as Record<string, unknown>).vehicle || "").trim() || null,
+      }
+      : null;
+
+    if (shouldAttemptAutoAssignNow && autoAssignErrorMessage) {
+      console.error("create-order auto-assign failed", {
+        order_id: orderId,
+        loja_id: lojaId,
+        shipday_order_id: createdShipdayOrderId || null,
+        message: autoAssignErrorMessage,
+      });
+    }
+
     return json({
       ok: true,
       order_id: orderId,
@@ -453,14 +882,26 @@ serve(async (req) => {
       distancia_km: drivingDistanceKm,
       auto_accept_enabled: Boolean(loja.aceitacao_automatica_pedidos),
       auto_accept_applied: autoAcceptEnabled,
+      auto_assign_enabled: autoAssignEnabled,
+      global_auto_assign_enabled: Boolean(
+        typeof globalAutoAssignConfig === "boolean"
+          ? globalAutoAssignConfig
+          : globalAutoAssignConfig
+          && typeof globalAutoAssignConfig === "object"
+          && (globalAutoAssignConfig as Record<string, unknown>).enabled === true,
+      ),
       shipday_auto_created: shouldCreateShipdayImmediately,
       data_aceitacao: acceptedAt,
       submitted_at: submittedAt,
       order_timing_mode: isScheduledOrder ? "SCHEDULED" : "ASAP",
       scheduled_for: scheduledForIso,
       shipday_error: shipdayErrorMessage,
-      shipday_order_id: shipdayResult?.shipday_order_id || null,
-      shipday_tracking_url: shipdayResult?.shipday_tracking_url || null,
+      shipday_order_id: createdShipdayOrderId || null,
+      shipday_tracking_url: shipdayResult?.shipday_tracking_url || shipdayResult?.data?.trackingUrl || shipdayResult?.data?.trackingLink || null,
+      auto_assign_applied: Boolean(autoAssignResult?.ok && autoAssignedCarrier?.carrier_id),
+      auto_assign_error: autoAssignErrorMessage,
+      auto_assigned_carrier: autoAssignedCarrier,
+      auto_assign_result: autoAssignResult,
     });
   } catch (error: any) {
     return json({ error: error?.message || "Unexpected server error" }, 500);

@@ -1,4 +1,4 @@
-/* --- 1. CONFIGURAÇÕES GERAIS --- */
+﻿/* --- 1. CONFIGURAÃ‡Ã•ES GERAIS --- */
 @font-face {
   font-family: 'Plumpfull';
   src: url('/assets/fonts/Plumpfull.ttf') format('truetype');
@@ -10,18 +10,35 @@ body, html {
   width: 100%;
   height: 100%;
   overflow-x: hidden;
-  
-  /* MUDANÇA: Fundo Vermelho Sólido Vibrante (igual à imagem) */
-  background-color: #e62429; 
-  background-image: none; /* Removemos o gradiente */
-  
+  background-color: #f5f5f5;
+  background-image: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
+html.dashboard-route,
+body.dashboard-route {
+  background-color: #f5f5f5 !important;
+  background-image: none !important;
+}
+
 .main-content {
   min-height: 100vh;
+}
+
+#root:empty {
+  min-height: 100vh;
+  background: #f5f5f5;
+  display: grid;
+  place-items: center;
+}
+
+#root:empty::before {
+  content: "A carregar painel...";
+  color: #334155;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .main-content--dashboard {
@@ -47,24 +64,24 @@ img {
   pointer-events: auto; 
 }
 
-/* --- ESTILOS DE ÍCONES (IMAGENS) --- */
+/* --- ESTILOS DE ÃCONES (IMAGENS) --- */
 
-/* 1. CLASSE MÁGICA: Transforma ícones pretos em VERMELHO (#e62429) */
+/* 1. CLASSE MÃGICA: Transforma Ã­cones pretos em VERMELHO (#e62429) */
 .icon-red {
   /* Este filtro converte preto para vermelho exato */
   filter: invert(19%) sepia(90%) saturate(5799%) hue-rotate(351deg) brightness(98%) contrast(94%);
 }
 
-/* 2. Ícone Menu Flutuante (Bola Preta) */
+/* 2. Ãcone Menu Flutuante (Bola Preta) */
 .menu-floating-icon {
   width: 30px;
   height: 30px;
   object-fit: contain;
-  /* Inverte para branco (se o ícone original for preto) */
+  /* Inverte para branco (se o Ã­cone original for preto) */
   filter: invert(100%); 
 }
 
-/* 3. Ícone Voltar (Dentro da bola branca) */
+/* 3. Ãcone Voltar (Dentro da bola branca) */
 .voltar-icon-img {
   width: 30px;
   height: 30px;
@@ -72,7 +89,7 @@ img {
   /* O .icon-red aplicado no JSX trata da cor */
 }
 
-/* --- LÓGICA DO BOTÃO FECHAR (CLOSE) --- */
+/* --- LÃ“GICA DO BOTÃƒO FECHAR (CLOSE) --- */
 
 .menu-close-icon {
   width: 18px;
@@ -109,7 +126,7 @@ img {
   /* 2. Transforma a cor em Branco Puro */
   filter: brightness(0) invert(1);
   
-  /* 3. Garante que ambas as mudanças são suaves */
+  /* 3. Garante que ambas as mudanÃ§as sÃ£o suaves */
   transition: all 0.2s ease;
 }
 
@@ -123,26 +140,26 @@ img {
   margin-left: 20px;
   
   /* 2. Menos Opacidade (Mais transparente) */
-  opacity: 0.25; /* Valor entre 0 (invisível) e 1 (sólido) */
+  opacity: 0.25; /* Valor entre 0 (invisÃ­vel) e 1 (sÃ³lido) */
   
   transition: all 0.2s ease;
 }
 
-/* Opcional: Quando passas o rato, ela fica um pouco mais visível */
+/* Opcional: Quando passas o rato, ela fica um pouco mais visÃ­vel */
 .categoria-btn:hover .cat-chevron-img {
   transform: translateX(3px);
   opacity: 0.6; 
 }
 
-/* --- BOTÃO DE LOGIN (Estilo PedeJá) --- */
-/* --- BOTÃO DE LOGIN (Versão Final: Cor consistente no clique) --- */
+/* --- BOTÃƒO DE LOGIN (Estilo PedeJÃ¡) --- */
+/* --- BOTÃƒO DE LOGIN (VersÃ£o Final: Cor consistente no clique) --- */
 
 .user-profile {
-  position: relative; /* Agora é relativo ao pai */
+  position: relative; /* Agora Ã© relativo ao pai */
   width: 150px;
   height: 50px;
   
-  /* Mantém o resto do estilo visual */
+  /* MantÃ©m o resto do estilo visual */
   background: linear-gradient(135deg, #e62429 0%, #c91b20 100%);
   color: white;
   border-radius: 15px;
@@ -217,7 +234,7 @@ img {
   width: 26px;   
   height: 26px;
   object-fit: contain;
-  /* --- O TRUQUE MÁGICO --- */
+  /* --- O TRUQUE MÃGICO --- */
   /* 1. Inverte as cores: O preto vira branco, o branco vira preto */
   /* 2. Aumenta o brilho e contraste para garantir que o branco fica puro */
   filter: invert(100%) brightness(150%) contrast(150%);
@@ -239,11 +256,11 @@ img {
   height: 130px; /* Altura da parte branca do topo */
   background-color: #fff;
   
-  /* A CURVA MÁGICA */
+  /* A CURVA MÃGICA */
   border-bottom-left-radius: 50% 40px;
   border-bottom-right-radius: 50% 40px;
   
-  z-index: 999; /* Fica atrás do conteúdo, mas à frente do fundo vermelho */
+  z-index: 999; /* Fica atrÃ¡s do conteÃºdo, mas Ã  frente do fundo vermelho */
   box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* Sombra suave */
 }
 
@@ -257,7 +274,7 @@ img {
   background-color: #fff;
   background-image: none; /* Removemos a imagem antiga */
   
-  /* A CURVA MÁGICA INVERTIDA */
+  /* A CURVA MÃGICA INVERTIDA */
   border-top-left-radius: 50% 40px;
   border-top-right-radius: 50% 40px;
   
@@ -265,18 +282,18 @@ img {
   pointer-events: none; /* Deixa clicar no que estiver por baixo */
 }
 
-/* --- 3. LOGÓTIPO --- */
+/* --- 3. LOGÃ“TIPO --- */
 #logoini {
   width: 180px;
   height: auto;
   
-  /* MUDANÇA: fixed em vez de absolute */
+  /* MUDANÃ‡A: fixed em vez de absolute */
   position: fixed; 
   
   top: 25px;
   left: 50px;
   
-  /* Aumentei o z-index para garantir que fica por cima do conteúdo que rola */
+  /* Aumentei o z-index para garantir que fica por cima do conteÃºdo que rola */
   z-index: 1001; 
   cursor: pointer;
   
@@ -289,10 +306,10 @@ img {
   transform: scale(1.05);
 }
 
-/* --- 4. CONTEÚDO PRINCIPAL --- */
+/* --- 4. CONTEÃšDO PRINCIPAL --- */
 #content {
   z-index: 20 !important;
-  margin: 180px 0 100px 0 !important; /* Ajustei a margem para não bater nas ondas */
+  margin: 180px 0 100px 0 !important; /* Ajustei a margem para nÃ£o bater nas ondas */
   padding: 0 !important;
   min-height: 50vh;
 }
@@ -330,7 +347,7 @@ img {
   font-size: 16px !important;
 }
 #titlebar p {
-  color: #ffeb3b; /* Amarelo para destacar a instrução */
+  color: #ffeb3b; /* Amarelo para destacar a instruÃ§Ã£o */
   text-align: center;
   font-weight: 600;
   margin-top: 20px;
@@ -423,9 +440,9 @@ img {
   color: white;
 }
 
-/* --- 6. BOTÕES FLUTUANTES --- */
+/* --- 6. BOTÃ•ES FLUTUANTES --- */
 
-/* Botão MENU (Bola Preta) */
+/* BotÃ£o MENU (Bola Preta) */
 #menu-iconini {
   position: fixed;
   bottom: 30px;
@@ -450,7 +467,7 @@ img {
   font-size: 30px;
 }
 
-/* Botão VOLTAR (Bola Vermelha) */
+/* BotÃ£o VOLTAR (Bola Vermelha) */
 .btn-voltar-fixo {
   position: fixed;
   bottom: 30px;
@@ -478,7 +495,7 @@ img {
 
 
 
-/* ---------- ESTILOS DA PÁGINA DE RESTAURANTES ---------- */
+/* ---------- ESTILOS DA PÃGINA DE RESTAURANTES ---------- */
 
 .restaurante-hero-header {
     text-align: center;
@@ -508,7 +525,7 @@ img {
   padding-right: 20px;
 }
 
-/* Títulos */
+/* TÃ­tulos */
 .restaurantes-title {
   color: #fff;
   text-align: center;
@@ -528,16 +545,16 @@ img {
   font-weight: normal;
 }
 
-/* Coluna do Cartão */
+/* Coluna do CartÃ£o */
 .restaurante-col {
   margin-bottom: 30px;
 }
 
-/* --- ESTILO DO CARTÃO (HERO / NETFLIX STYLE) --- */
+/* --- ESTILO DO CARTÃƒO (HERO / NETFLIX STYLE) --- */
 .restaurante-card {
   background: white;
   border-radius: 20px; /* Bordas arredondadas */
-  overflow: hidden;    /* Importante para a imagem não sair */
+  overflow: hidden;    /* Importante para a imagem nÃ£o sair */
   box-shadow: 0 10px 20px rgba(0,0,0,0.15);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border: none;
@@ -552,7 +569,7 @@ img {
   box-shadow: 0 15px 30px rgba(0,0,0,0.25);
 }
 
-/* 1. Área da Imagem (Topo 75%) */
+/* 1. Ãrea da Imagem (Topo 75%) */
 .card-image-container {
   position: relative;
   width: 100%;
@@ -626,7 +643,7 @@ img {
   width: 90%;
   text-align: center;
   color: #fff;
-  font-family: 'Plumpfull', sans-serif; /* Ou a tua fonte padrão se esta falhar */
+  font-family: 'Plumpfull', sans-serif; /* Ou a tua fonte padrÃ£o se esta falhar */
   font-size: 1.8rem;
   text-transform: uppercase;
   text-shadow: 0 2px 5px rgba(0,0,0,0.9);
@@ -660,7 +677,7 @@ img {
   object-fit: cover;
 }
 
-/* 2. Área do Rodapé (Baixo 25%) */
+/* 2. Ãrea do RodapÃ© (Baixo 25%) */
 .card-footer-info {
   height: 25%;
   background-color: #fff;
@@ -677,7 +694,7 @@ img {
 .footer-left {
   display: flex;
   align-items: center;
-  gap: 8px; /* Espaço entre o ícone e o texto */
+  gap: 8px; /* EspaÃ§o entre o Ã­cone e o texto */
   max-width: 55%;
 }
 
@@ -711,7 +728,7 @@ img {
 }
 
 .status-icon-img {
-  width: 20px; /* Geralmente a bolinha de status é pequena */
+  width: 20px; /* Geralmente a bolinha de status Ã© pequena */
   height: 20px;
   object-fit: contain;
 }
@@ -728,30 +745,30 @@ img {
   /* A cor vem do React inline style */
 }
 
-/* ---------- ESTILOS DA PÁGINA DE CATEGORIAS ---------- */
+/* ---------- ESTILOS DA PÃGINA DE CATEGORIAS ---------- */
 
-/* Grelha de botões */
+/* Grelha de botÃµes */
 
 #content #div-right {
   z-index: 20 !important;
   
-  /* Definimos uma altura mínima para haver espaço onde centralizar */
+  /* Definimos uma altura mÃ­nima para haver espaÃ§o onde centralizar */
   min-height: 60vh; 
   
   margin: 0 !important;
   padding: 0 !important;
   
-  /* A MAGIA DO FLEXBOX (Centralização) */
+  /* A MAGIA DO FLEXBOX (CentralizaÃ§Ã£o) */
   display: flex !important;
   flex-direction: column;
   align-items: center !important; /* Centraliza Verticalmente */
   justify-content: center !important; /* Centraliza Horizontalmente */
 }
 
-/* Ajuste no container interno para garantir que não "foge" */
+/* Ajuste no container interno para garantir que nÃ£o "foge" */
 #content #div-right #base-right {
-  width: 100%; /* Garante que ocupa a largura disponível */
-  max-width: 650px; /* (Opcional) Limita a largura em ecrãs muito grandes */
+  width: 100%; /* Garante que ocupa a largura disponÃ­vel */
+  max-width: 650px; /* (Opcional) Limita a largura em ecrÃ£s muito grandes */
   margin: 0 !important;
   padding: 20px !important;
 }
@@ -763,7 +780,7 @@ img {
   gap: 25px;
 }
 
-/* Botão da Categoria (O Card) */
+/* BotÃ£o da Categoria (O Card) */
 .categoria-btn {
   display: flex;
   align-items: center;
@@ -790,7 +807,7 @@ img {
   object-fit: contain;
 }
 
-/* Ícone Material (Alternativo) */
+/* Ãcone Material (Alternativo) */
 .cat-icon-fallback {
   font-size: 28px;
   color: #dc3545;
@@ -827,7 +844,7 @@ img {
   width: 100%;
   max-width: 800px;
   
-  /* 2. Centraliza o bloco do h1 horizontalmente e mantém o espaço em baixo */
+  /* 2. Centraliza o bloco do h1 horizontalmente e mantÃ©m o espaÃ§o em baixo */
   margin: 0 auto 30px auto; 
   
   letter-spacing: -1.5px;
@@ -835,12 +852,12 @@ img {
 }
 
 
-/* Layout geral da página de menus */
+/* Layout geral da pÃ¡gina de menus */
 .menus-main {
     min-height: 100vh;
     background-color: #f8f9fa; /* Fundo ligeiramente cinza para destacar os cards brancos */
     position: relative;
-    padding-top: 150px; /* Espaço para o logo e onda */
+    padding-top: 150px; /* EspaÃ§o para o logo e onda */
 }
 
 
@@ -857,7 +874,7 @@ img {
 .status-aberto { background-color: #d4edda; color: #28a745; }
 .status-fechado { background-color: #f8d7da; color: #dc3545; }
 
-/* Título da secção "Pratos Principais" */
+/* TÃ­tulo da secÃ§Ã£o "Pratos Principais" */
 .menu-seccao-titulo {
     font-size: 1.5rem;
     font-weight: 700;
@@ -868,7 +885,7 @@ img {
 }
 
 #div-left {
-  /* Se 100px foi pouco, tenta 200px ou usa 25vh (25% da altura do ecrã) */
+  /* Se 100px foi pouco, tenta 200px ou usa 25vh (25% da altura do ecrÃ£) */
   padding-top: 100px !important; 
   display: flex;
   align-items: flex-start;
@@ -891,7 +908,7 @@ img {
     box-shadow: 0 12px 25px rgba(211, 47, 47, 0.15); /* Sombra avermelhada no hover */
 }
 
-/* Placeholder da imagem (quadrado à esquerda) */
+/* Placeholder da imagem (quadrado Ã  esquerda) */
 .prato-img-placeholder {
     width: 120px;
     min-width: 120px;
@@ -929,7 +946,7 @@ img {
     line-height: 1.4;
 }
 
-/* Área do preço e botão (à direita) */
+/* Ãrea do preÃ§o e botÃ£o (Ã  direita) */
 .prato-actions {
     display: flex;
     flex-direction: column;
@@ -941,7 +958,7 @@ img {
 .prato-preco {
     font-size: 1.4rem;
     font-weight: 800;
-    color: #d32f2f; /* Preço em vermelho destaque */
+    color: #d32f2f; /* PreÃ§o em vermelho destaque */
     margin-bottom: 12px;
     display: block;
 }
@@ -951,7 +968,7 @@ img {
     color: white;
     border: none;
     padding: 8px 18px;
-    border-radius: 30px; /* Botão bem redondo */
+    border-radius: 30px; /* BotÃ£o bem redondo */
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
@@ -965,7 +982,7 @@ img {
 .home-container {
   /* Caminho para a imagem na pasta public/assets/img/ */
   background-image: url("/src/assets/img/bg.png"); 
-  background-size: cover;      /* Faz a imagem cobrir todo o ecrã */
+  background-size: cover;      /* Faz a imagem cobrir todo o ecrÃ£ */
   background-position: center; /* Centra a imagem */
   background-repeat: no-repeat;
   min-height: 100vh;           /* Garante que o fundo ocupa a altura toda */
@@ -973,7 +990,7 @@ img {
   overflow-x: hidden;          /* Evita scroll horizontal indesejado */
 }
 
-/* Ajuste para telemóveis */
+/* Ajuste para telemÃ³veis */
 @media (max-width: 576px) {
     .prato-card { flex-direction: column; }
     .prato-img-placeholder { width: 100%; height: 100px; }
@@ -993,17 +1010,17 @@ img {
 /* --- CONTENTOR DOS FILTROS (Lado a Lado) --- */
 .filtros-row {
   display: flex;
-  justify-content: center; /* Centraliza o bloco todo na página */
+  justify-content: center; /* Centraliza o bloco todo na pÃ¡gina */
   align-items: center;
-  gap: 20px; /* Espaço entre a Barra de Pesquisa e o Dropdown */
+  gap: 20px; /* EspaÃ§o entre a Barra de Pesquisa e o Dropdown */
   
   width: 100%;
-  max-width: 900px; /* Largura máxima para não ficar muito esticado */
+  max-width: 900px; /* Largura mÃ¡xima para nÃ£o ficar muito esticado */
   margin: 0 auto 40px auto; /* Margem em baixo para separar dos cards */
   padding: 0 20px;
 }
 
-/* RESPONSIVIDADE: Em telemóveis, volta a empilhar um em cima do outro */
+/* RESPONSIVIDADE: Em telemÃ³veis, volta a empilhar um em cima do outro */
 @media (max-width: 768px) {
   .filtros-row {
     flex-direction: column; /* Um por cima do outro */
@@ -1325,4 +1342,5 @@ img {
     width: 100%;
   }
 }
+
 

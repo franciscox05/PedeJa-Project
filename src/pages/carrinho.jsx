@@ -772,6 +772,11 @@ export default function Carrinho() {
                       <strong>{group.title}:</strong> {group.options.map((option) => option.option_name).join(", ")}
                     </p>
                   ))}
+                  {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim() ? (
+                    <p style={{ margin: "4px 0 0", color: "#475569", fontSize: "0.9rem", fontStyle: "italic" }}>
+                      <strong>Instrucoes:</strong> {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim()}
+                    </p>
+                  ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px" }}>
                     <button onClick={() => decreaseQuantity(cartLineId)} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid #ddd", background: "white", cursor: "pointer" }}>-</button>
                     <span style={{ fontWeight: "bold", minWidth: "20px", textAlign: "center", fontSize: "1.1rem" }}>{item.qtd}</span>

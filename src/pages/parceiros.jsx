@@ -10,21 +10,40 @@ import {
   getImageUrl,
 } from "../services/partnerService";
 import { searchAddressSuggestions } from "../services/addressService";
+import LocationPickerModal from "../components/LocationPickerModal";
+import { geocodeAddressWithGoogle } from "../services/googleMapsService";
 import { extractRestaurantId, extractUserId, resolveUserRole } from "../utils/roles";
 import "../css/pages/parceiros.css";
 
 const DAYS = [
-  { id: 1, label: "Seg" },
-  { id: 2, label: "Ter" },
-  { id: 3, label: "Qua" },
-  { id: 4, label: "Qui" },
-  { id: 5, label: "Sex" },
-  { id: 6, label: "Sab" },
-  { id: 0, label: "Dom" },
+  { id: 1, label: "Segunda", short: "Seg" },
+  { id: 2, label: "Terca", short: "Ter" },
+  { id: 3, label: "Quarta", short: "Qua" },
+  { id: 4, label: "Quinta", short: "Qui" },
+  { id: 5, label: "Sexta", short: "Sex" },
+  { id: 6, label: "Sabado", short: "Sab" },
+  { id: 0, label: "Domingo", short: "Dom" },
+];
+
+const DAY_PRESETS = [
+  { id: "workdays", label: "Dias uteis", days: [1, 2, 3, 4, 5] },
+  { id: "weekend", label: "Fim de semana", days: [6, 0] },
+  { id: "all", label: "Todos os dias", days: [1, 2, 3, 4, 5, 6, 0] },
+];
+
+const SHIFT_PRESETS = [
+  { id: "almoco", label: "Almoco 12:00-15:00", open: "12:00", close: "15:00" },
+  { id: "jantar", label: "Jantar 19:00-23:00", open: "19:00", close: "23:00" },
+  { id: "dia", label: "Dia inteiro 09:00-22:00", open: "09:00", close: "22:00" },
 ];
 
 function createBlock(id, days = [1, 2, 3, 4, 5], open = "09:00", close = "22:00") {
   return { id, days, open, close };
+}
+
+function formatBlockDays(days = []) {
+  const selected = DAYS.filter((day) => days.includes(day.id)).map((day) => day.short);
+  return selected.length ? selected.join(", ") : "Sem dias selecionados";
 }
 
 function scheduleToBlocks(schedule) {
@@ -86,6 +105,8 @@ export default function Parceiros() {
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [location, setLocation] = useState({ lat: null, lng: null, place_id: null });
   const [manualCoords, setManualCoords] = useState({ lat: "", lng: "" });
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [openingMap, setOpeningMap] = useState(false);
 
   const [imageState, setImageState] = useState({
     backgroundFile: null,
@@ -188,8 +209,12 @@ export default function Parceiros() {
     }
 
     const handle = setTimeout(async () => {
-      const suggestions = await searchAddressSuggestions(addressQuery);
-      setAddressSuggestions(suggestions);
+      try {
+        const suggestions = await searchAddressSuggestions(addressQuery, { barcelosOnly: true });
+        setAddressSuggestions(suggestions);
+      } catch {
+        setAddressSuggestions([]);
+      }
     }, 350);
 
     return () => clearTimeout(handle);
@@ -199,12 +224,14 @@ export default function Parceiros() {
     return scheduleBlocks
       .map((block) => {
         const daysLabel = DAYS.filter((day) => block.days.includes(day.id))
-          .map((day) => day.label)
+          .map((day) => day.short)
           .join(", ");
         return `${daysLabel || "--"} ${block.open} - ${block.close}`;
       })
       .join(" | ");
   }, [scheduleBlocks]);
+  const hasLocationCoordinates = Number.isFinite(normalizeCoordinate(location.lat))
+    && Number.isFinite(normalizeCoordinate(location.lng));
 
   const toggleDay = (blockId, dayId) => {
     setScheduleBlocks((prev) => prev.map((block) => {
@@ -217,15 +244,50 @@ export default function Parceiros() {
     }));
   };
 
+  const applyDayPreset = (blockId, presetDays) => {
+    const normalizedDays = DAYS
+      .map((day) => day.id)
+      .filter((dayId) => presetDays.includes(dayId));
+
+    setScheduleBlocks((prev) => prev.map((block) => (
+      block.id === blockId ? { ...block, days: normalizedDays } : block
+    )));
+  };
+
   const updateBlockTime = (blockId, key, value) => {
     setScheduleBlocks((prev) => prev.map((block) => (
       block.id === blockId ? { ...block, [key]: value } : block
     )));
   };
 
+  const applyTimePreset = (blockId, preset) => {
+    setScheduleBlocks((prev) => prev.map((block) => (
+      block.id === blockId ? { ...block, open: preset.open, close: preset.close } : block
+    )));
+  };
+
   const addBlock = () => {
     setScheduleBlocks((prev) => [...prev, createBlock(nextBlockId, [], "12:00", "15:00")]);
     setNextBlockId((prev) => prev + 1);
+  };
+
+  const duplicateBlock = (blockId) => {
+    setNextBlockId((currentNextId) => {
+      setScheduleBlocks((prev) => {
+        const source = prev.find((block) => block.id === blockId);
+        if (!source) return prev;
+        return [
+          ...prev,
+          {
+            id: currentNextId,
+            days: [...source.days],
+            open: source.open,
+            close: source.close,
+          },
+        ];
+      });
+      return currentNextId + 1;
+    });
   };
 
   const removeBlock = (blockId) => {
@@ -239,7 +301,53 @@ export default function Parceiros() {
       lng: suggestion.lng,
       place_id: suggestion.id,
     });
+    setManualCoords({
+      lat: Number.isFinite(Number(suggestion.lat)) ? String(suggestion.lat) : "",
+      lng: Number.isFinite(Number(suggestion.lng)) ? String(suggestion.lng) : "",
+    });
     setAddressSuggestions([]);
+  };
+
+  const handleOpenMapPicker = async () => {
+    setOpeningMap(true);
+    setStatus((prev) => (prev.type === "error" ? { type: "", message: "" } : prev));
+
+    try {
+      let nextLat = normalizeCoordinate(location.lat);
+      let nextLng = normalizeCoordinate(location.lng);
+      let nextPlaceId = location.place_id || null;
+
+      if (!Number.isFinite(nextLat) || !Number.isFinite(nextLng)) {
+        const manualLat = normalizeCoordinate(manualCoords.lat);
+        const manualLng = normalizeCoordinate(manualCoords.lng);
+
+        if (Number.isFinite(manualLat) && Number.isFinite(manualLng)) {
+          nextLat = manualLat;
+          nextLng = manualLng;
+        } else if (addressQuery.trim().length >= 8) {
+          try {
+            const geocoded = await geocodeAddressWithGoogle(addressQuery.trim());
+            if (Number.isFinite(geocoded?.lat) && Number.isFinite(geocoded?.lng)) {
+              nextLat = geocoded.lat;
+              nextLng = geocoded.lng;
+              nextPlaceId = geocoded.place_id || null;
+              setAddressQuery(geocoded.address_line || addressQuery);
+            }
+          } catch {
+            // Se nao geocodificar, o utilizador pode marcar manualmente no mapa.
+          }
+        }
+      }
+
+      if (Number.isFinite(nextLat) && Number.isFinite(nextLng)) {
+        setLocation({ lat: nextLat, lng: nextLng, place_id: nextPlaceId });
+        setManualCoords({ lat: String(nextLat), lng: String(nextLng) });
+      }
+
+      setShowMapPicker(true);
+    } finally {
+      setOpeningMap(false);
+    }
   };
 
   const promptLogin = () => {
@@ -558,6 +666,23 @@ const handleSubmit = async (e) => {
                 placeholder="Rua, porta, codigo postal e cidade"
                 required
               />
+              <div className="address-tools">
+                <button
+                  type="button"
+                  className="address-map-btn"
+                  onClick={handleOpenMapPicker}
+                  disabled={openingMap}
+                >
+                  {openingMap
+                    ? "A preparar mapa..."
+                    : (hasLocationCoordinates ? "Ajustar no mapa" : "Marcar no mapa")}
+                </button>
+                <p className={`coords-hint ${hasLocationCoordinates ? "ok" : ""}`}>
+                  {hasLocationCoordinates
+                    ? `Coordenadas: ${Number(location.lat).toFixed(6)}, ${Number(location.lng).toFixed(6)}`
+                    : "Sem coordenadas. Usa o mapa para marcar com precisao."}
+                </p>
+              </div>
               {addressSuggestions.length > 0 ? (
                 <div className="suggestions">
                   {addressSuggestions.map((item) => (
@@ -569,9 +694,7 @@ const handleSubmit = async (e) => {
               ) : (
                 addressQuery.length >= 3 && <p className="hint">Sem sugestoes. Podes introduzir coordenadas manualmente.</p>
               )}
-              {location.lat && location.lng && (
-                <p className="hint">Localizacao confirmada com coordenadas.</p>
-              )}
+              <p className="hint">Sugestoes e mapa limitados a Portugal Continental e zona Barcelos.</p>
             </div>
 
             <div className="form-field full">
@@ -639,8 +762,36 @@ const handleSubmit = async (e) => {
             <div className="form-field full">
               <label>Horario de funcionamento</label>
               <div className="schedule-builder">
+                <p className="schedule-help">
+                  Define os turnos em que a loja abre. Podes criar mais do que um bloco para fazer pausa de almoco.
+                </p>
                 {scheduleBlocks.map((block) => (
                   <div key={block.id} className="schedule-block">
+                    <div className="schedule-block-head">
+                      <strong>Turno #{block.id}</strong>
+                      <div className="schedule-block-actions">
+                        <button type="button" className="schedule-duplicate-btn" onClick={() => duplicateBlock(block.id)}>
+                          Duplicar
+                        </button>
+                        {scheduleBlocks.length > 1 && (
+                          <button type="button" className="schedule-remove-btn" onClick={() => removeBlock(block.id)}>
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="schedule-presets">
+                      {DAY_PRESETS.map((preset) => (
+                        <button
+                          type="button"
+                          key={`${block.id}-${preset.id}`}
+                          className="schedule-preset-btn"
+                          onClick={() => applyDayPreset(block.id, preset.days)}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
                     <div className="day-list">
                       {DAYS.map((day) => (
                         <button
@@ -653,30 +804,43 @@ const handleSubmit = async (e) => {
                         </button>
                       ))}
                     </div>
-                    <div className="time-row">
-                      <input
-                        type="time"
-                        value={block.open}
-                        onChange={(e) => updateBlockTime(block.id, "open", e.target.value)}
-                      />
-                      <span>ate</span>
-                      <input
-                        type="time"
-                        value={block.close}
-                        onChange={(e) => updateBlockTime(block.id, "close", e.target.value)}
-                      />
-                      {scheduleBlocks.length > 1 && (
-                        <button type="button" className="btn-link" onClick={() => removeBlock(block.id)}>
-                          Remover bloco
+                    <div className="time-presets">
+                      {SHIFT_PRESETS.map((preset) => (
+                        <button
+                          type="button"
+                          key={`${block.id}-${preset.id}`}
+                          className="time-preset-btn"
+                          onClick={() => applyTimePreset(block.id, preset)}
+                        >
+                          {preset.label}
                         </button>
-                      )}
+                      ))}
                     </div>
+                    <div className="time-grid">
+                      <label className="time-field">
+                        <span>Abertura</span>
+                        <input
+                          type="time"
+                          value={block.open}
+                          onChange={(e) => updateBlockTime(block.id, "open", e.target.value)}
+                        />
+                      </label>
+                      <label className="time-field">
+                        <span>Fecho</span>
+                        <input
+                          type="time"
+                          value={block.close}
+                          onChange={(e) => updateBlockTime(block.id, "close", e.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <p className="preview">{`${formatBlockDays(block.days)} ${block.open} - ${block.close}`}</p>
                   </div>
                 ))}
-                <button type="button" className="btn-secondary" onClick={addBlock}>
-                  + Adicionar horario (ex: pausa de almoco)
+                <button type="button" className="schedule-add-btn" onClick={addBlock}>
+                  + Adicionar novo turno
                 </button>
-                <span className="preview">{scheduleLabel}</span>
+                <span className="preview schedule-summary">{scheduleLabel}</span>
               </div>
             </div>
 
@@ -690,6 +854,31 @@ const handleSubmit = async (e) => {
           </form>
         )}
       </section>
+
+      <LocationPickerModal
+        isOpen={showMapPicker}
+        title={isEditMode ? "Ajustar localizacao da loja" : "Selecionar localizacao do estabelecimento"}
+        subtitle="Marca no mapa a entrada do estabelecimento para evitar erros de geolocalizacao."
+        initialLat={normalizeCoordinate(location.lat) || normalizeCoordinate(manualCoords.lat)}
+        initialLng={normalizeCoordinate(location.lng) || normalizeCoordinate(manualCoords.lng)}
+        showDeliveryPricing={false}
+        enforceDeliveryZone={false}
+        onCancel={() => setShowMapPicker(false)}
+        onConfirm={async (pickedLocation) => {
+          setShowMapPicker(false);
+          setAddressSuggestions([]);
+          setAddressQuery(pickedLocation?.address_line || addressQuery);
+          setLocation({
+            lat: pickedLocation?.lat ?? null,
+            lng: pickedLocation?.lng ?? null,
+            place_id: pickedLocation?.place_id || null,
+          });
+          setManualCoords({
+            lat: Number.isFinite(Number(pickedLocation?.lat)) ? String(pickedLocation.lat) : "",
+            lng: Number.isFinite(Number(pickedLocation?.lng)) ? String(pickedLocation.lng) : "",
+          });
+        }}
+      />
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Inicio from "./pages/inicio";
@@ -8,6 +8,7 @@ import Menus from "./pages/menus";
 import Carrinho from "./pages/carrinho";
 import PedidoConfirmado from "./pages/pedidoConfirmado";
 import DashboardAdmin from "./pages/dashboardAdmin";
+import DashboardGeoBoard from "./pages/dashboardGeoBoard";
 import DashboardPerformance from "./pages/dashboardPerformance";
 import DashboardRevenue from "./pages/dashboardRevenue";
 import DashboardRestaurante from "./pages/dashboardRestaurante";
@@ -16,6 +17,7 @@ import MenuManager from "./pages/menuManager";
 import Parceiros from "./pages/parceiros";
 import PerfilPage from "./pages/perfil";
 import ProtectedRoute from "./components/routes/ProtectedRoute";
+import PageErrorBoundary from "./components/routes/PageErrorBoundary";
 import { CartProvider } from "./context/CartContext";
 import { resolveUserRole } from "./utils/roles";
 
@@ -23,6 +25,11 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const isDashboardRoute = location.pathname.startsWith("/dashboard/");
+
+  useLayoutEffect(() => {
+    document.body.classList.toggle("dashboard-route", isDashboardRoute);
+    document.documentElement.classList.toggle("dashboard-route", isDashboardRoute);
+  }, [isDashboardRoute]);
 
   useEffect(() => {
     const handleContextMenu = (e) => {
@@ -38,14 +45,14 @@ export default function App() {
 
     document.addEventListener("contextmenu", handleContextMenu);
     document.addEventListener("mousedown", handleMouseDown);
-    document.body.style.backgroundColor = isDashboardRoute ? "#f5f5f5" : "";
-    document.body.style.backgroundImage = isDashboardRoute ? "none" : "";
-    document.documentElement.style.backgroundColor = isDashboardRoute ? "#f5f5f5" : "";
-    document.documentElement.style.backgroundImage = isDashboardRoute ? "none" : "";
-
     const maybeRedirectRestaurant = () => {
       const raw = localStorage.getItem("pedeja_user");
-      const user = raw ? JSON.parse(raw) : null;
+      let user = null;
+      try {
+        user = raw ? JSON.parse(raw) : null;
+      } catch {
+        user = null;
+      }
       const role = resolveUserRole(user);
 
       if (role !== "restaurant") return;
@@ -72,10 +79,6 @@ export default function App() {
     return () => {
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("mousedown", handleMouseDown);
-      document.body.style.backgroundColor = "";
-      document.body.style.backgroundImage = "";
-      document.documentElement.style.backgroundColor = "";
-      document.documentElement.style.backgroundImage = "";
     };
   }, [isDashboardRoute, location.pathname, location.search, navigate]);
 
@@ -137,7 +140,20 @@ export default function App() {
             path="/dashboard/admin"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
-                <DashboardAdmin />
+                <PageErrorBoundary pageName="Dashboard Admin" resetKey={`${location.pathname}${location.search}`}>
+                  <DashboardAdmin />
+                </PageErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/geoboard"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <PageErrorBoundary pageName="Geo Board Admin" resetKey={`${location.pathname}${location.search}`}>
+                  <DashboardGeoBoard />
+                </PageErrorBoundary>
               </ProtectedRoute>
             }
           />

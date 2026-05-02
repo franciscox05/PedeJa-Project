@@ -701,18 +701,124 @@ function buildTimeline({
   deliveries?: Array<Record<string, unknown>>;
   events?: Array<Record<string, unknown>>;
 }) {
-  const timeline = [];
+  const timeline: Array<Record<string, unknown>> = [];
+  const dedupe = new Set<string>();
 
-  timeline.push({
+  const pushUnique = (entry: Record<string, unknown>) => {
+    const createdAt = toText(entry?.created_at);
+    if (!createdAt) return;
+
+    const label = String(entry?.label || "");
+    const type = String(entry?.type || "EVENT");
+    const key = `${type}|${label}|${createdAt}`;
+    if (dedupe.has(key)) return;
+
+    dedupe.add(key);
+    timeline.push({
+      ...entry,
+      created_at: createdAt,
+    });
+  };
+
+  const createdAt = toText(order?.submitted_at) || toText(order?.created_at);
+  const acceptedAt = toText(order?.aceite_em) || toText(order?.data_aceitacao);
+  const assignedAt = toText(order?.atribuido_em);
+  const pickedUpAt = toText(order?.recolhido_em);
+  const deliveredAt = toText(order?.entregue_em);
+  const updatedAt = toText(order?.updated_at);
+  const currentEstado = resolveOrderEstadoInterno(order);
+  const currentEstadoLabel = getEstadoInternoLabelPt(currentEstado);
+
+  pushUnique({
     type: "ORDER_CREATED",
     label: "Pedido criado",
     status: normalizeStatus(order?.status),
-    created_at: order?.created_at,
+    created_at: createdAt,
     payload: null,
   });
 
+  if (String(order?.order_timing_mode || "").toUpperCase() === "SCHEDULED" && toText(order?.scheduled_for)) {
+    pushUnique({
+      type: "ORDER_SCHEDULED",
+      label: "Entrega agendada",
+      status: "SCHEDULED",
+      created_at: order?.scheduled_for,
+      payload: null,
+    });
+  }
+
+  if (acceptedAt) {
+    pushUnique({
+      type: "ORDER_ACCEPTED",
+      label: "Restaurante aceitou",
+      status: "CONFIRMED",
+      created_at: acceptedAt,
+      payload: null,
+    });
+  }
+
+  if (assignedAt) {
+    pushUnique({
+      type: "DRIVER_ASSIGNED",
+      label: "Estafeta atribuido",
+      status: "ASSIGNED",
+      created_at: assignedAt,
+      payload: null,
+    });
+  }
+
+  if (pickedUpAt) {
+    pushUnique({
+      type: "ORDER_PICKED_UP",
+      label: "Pedido recolhido",
+      status: "PICKED_UP",
+      created_at: pickedUpAt,
+      payload: null,
+    });
+  }
+
+  if (deliveredAt) {
+    pushUnique({
+      type: "ORDER_DELIVERED",
+      label: "Pedido entregue",
+      status: "DELIVERED",
+      created_at: deliveredAt,
+      payload: null,
+    });
+  }
+
+  if (currentEstado === "cancelado" && updatedAt) {
+    pushUnique({
+      type: "ORDER_CANCELLED",
+      label: "Pedido cancelado",
+      status: "CANCELLED",
+      created_at: updatedAt,
+      payload: null,
+    });
+  }
+
+  const timelineStageTimestamps: Record<string, string | null> = {
+    pendente: createdAt,
+    aceite: acceptedAt,
+    atribuindo_estafeta: assignedAt,
+    estafeta_aceitou: assignedAt,
+    recolhido: pickedUpAt,
+    entregue: deliveredAt,
+    cancelado: updatedAt,
+  };
+
+  if (!timelineStageTimestamps[currentEstado] && updatedAt) {
+    pushUnique({
+      type: "ORDER_STATUS",
+      label: `Estado atual: ${currentEstadoLabel}`,
+      status: currentEstado,
+      created_at: updatedAt,
+      payload: null,
+    });
+  }
+
   deliveries.forEach((delivery) => {
-    timeline.push({
+    pushUnique({
       type: "DELIVERY_STATUS",
       label: `Entrega: ${statusLabelPt(delivery.status)}`,
       status: normalizeStatus(delivery.status),
@@ -722,7 +828,7 @@ function buildTimeline({
   });
 
   events.forEach((event) => {
-    timeline.push({
+    pushUnique({
       type: "SHIPDAY_EVENT",
       label: `Shipday: ${statusLabelPt(event.event_type)}`,
       status: normalizeStatus(event.event_type),

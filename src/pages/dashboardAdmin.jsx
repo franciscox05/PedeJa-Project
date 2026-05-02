@@ -4,12 +4,12 @@ import toast from "react-hot-toast";
 import "../css/pages/dashboard.css";
 import {
   fetchAdminDashboard,
+  fetchAdminCustomerInsights,
   fetchGlobalAutoAssignSettings,
   fetchGlobalDeliveryPricingSettings,
   saveGlobalDeliveryPricingSettings,
   saveGlobalAutoAssignSettings,
   fetchStoreCommissionCatalog,
-  needsScheduledShipdayBootstrap,
   updateRestaurantAdminSettings,
   updateRestaurantSignupRequest,
   updateOrderWorkflowStatus,
@@ -62,6 +62,63 @@ function safeImage(value) {
 
 function normalizeSearch(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function readUserFromStorageSafe() {
+  try {
+    const raw = localStorage.getItem("pedeja_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeFixed(value, digits = 2) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return Number(0).toFixed(digits);
+  return numeric.toFixed(digits);
+}
+
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function ensureObjectArray(value) {
+  return ensureArray(value).filter((item) => item && typeof item === "object");
+}
+
+function normalizeAdminMetrics(metrics = {}) {
+  return {
+    totalOrders: Number(metrics?.totalOrders || 0),
+    scheduledOrders: Number(metrics?.scheduledOrders || 0),
+    immediateOrders: Number(metrics?.immediateOrders || 0),
+    totalRevenue: Number(metrics?.totalRevenue || 0),
+    activeDeliveries: Number(metrics?.activeDeliveries || 0),
+    deliveredRate: Number(metrics?.deliveredRate || 0),
+    cancelRate: Number(metrics?.cancelRate || 0),
+    avgTicket: Number(metrics?.avgTicket || 0),
+  };
+}
+
+function normalizeAdminDashboardData(data = {}) {
+  return {
+    orders: ensureObjectArray(data?.orders),
+    immediateOrders: ensureObjectArray(data?.immediateOrders),
+    scheduledOrders: ensureObjectArray(data?.scheduledOrders),
+    deliveries: ensureObjectArray(data?.deliveries),
+    stores: ensureObjectArray(data?.stores),
+    storeTypes: ensureObjectArray(data?.storeTypes),
+    requests: ensureObjectArray(data?.requests),
+    metrics: normalizeAdminMetrics(data?.metrics),
+    series: {
+      byDay: ensureObjectArray(data?.series?.byDay),
+      byHour: ensureObjectArray(data?.series?.byHour),
+    },
+    storePerformance: ensureObjectArray(data?.storePerformance),
+    slaAlerts: ensureObjectArray(data?.slaAlerts),
+    liveOrders: ensureObjectArray(data?.liveOrders),
+    error: String(data?.error || ""),
+  };
 }
 
 function getToneTagClass(tone) {
@@ -198,6 +255,7 @@ function buildPerformanceSearchParams({ periodDays, rangeMode, customRange, gran
 
 const ADMIN_DASHBOARD_TABS = [
   { id: "dashboard", label: "Dashboard", description: "Ultimos pedidos e entregas recentes", icon: "dashboard" },
+  { id: "customers", label: "Clientes", description: "Analise de atividade e valor por cliente", icon: "dashboard" },
   { id: "restaurants", label: "Gestao de Restaurantes", description: "Auto-accept e comissao por loja", icon: "restaurants" },
   { id: "promotions", label: "Promocoes", description: "Campanhas e futuras ativacoes", icon: "promotions" },
 ];
@@ -205,8 +263,7 @@ const ADMIN_DASHBOARD_TABS = [
 export default function DashboardAdmin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const userRaw = localStorage.getItem("pedeja_user");
-  const user = userRaw ? JSON.parse(userRaw) : null;
+  const user = readUserFromStorageSafe();
   const queryStoreId = searchParams.get("loja") || "";
   const queryTab = searchParams.get("tab") || "";
   const initialTab = ADMIN_DASHBOARD_TABS.some((tab) => tab.id === queryTab) ? queryTab : "dashboard";
@@ -219,6 +276,7 @@ export default function DashboardAdmin() {
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [selectedStoreId, setSelectedStoreId] = useState(queryStoreId);
   const [storeSearch, setStoreSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [expandedRequestId, setExpandedRequestId] = useState("");
   const [trackingModal, setTrackingModal] = useState({ open: false, url: "", title: "Tracking Shipday" });
   const [orderDetailModal, setOrderDetailModal] = useState({ open: false, loading: false, error: "", data: null });
@@ -273,9 +331,22 @@ export default function DashboardAdmin() {
     success: "",
   });
   const [liveCarriers, setLiveCarriers] = useState([]);
+  const [customerInsights, setCustomerInsights] = useState({
+    loading: false,
+    error: "",
+    metrics: {
+      totalCustomers: 0,
+      customersWithOrders: 0,
+      activeCustomers30d: 0,
+      totalOrders: 0,
+      totalSpent: 0,
+      avgTicket: 0,
+      avgSpentPerCustomer: 0,
+    },
+    customers: [],
+  });
   const ordersRef = useRef([]);
   const assigningTimeoutRollbackInFlightRef = useRef(new Set());
-  const scheduledShipdayBootstrapInFlightRef = useRef(new Set());
   const autoAssignInFlightRef = useRef(new Set());
   const dashboardWindowInput = useMemo(
     () => buildWindowInput({ rangeMode, periodDays, customRange }),
@@ -287,19 +358,31 @@ export default function DashboardAdmin() {
   );
 
   const storeTypeMap = useMemo(
-    () => new Map((state.storeTypes || []).map((item) => [String(item.idtipoloja), item.descricao || item.tipoloja])),
+    () => new Map(
+      ensureObjectArray(state?.storeTypes)
+        .map((item) => [String(item?.idtipoloja || ""), item?.descricao || item?.tipoloja || ""])
+        .filter(([id]) => Boolean(id)),
+    ),
     [state.storeTypes],
   );
   const storeNameById = useMemo(
-    () => new Map((state.stores || []).map((store) => [String(store.idloja), store.nome || `Loja ${store.idloja}`])),
+    () => new Map(
+      ensureObjectArray(state?.stores)
+        .map((store) => [String(store?.idloja || ""), store?.nome || `Loja ${store?.idloja || "-"}`])
+        .filter(([id]) => Boolean(id)),
+    ),
     [state.stores],
   );
   const storesById = useMemo(
-    () => new Map((state.stores || []).map((store) => [String(store.idloja), store])),
+    () => new Map(
+      ensureObjectArray(state?.stores)
+        .map((store) => [String(store?.idloja || ""), store])
+        .filter(([id]) => Boolean(id)),
+    ),
     [state.stores],
   );
   const storesOrderedById = useMemo(
-    () => [...(state.stores || [])].sort((a, b) => Number(a.idloja || 0) - Number(b.idloja || 0)),
+    () => [...ensureArray(state?.stores)].filter(Boolean).sort((a, b) => Number(a?.idloja || 0) - Number(b?.idloja || 0)),
     [state.stores],
   );
   const filteredStoresForPicker = useMemo(() => {
@@ -307,14 +390,24 @@ export default function DashboardAdmin() {
     if (!search) return storesOrderedById;
     return storesOrderedById.filter((store) => normalizeSearch(store.nome).includes(search));
   }, [storeSearch, storesOrderedById]);
+  const filteredCustomers = useMemo(() => {
+    const search = normalizeSearch(customerSearch);
+    if (!search) return customerInsights.customers || [];
+    return (customerInsights.customers || []).filter((customer) => {
+      const name = normalizeSearch(customer?.name || "");
+      const emailMasked = normalizeSearch(customer?.email_masked || "");
+      const favoriteStore = normalizeSearch(customer?.favorite_store_name || "");
+      return name.includes(search) || emailMasked.includes(search) || favoriteStore.includes(search);
+    });
+  }, [customerInsights.customers, customerSearch]);
   const selectedStore = useMemo(
     () => storesOrderedById.find((store) => String(store.idloja) === String(selectedStoreId)) || null,
     [selectedStoreId, storesOrderedById],
   );
   const latestDeliveryByOrderId = useMemo(() => {
     const map = new Map();
-    (state.deliveries || []).forEach((delivery) => {
-      const key = String(delivery.order_id || "");
+    ensureObjectArray(state?.deliveries).forEach((delivery) => {
+      const key = String(delivery?.order_id || "");
       if (!key || map.has(key)) return;
       map.set(key, delivery);
     });
@@ -322,25 +415,42 @@ export default function DashboardAdmin() {
   }, [state.deliveries]);
   const managementStores = useMemo(() => (selectedStore ? [selectedStore] : []), [selectedStore]);
   const dailyRevenue = useMemo(
-    () => state.series.byDay.map((item) => ({ label: item.day, value: item.revenue })),
-    [state.series.byDay],
+    () => ensureArray(state?.series?.byDay).map((item) => ({ label: item?.day, value: item?.revenue })),
+    [state?.series?.byDay],
   );
   const hourlyDemand = useMemo(
-    () => state.series.byHour.map((item) => ({ label: `${String(item.hour).padStart(2, "0")}h`, value: item.orders })),
-    [state.series.byHour],
+    () => ensureArray(state?.series?.byHour).map((item) => ({ label: `${String(item?.hour).padStart(2, "0")}h`, value: item?.orders })),
+    [state?.series?.byHour],
   );
-  const liveCarrierEntries = useMemo(
-    () => buildLiveCarrierBoardEntries({
-      carriers: liveCarriers,
-      orders: state.immediateOrders,
-      stores: state.stores,
-    }),
-    [liveCarriers, state.immediateOrders, state.stores],
-  );
+  const liveCarrierEntries = useMemo(() => {
+    try {
+      return buildLiveCarrierBoardEntries({
+        carriers: ensureArray(liveCarriers),
+        orders: ensureObjectArray(state?.immediateOrders),
+        stores: ensureObjectArray(state?.stores),
+        deliveries: ensureObjectArray(state?.deliveries),
+        mode: "admin",
+      });
+    } catch (error) {
+      console.error("Live Geo Board falhou ao normalizar dados dos estafetas", error);
+      return [];
+    }
+  }, [liveCarriers, state?.deliveries, state?.immediateOrders, state?.stores]);
   const slaBreachedOrderIds = useMemo(
-    () => new Set((state.slaAlerts || []).filter((alert) => alert.driverAssignmentDelay).map((alert) => String(alert.id))),
+    () => new Set(
+      ensureObjectArray(state?.slaAlerts)
+        .filter((alert) => Boolean(alert?.driverAssignmentDelay || alert?.driver_assignment_delay))
+        .map((alert) => String(alert?.id || ""))
+        .filter(Boolean),
+    ),
     [state.slaAlerts],
   );
+  const safeSlaAlerts = useMemo(() => ensureObjectArray(state?.slaAlerts), [state?.slaAlerts]);
+  const safeScheduledOrders = useMemo(() => ensureObjectArray(state?.scheduledOrders), [state?.scheduledOrders]);
+  const safeImmediateOrders = useMemo(() => ensureObjectArray(state?.immediateOrders), [state?.immediateOrders]);
+  const safeDeliveries = useMemo(() => ensureObjectArray(state?.deliveries), [state?.deliveries]);
+  const safeStorePerformance = useMemo(() => ensureObjectArray(state?.storePerformance), [state?.storePerformance]);
+  const safeRequests = useMemo(() => ensureObjectArray(state?.requests), [state?.requests]);
 
   useEffect(() => {
     ordersRef.current = state.orders || [];
@@ -363,7 +473,8 @@ export default function DashboardAdmin() {
     );
 
     if (!selectedStoreId || !existsInFiltered) {
-      setSelectedStoreId(String(filteredStoresForPicker[0].idloja));
+      const firstStoreId = filteredStoresForPicker[0]?.idloja;
+      setSelectedStoreId(firstStoreId ? String(firstStoreId) : "");
     }
   }, [filteredStoresForPicker, selectedStoreId]);
 
@@ -504,68 +615,80 @@ export default function DashboardAdmin() {
 
   const load = useCallback(async (input = dashboardWindowInput) => {
     setState((prev) => ({ ...prev, loading: true }));
-    const data = await fetchAdminDashboard(input);
-    setState({
-      ...data,
-      orders: data.orders || [],
-      loading: false,
-      error: data.error || "",
-    });
+    try {
+      const data = await fetchAdminDashboard(input);
+      const normalized = normalizeAdminDashboardData(data);
+      setState({
+        ...normalized,
+        loading: false,
+      });
 
-    const stores = [...(data.stores || [])].sort((a, b) => Number(a.idloja || 0) - Number(b.idloja || 0));
-    setSelectedStoreId((prev) => {
-      if (queryStoreId && stores.some((store) => String(store.idloja) === String(queryStoreId))) {
-        return String(queryStoreId);
-      }
+      const stores = [...ensureArray(normalized.stores)].sort((a, b) => Number(a?.idloja || 0) - Number(b?.idloja || 0));
+      setSelectedStoreId((prev) => {
+        if (queryStoreId && stores.some((store) => String(store.idloja) === String(queryStoreId))) {
+          return String(queryStoreId);
+        }
 
-      if (prev && stores.some((store) => String(store.idloja) === String(prev))) {
-        return String(prev);
-      }
+        if (prev && stores.some((store) => String(store.idloja) === String(prev))) {
+          return String(prev);
+        }
 
-      return stores.length > 0 ? String(stores[0].idloja) : "";
-    });
+        return stores.length > 0 ? String(stores[0].idloja) : "";
+      });
+    } catch (error) {
+      console.error("Falha inesperada ao carregar dashboard admin", error);
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: error?.message || "Falha inesperada no dashboard admin.",
+      }));
+    }
   }, [dashboardWindowInput, queryStoreId]);
+
+  const loadCustomerInsights = useCallback(async (input = dashboardWindowInput) => {
+    setCustomerInsights((prev) => ({
+      ...prev,
+      loading: true,
+      error: "",
+    }));
+
+    try {
+      const data = await fetchAdminCustomerInsights(input);
+      const normalizedMetrics = {
+        totalCustomers: Number(data?.metrics?.totalCustomers || 0),
+        customersWithOrders: Number(data?.metrics?.customersWithOrders || 0),
+        activeCustomers30d: Number(data?.metrics?.activeCustomers30d || 0),
+        totalOrders: Number(data?.metrics?.totalOrders || 0),
+        totalSpent: Number(data?.metrics?.totalSpent || 0),
+        avgTicket: Number(data?.metrics?.avgTicket || 0),
+        avgSpentPerCustomer: Number(data?.metrics?.avgSpentPerCustomer || 0),
+      };
+      setCustomerInsights((prev) => ({
+        ...prev,
+        loading: false,
+        error: data?.error || "",
+        metrics: normalizedMetrics,
+        customers: ensureObjectArray(data?.customers),
+      }));
+    } catch (error) {
+      console.error("Falha inesperada ao carregar insights de clientes", error);
+      setCustomerInsights((prev) => ({
+        ...prev,
+        loading: false,
+        error: error?.message || "Falha inesperada ao carregar clientes.",
+      }));
+    }
+  }, [dashboardWindowInput]);
 
   const loadLiveCarriers = useCallback(async () => {
     try {
       const carriers = await retrieveShipdayCarriers();
-      setLiveCarriers(carriers);
+      setLiveCarriers(ensureArray(carriers));
     } catch (error) {
       console.error("Falha ao carregar estafetas online para o live board", error);
+      setLiveCarriers([]);
     }
   }, []);
-
-  const ensureScheduledImmediateOrdersAreShipdayReady = useCallback(async (orders = []) => {
-    const candidates = (orders || []).filter((order) => needsScheduledShipdayBootstrap(order));
-    if (candidates.length === 0) return;
-
-    let createdAtLeastOne = false;
-
-    for (const order of candidates) {
-      const key = String(order?.id || "");
-      if (!key || scheduledShipdayBootstrapInFlightRef.current.has(key)) continue;
-
-      scheduledShipdayBootstrapInFlightRef.current.add(key);
-
-      try {
-        await createShipdayOrderForOrder({ orderId: order.id });
-        createdAtLeastOne = true;
-      } catch (error) {
-        console.error("Falha ao ativar Shipday para pedido agendado na janela imediata", {
-          orderId: order?.id ?? null,
-          lojaId: order?.loja_id ?? null,
-          shipdayOrderId: order?.shipday_order_id ?? null,
-          error,
-        });
-      } finally {
-        scheduledShipdayBootstrapInFlightRef.current.delete(key);
-      }
-    }
-
-    if (createdAtLeastOne) {
-      await load();
-    }
-  }, [load]);
 
   useEffect(() => {
     load();
@@ -580,6 +703,13 @@ export default function DashboardAdmin() {
     const timer = setInterval(loadLiveCarriers, 30000);
     return () => clearInterval(timer);
   }, [activeTab, loadLiveCarriers]);
+
+  useEffect(() => {
+    if (activeTab !== "customers") return undefined;
+    loadCustomerInsights();
+    const timer = setInterval(() => loadCustomerInsights(), 45000);
+    return () => clearInterval(timer);
+  }, [activeTab, loadCustomerInsights]);
 
   const persistAcceptedCarrierReset = useCallback(async (orderId) => {
     const basePatch = {
@@ -829,28 +959,6 @@ export default function DashboardAdmin() {
 
     return () => clearInterval(timer);
   }, [rollbackTimedOutCarrierAssignment]);
-
-  useEffect(() => {
-    if (state.loading) return;
-    ensureScheduledImmediateOrdersAreShipdayReady(state.immediateOrders);
-  }, [ensureScheduledImmediateOrdersAreShipdayReady, state.immediateOrders, state.loading]);
-
-  useEffect(() => {
-    if (state.loading) return;
-
-    const autoAssignableOrders = (state.immediateOrders || []).filter((order) => {
-      const store = storesById.get(String(order?.loja_id || ""));
-      const effectiveAutoAssignConfig = resolveEffectiveAutoAssignConfig(store, globalAutoAssign);
-      return effectiveAutoAssignConfig.enabled
-        && shouldAutoAssignNow(order)
-        && resolveOrderEstadoInterno(order) === "aceite"
-        && !hasAssignedDriver(order);
-    });
-
-    autoAssignableOrders.forEach((order) => {
-      runAutoAssignForOrder(order, { silent: true });
-    });
-  }, [globalAutoAssign, runAutoAssignForOrder, state.immediateOrders, state.loading, storesById]);
 
   const reviewRequest = async (requestId, status) => {
     setReviewingId(requestId);
@@ -1215,9 +1323,17 @@ export default function DashboardAdmin() {
               </label>
             </div>
           ) : null}
-          <button className="btn-dashboard" onClick={() => load()}>Atualizar</button>
+          <button
+            className="btn-dashboard"
+            onClick={() => (activeTab === "customers" ? loadCustomerInsights() : load())}
+          >
+            Atualizar
+          </button>
           <button className="btn-dashboard secondary" onClick={() => navigate(`/dashboard/admin/performance?${performanceSearch}`)}>
             Performance
+          </button>
+          <button className="btn-dashboard secondary" onClick={() => navigate(`/dashboard/admin/geoboard?${performanceSearch}`)}>
+            Live Geo
           </button>
           <button className="btn-dashboard secondary" onClick={() => navigate("/")}>Website</button>
         </div>
@@ -1236,7 +1352,7 @@ export default function DashboardAdmin() {
               onKeyDown={(event) => handleRowKeyDown(event, () => navigate(`/dashboard/admin/receita?days=${periodDays}`))}
             >
               <div className="metric-label">Receita</div>
-              <div className="metric-value">{state.metrics.totalRevenue.toFixed(2)}EUR</div>
+              <div className="metric-value">{safeFixed(state?.metrics?.totalRevenue, 2)}EUR</div>
               <div className="metric-foot">Abrir detalhe da receita</div>
             </article>
             <article className="metric-card premium">
@@ -1251,17 +1367,17 @@ export default function DashboardAdmin() {
             </article>
             <article className="metric-card premium">
               <div className="metric-label">Ticket medio</div>
-              <div className="metric-value">{state.metrics.avgTicket.toFixed(2)}EUR</div>
+              <div className="metric-value">{safeFixed(state?.metrics?.avgTicket, 2)}EUR</div>
               <div className="metric-foot">Valor por pedido</div>
             </article>
             <article className="metric-card premium">
               <div className="metric-label">Entrega concluida</div>
-              <div className="metric-value">{state.metrics.deliveredRate.toFixed(1)}%</div>
+              <div className="metric-value">{safeFixed(state?.metrics?.deliveredRate, 1)}%</div>
               <div className="metric-foot">Qualidade operacional</div>
             </article>
             <article className="metric-card premium">
               <div className="metric-label">Cancelamento</div>
-              <div className="metric-value">{state.metrics.cancelRate.toFixed(1)}%</div>
+              <div className="metric-value">{safeFixed(state?.metrics?.cancelRate, 1)}%</div>
               <div className="metric-foot">Risco de churn</div>
             </article>
             <article className="metric-card premium">
@@ -1272,7 +1388,14 @@ export default function DashboardAdmin() {
           </section>
 
           <section className="panel-grid admin-top-grid">
-            <LiveOperationsBoard orders={state.immediateOrders} carriers={liveCarrierEntries} stores={state.stores} />
+            <LiveOperationsBoard
+              mode="admin"
+              orders={safeImmediateOrders}
+              carriers={liveCarrierEntries}
+              stores={ensureObjectArray(state?.stores)}
+              onOpenDetails={() => navigate(`/dashboard/admin/geoboard?${performanceSearch}`)}
+              openDetailsLabel="Abrir painel completo"
+            />
 
             <article className="panel sla-panel">
               <h3>Alertas SLA</h3>
@@ -1289,7 +1412,7 @@ export default function DashboardAdmin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {state.slaAlerts.map((alert) => (
+                    {safeSlaAlerts.map((alert) => (
                       <tr key={alert.id}>
                         <td>{String(alert.id).slice(0, 8)}</td>
                         <td>{storeNameById.get(String(alert.loja_id)) || `Loja ${alert.loja_id}`}</td>
@@ -1302,7 +1425,7 @@ export default function DashboardAdmin() {
                         <td>{alert.threshold} min</td>
                       </tr>
                     ))}
-                    {!state.loading && state.slaAlerts.length === 0 ? (
+                    {!state.loading && safeSlaAlerts.length === 0 ? (
                       <tr><td colSpan={5}>Sem breaches de SLA.</td></tr>
                     ) : null}
                   </tbody>
@@ -1339,7 +1462,7 @@ export default function DashboardAdmin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {state.scheduledOrders.slice(0, 14).map((order) => {
+                  {safeScheduledOrders.slice(0, 14).map((order) => {
                     const estadoInterno = resolveOrderEstadoInterno(order);
                     const canCancelOrder = !["entregue", "cancelado"].includes(estadoInterno);
                     const scheduledStateView = getScheduledOperationalStateView(order);
@@ -1381,7 +1504,7 @@ export default function DashboardAdmin() {
                     );
                   })}
 
-                  {!state.loading && state.scheduledOrders.length === 0 ? (
+                  {!state.loading && safeScheduledOrders.length === 0 ? (
                     <tr><td colSpan={8}>Sem pedidos agendados nesta janela.</td></tr>
                   ) : null}
                 </tbody>
@@ -1412,7 +1535,7 @@ export default function DashboardAdmin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {state.immediateOrders.slice(0, 14).map((order) => {
+                  {safeImmediateOrders.slice(0, 14).map((order) => {
                     const estadoInterno = resolveOrderEstadoInterno(order);
                     const latestDelivery = latestDeliveryByOrderId.get(String(order.id));
                     const rowHasAssignedDriver = hasAssignedDriver(order);
@@ -1518,7 +1641,7 @@ export default function DashboardAdmin() {
                     );
                   })}
 
-                  {!state.loading && state.immediateOrders.length === 0 ? (
+                  {!state.loading && safeImmediateOrders.length === 0 ? (
                     <tr><td colSpan={8}>Sem pedidos nesta janela.</td></tr>
                   ) : null}
                 </tbody>
@@ -1546,7 +1669,7 @@ export default function DashboardAdmin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {state.deliveries.slice(0, 14).map((delivery) => {
+                  {safeDeliveries.slice(0, 14).map((delivery) => {
                     const deliveryStatusView = getDeliveryStatusView(delivery.status);
                     const rawDeliveryStatus = String(delivery.status || "").toUpperCase();
 
@@ -1582,8 +1705,112 @@ export default function DashboardAdmin() {
                       </tr>
                     );
                   })}
-                  {!state.loading && state.deliveries.length === 0 ? (
+                  {!state.loading && safeDeliveries.length === 0 ? (
                     <tr><td colSpan={5}>Sem entregas nesta janela.</td></tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      ) : null}
+
+      {activeTab === "customers" ? (
+        <div className="dashboard-stack">
+          <section className="dashboard-grid premium-grid">
+            <article className="metric-card premium">
+              <div className="metric-label">Clientes registados</div>
+              <div className="metric-value">{customerInsights.metrics.totalCustomers}</div>
+              <div className="metric-foot">Base de clientes sem contas staff/admin</div>
+            </article>
+            <article className="metric-card premium">
+              <div className="metric-label">Clientes com pedidos</div>
+              <div className="metric-value">{customerInsights.metrics.customersWithOrders}</div>
+              <div className="metric-foot">Pelo menos uma compra na janela selecionada</div>
+            </article>
+            <article className="metric-card premium">
+              <div className="metric-label">Ativos 30 dias</div>
+              <div className="metric-value">{customerInsights.metrics.activeCustomers30d}</div>
+              <div className="metric-foot">Clientes com pedido recente</div>
+            </article>
+            <article className="metric-card premium">
+              <div className="metric-label">Pedidos</div>
+              <div className="metric-value">{customerInsights.metrics.totalOrders}</div>
+              <div className="metric-foot">Total da janela selecionada</div>
+            </article>
+            <article className="metric-card premium">
+              <div className="metric-label">Receita clientes</div>
+              <div className="metric-value">{safeFixed(customerInsights?.metrics?.totalSpent, 2)}EUR</div>
+              <div className="metric-foot">Gasto acumulado dos clientes</div>
+            </article>
+            <article className="metric-card premium">
+              <div className="metric-label">Ticket medio</div>
+              <div className="metric-value">{safeFixed(customerInsights?.metrics?.avgTicket, 2)}EUR</div>
+              <div className="metric-foot">Media por pedido cliente</div>
+            </article>
+            <article className="metric-card premium">
+              <div className="metric-label">LTV medio cliente</div>
+              <div className="metric-value">{safeFixed(customerInsights?.metrics?.avgSpentPerCustomer, 2)}EUR</div>
+              <div className="metric-foot">Media de gasto por cliente comprador</div>
+            </article>
+          </section>
+
+          {customerInsights.error ? <p className="shipday-inline-error">{customerInsights.error}</p> : null}
+
+          <article className="panel">
+            <div className="panel-header-inline">
+              <div>
+                <h3>Clientes da plataforma</h3>
+                <p className="muted">
+                  Vista sem dados privados sensiveis. Inclui comportamento de compra, ticket medio e restaurante favorito.
+                </p>
+              </div>
+
+              <label className="dashboard-toolbar-field customer-search-field">
+                <span className="muted">Pesquisar cliente</span>
+                <input
+                  type="text"
+                  placeholder="Nome, email mascarado ou loja favorita"
+                  value={customerSearch}
+                  onChange={(event) => setCustomerSearch(event.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="table-wrap">
+              <table className="ops-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Email</th>
+                    <th>Membro desde</th>
+                    <th>Pedidos</th>
+                    <th>Gasto</th>
+                    <th>Ticket medio</th>
+                    <th>Restaurante favorito</th>
+                    <th>Pico semanal</th>
+                    <th>Pico horario</th>
+                    <th>Ultimo pedido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCustomers.map((customer) => (
+                    <tr key={customer.customer_id}>
+                      <td>{customer.name}</td>
+                      <td>{customer.email_masked || "-"}</td>
+                      <td>{customer.member_since ? new Date(customer.member_since).toLocaleDateString("pt-PT") : "-"}</td>
+                      <td>{customer.orders_count}</td>
+                      <td>{Number(customer.total_spent || 0).toFixed(2)}EUR</td>
+                      <td>{Number(customer.avg_ticket || 0).toFixed(2)}EUR</td>
+                      <td>{customer.favorite_store_name || "-"}</td>
+                      <td>{customer.peak_weekday !== "-" ? `${customer.peak_weekday} (${customer.peak_weekday_orders})` : "-"}</td>
+                      <td>{customer.peak_hour !== "-" ? `${customer.peak_hour} (${customer.peak_hour_orders})` : "-"}</td>
+                      <td>{customer.last_order_at ? new Date(customer.last_order_at).toLocaleString("pt-PT") : "-"}</td>
+                    </tr>
+                  ))}
+
+                  {!customerInsights.loading && filteredCustomers.length === 0 ? (
+                    <tr><td colSpan={10}>Sem clientes para mostrar com os filtros atuais.</td></tr>
                   ) : null}
                 </tbody>
               </table>
@@ -1699,13 +1926,13 @@ export default function DashboardAdmin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {state.storePerformance.map((store) => (
+                    {safeStorePerformance.map((store) => (
                       <tr key={store.lojaId}>
                         <td>{store.lojaNome}</td>
                         <td>{store.orders}</td>
-                        <td>{store.revenue.toFixed(2)}EUR</td>
-                        <td>{store.avgTicket.toFixed(2)}EUR</td>
-                        <td><span className="tag ok">{store.deliveredRate.toFixed(1)}%</span></td>
+                        <td>{safeFixed(store?.revenue, 2)}EUR</td>
+                        <td>{safeFixed(store?.avgTicket, 2)}EUR</td>
+                        <td><span className="tag ok">{safeFixed(store?.deliveredRate, 1)}%</span></td>
                         <td>
                           <button className="btn-dashboard small" onClick={() => openRestaurantDashboard(store.lojaId)}>
                             Abrir
@@ -1713,7 +1940,7 @@ export default function DashboardAdmin() {
                         </td>
                       </tr>
                     ))}
-                    {!state.loading && state.storePerformance.length === 0 ? (
+                    {!state.loading && safeStorePerformance.length === 0 ? (
                       <tr><td colSpan={6}>Sem dados de lojas.</td></tr>
                     ) : null}
                   </tbody>
@@ -1739,7 +1966,7 @@ export default function DashboardAdmin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {state.requests.map((request) => {
+                  {safeRequests.map((request) => {
                     const isExpanded = expandedRequestId === request.id;
                     const backgroundPreview = safeImage(request.imagemfundo);
                     const iconPreview = safeImage(request.icon);
@@ -1804,7 +2031,7 @@ export default function DashboardAdmin() {
                       </Fragment>
                     );
                   })}
-                  {!state.loading && state.requests.length === 0 ? (
+                  {!state.loading && safeRequests.length === 0 ? (
                     <tr><td colSpan={6}>Sem pedidos pendentes.</td></tr>
                   ) : null}
                 </tbody>

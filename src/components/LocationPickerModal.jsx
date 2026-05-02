@@ -34,6 +34,8 @@ export default function LocationPickerModal({
   initialLng = null,
   deliveryPricingConfig = null,
   deliveryFeeFallback = null,
+  showDeliveryPricing = true,
+  enforceDeliveryZone = true,
   onCancel,
   onConfirm,
 }) {
@@ -56,6 +58,10 @@ export default function LocationPickerModal({
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [distanceKm, setDistanceKm] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const mapCenter = useMemo(
+    () => (showDeliveryPricing ? FIXED_BARCELOS_CENTER : initialPoint),
+    [initialPoint, showDeliveryPricing],
+  );
   const pricingRings = useMemo(
     () => buildDeliveryPricingDistanceRings(deliveryPricingConfig),
     [deliveryPricingConfig],
@@ -66,8 +72,17 @@ export default function LocationPickerModal({
   );
 
   const deliveryQuote = useMemo(
-    () => computeDeliveryQuoteByDistance(distanceKm, deliveryPricingConfig, deliveryFeeFallback),
-    [deliveryFeeFallback, deliveryPricingConfig, distanceKm],
+    () => (
+      showDeliveryPricing
+        ? computeDeliveryQuoteByDistance(distanceKm, deliveryPricingConfig, deliveryFeeFallback)
+        : {
+          deliverable: true,
+          fee: 0,
+          distanceKm: null,
+          reason: "",
+        }
+    ),
+    [deliveryFeeFallback, deliveryPricingConfig, distanceKm, showDeliveryPricing],
   );
 
   useEffect(() => {
@@ -92,7 +107,7 @@ export default function LocationPickerModal({
         }
 
         const map = new window.google.maps.Map(mapElementRef.current, {
-          center: FIXED_BARCELOS_CENTER,
+          center: mapCenter,
           zoom: 13,
           minZoom: 6,
           maxZoom: 19,
@@ -115,11 +130,12 @@ export default function LocationPickerModal({
         markerRef.current = marker;
 
         circlesRef.current.forEach((circle) => circle.setMap(null));
-        circlesRef.current = pricingRings.map((ring, index) => {
+        circlesRef.current = showDeliveryPricing
+          ? pricingRings.map((ring, index) => {
           const color = createCircleColor(index);
           return new window.google.maps.Circle({
             map,
-            center: FIXED_BARCELOS_CENTER,
+            center: mapCenter,
             radius: ring.distanceKm * 1000,
             clickable: false,
             strokeColor: color,
@@ -128,7 +144,8 @@ export default function LocationPickerModal({
             fillColor: color,
             fillOpacity: 0.05,
           });
-        });
+          })
+          : [];
 
         const updateSelection = (lat, lng) => {
           marker.setPosition({ lat, lng });
@@ -150,8 +167,8 @@ export default function LocationPickerModal({
 
         setTimeout(() => {
           window.google.maps.event.trigger(map, "resize");
-          map.setCenter(FIXED_BARCELOS_CENTER);
-          map.setZoom(13);
+          map.setCenter(mapCenter);
+          map.setZoom(showDeliveryPricing ? 13 : 15);
         }, 120);
       })
       .catch((error) => {
@@ -169,10 +186,10 @@ export default function LocationPickerModal({
       markerRef.current = null;
       mapRef.current = null;
     };
-  }, [isOpen, initialPoint.lat, initialPoint.lng, pricingRings]);
+  }, [isOpen, initialPoint.lat, initialPoint.lng, mapCenter, pricingRings, showDeliveryPricing]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !showDeliveryPricing) return;
 
     let cancelled = false;
     setDistanceLoading(true);
@@ -195,13 +212,13 @@ export default function LocationPickerModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, selectedPoint.lat, selectedPoint.lng]);
+  }, [isOpen, selectedPoint.lat, selectedPoint.lng, showDeliveryPricing]);
 
   if (!isOpen) return null;
 
   const handleConfirm = async () => {
     setErrorMessage("");
-    if (!deliveryQuote.deliverable) {
+    if (showDeliveryPricing && enforceDeliveryZone && !deliveryQuote.deliverable) {
       setErrorMessage(deliveryQuote.reason || "Fora da zona de entrega.");
       return;
     }
@@ -237,27 +254,35 @@ export default function LocationPickerModal({
           <div ref={mapElementRef} className="location-picker-map" />
         </div>
 
-        <div className="location-picker-meta">
+        <div className={`location-picker-meta${showDeliveryPricing ? "" : " compact"}`}>
           <div>
             <strong>Coordenadas</strong>
             <p>{selectedPoint.lat.toFixed(6)}, {selectedPoint.lng.toFixed(6)}</p>
           </div>
-          <div>
-            <strong>Distancia real (carro)</strong>
-            <p>{distanceLoading ? "A calcular..." : formatDistanceKm(deliveryQuote.distanceKm)}</p>
-          </div>
-          <div>
-            <strong>Taxa estimada</strong>
-            <p>{deliveryQuote.deliverable ? `${Number(deliveryQuote.fee).toFixed(2)}EUR` : "-"}</p>
-          </div>
+          {showDeliveryPricing ? (
+            <>
+              <div>
+                <strong>Distancia real (carro)</strong>
+                <p>{distanceLoading ? "A calcular..." : formatDistanceKm(deliveryQuote.distanceKm)}</p>
+              </div>
+              <div>
+                <strong>Taxa estimada</strong>
+                <p>{deliveryQuote.deliverable ? `${Number(deliveryQuote.fee).toFixed(2)}EUR` : "-"}</p>
+              </div>
+            </>
+          ) : null}
         </div>
 
-        {!deliveryQuote.deliverable ? (
-          <p className="location-picker-error">
-            {deliveryQuote.reason || `Fora da zona de entrega (maximo ${maxDeliveryKm} km).`}
-          </p>
+        {showDeliveryPricing ? (
+          !deliveryQuote.deliverable ? (
+            <p className="location-picker-error">
+              {deliveryQuote.reason || `Fora da zona de entrega (maximo ${maxDeliveryKm} km).`}
+            </p>
+          ) : (
+            <p className="location-picker-ok">Ponto dentro da zona de entrega.</p>
+          )
         ) : (
-          <p className="location-picker-ok">Ponto dentro da zona de entrega.</p>
+          <p className="location-picker-ok">Localizacao pronta para ser usada.</p>
         )}
 
         {errorMessage ? <p className="location-picker-error">{errorMessage}</p> : null}
@@ -268,7 +293,12 @@ export default function LocationPickerModal({
             type="button"
             className="location-picker-btn primary"
             onClick={handleConfirm}
-            disabled={submitLoading || mapLoading || distanceLoading || !deliveryQuote.deliverable}
+            disabled={
+              submitLoading
+              || mapLoading
+              || (showDeliveryPricing && distanceLoading)
+              || (showDeliveryPricing && enforceDeliveryZone && !deliveryQuote.deliverable)
+            }
           >
             {submitLoading ? "A confirmar..." : "Usar este ponto"}
           </button>
