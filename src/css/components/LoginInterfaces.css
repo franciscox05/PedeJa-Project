@@ -499,3 +499,25 @@
   align-self: center;
   justify-self: center;
 }
+
+@media (max-width: 575.98px) {
+  .user-profile-container {
+    top: 15px;
+    right: 20px;
+  }
+
+  /* Botão de login: apenas ícone em mobile */
+  .user-profile {
+    height: 40px !important;
+    min-width: 40px !important;
+    padding: 0 8px;
+  }
+
+  .user-profile-inner {
+    gap: 0;
+  }
+
+  .user-profile-inner p {
+    display: none;
+  }
+}

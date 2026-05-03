@@ -60,3 +60,16 @@
   border-radius: 50%;
   border: 2px solid white;
 }
+
+@media (max-width: 575.98px) {
+  .header-right-actions {
+    top: 15px;
+    right: 10px;
+    gap: 8px;
+  }
+
+  .cart-widget-header {
+    width: 36px;
+    height: 36px;
+  }
+}

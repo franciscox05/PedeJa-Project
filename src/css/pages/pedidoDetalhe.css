@@ -501,7 +501,7 @@
 
 @media (max-width: 900px) {
   .pedido-detalhe-container {
-    padding-top: 150px;
+    padding-top: 130px;
   }
 
   .pedido-detalhe-card {
@@ -538,6 +538,36 @@
   .pedido-tracking-frame--expanded {
     min-height: 70vh;
     height: 70vh;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .pedido-detalhe-container {
+    padding-top: 100px;
+    padding-bottom: 80px;
+  }
+
+  .pedido-detalhe-card {
+    padding: 14px;
+  }
+
+  .pedido-header-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pedido-header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .pedido-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .pedido-workflow-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

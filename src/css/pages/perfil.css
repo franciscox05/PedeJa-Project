@@ -588,7 +588,7 @@
 
 @media (max-width: 768px) {
   .perfil-container {
-    padding-top: 150px;
+    padding-top: 130px;
   }
 
   .perfil-card-shell {
@@ -620,6 +620,26 @@
 
   .profile-order-right {
     justify-items: start;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .perfil-container {
+    padding-top: 100px;
+    padding-bottom: 80px;
+  }
+
+  .perfil-card-shell {
+    padding: 14px;
+  }
+
+  .profile-tabs {
+    gap: 6px;
+  }
+
+  .profile-tab-btn {
+    font-size: 0.82rem;
+    padding: 8px 12px;
   }
 }
 

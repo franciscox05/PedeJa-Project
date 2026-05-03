@@ -9,7 +9,10 @@ import RestauranteCard from "../components/RestauranteCard";
 import MenuGlobal from "../components/MenuGlobal.jsx";
 import SearchInputLojas from "../components/SearchInputLojas";
 import DropDownCategoriasLojas from "../components/DropDownCategoriasLojas";
-import { fetchFavoriteStoreIds, toggleFavoriteStore } from "../services/favoriteStoresService";
+import {
+  fetchFavoriteStoreIds,
+  toggleFavoriteStore,
+} from "../services/favoriteStoresService";
 import { resolveUserRole } from "../utils/roles";
 
 import "../css/index.css";
@@ -134,19 +137,25 @@ export default function Restaurantes() {
   const lojasFiltradas = restaurantes.filter((res) => {
     const term = normalizeText(searchTerm);
     const favoritesOnly = selectedSubCats.includes(FAVORITES_FILTER_ID);
-    const selectedCategoryIds = selectedSubCats.filter((item) => item !== FAVORITES_FILTER_ID);
+    const selectedCategoryIds = selectedSubCats.filter(
+      (item) => item !== FAVORITES_FILTER_ID,
+    );
 
     const matchesSearch = !term || normalizeText(res.nome).includes(term);
-    const matchesFavorites = !favoritesOnly || favoriteStoreIds.includes(Number(res.id));
+    const matchesFavorites =
+      !favoritesOnly || favoriteStoreIds.includes(Number(res.id));
 
     const matchesDropdown =
-      selectedCategoryIds.length === 0
-      || (res.subCategorias || []).some((c) => selectedCategoryIds.includes(String(c.idcategoria)));
+      selectedCategoryIds.length === 0 ||
+      (res.subCategorias || []).some((c) =>
+        selectedCategoryIds.includes(String(c.idcategoria)),
+      );
 
     return matchesSearch && matchesFavorites && matchesDropdown;
   });
 
-  const hasActiveFilters = Boolean(searchTerm.trim()) || selectedSubCats.length > 0;
+  const hasActiveFilters =
+    Boolean(searchTerm.trim()) || selectedSubCats.length > 0;
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -198,20 +207,28 @@ export default function Restaurantes() {
 
         <div className="filtros-row">
           <SearchInputLojas value={searchTerm} onSearch={setSearchTerm} />
-          <DropDownCategoriasLojas categorias={listaSubCategorias} valor={selectedSubCats} onChange={setSelectedSubCats} />
+          <DropDownCategoriasLojas
+            categorias={listaSubCategorias}
+            valor={selectedSubCats}
+            onChange={setSelectedSubCats}
+          />
           {hasActiveFilters ? (
-            <button type="button" className="clear-filters-btn" onClick={clearFilters}>
+            <button
+              type="button"
+              className="clear-filters-btn"
+              onClick={clearFilters}
+            >
               Limpar filtros
             </button>
           ) : null}
         </div>
 
-        <br />
-
         <div className="row justify-content-center">
           {loading ? (
             <div className="col-12 text-center" style={{ padding: "50px" }}>
-              <p style={{ color: "white", fontSize: "1.2rem" }}>A carregar...</p>
+              <p style={{ color: "white", fontSize: "1.2rem" }}>
+                A carregar...
+              </p>
             </div>
           ) : lojasFiltradas.length > 0 ? (
             lojasFiltradas.map((res) => (
