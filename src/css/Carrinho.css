@@ -7,6 +7,13 @@
     font-family: 'Arial', sans-serif;
 }
 
+@media (max-width: 575.98px){
+    .cart-page-wrapper h2{
+        right: 50px;
+        font-size: 20px;
+}
+}
+
 .cart-header-nav {
     background: white;
     padding: 20px;
@@ -159,4 +166,43 @@
 
 .btn-checkout-final:hover {
     background: #e03228;
+}
+
+@media (max-width: 575.98px) {
+  .cart-header-nav {
+    padding: 14px 16px;
+  }
+
+  .cart-header-nav h1 {
+    font-size: 1.4rem;
+  }
+
+  .cart-content-grid {
+    margin: 16px auto;
+    padding: 0 12px;
+    gap: 20px;
+  }
+
+  .cart-item-card {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .cart-item-img-box {
+    width: 60px;
+    height: 60px;
+  }
+
+  .cart-item-info {
+    gap: 12px;
+  }
+
+  .cart-summary-panel {
+    padding: 20px;
+    position: static;
+  }
+
+  .summary-row.total {
+    font-size: 1.2rem;
+  }
 }

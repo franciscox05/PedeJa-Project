@@ -130,3 +130,30 @@
   width: fit-content;
 }
 
+@media (max-width: 575.98px) {
+  .menu-hero-banner {
+    min-height: 170px;
+    margin-top: 4px;
+  }
+
+  .menu-hero-content {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .menu-hero-title-row h1 {
+    font-size: 1.5rem;
+  }
+
+  .menu-hero-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+
+  .menu-quicknav button {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+  }
+}
+

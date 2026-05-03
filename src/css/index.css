@@ -467,6 +467,8 @@ img {
   font-size: 30px;
 }
 
+
+
 /* BotÃ£o VOLTAR (Bola Vermelha) */
 .btn-voltar-fixo {
   position: fixed;
@@ -992,6 +994,16 @@ img {
 
 /* Ajuste para telemÃ³veis */
 @media (max-width: 576px) {
+    .btn-voltar-fixo {
+      top: 95px;
+      left: 20px;
+      width: 50px;
+      height: 50px;
+    }
+    .menu-iconini {
+      bottom: 0px;
+      right: 0px;
+    }
     .prato-card { flex-direction: column; }
     .prato-img-placeholder { width: 100%; height: 100px; }
     .prato-conteudo { flex-direction: column; align-items: flex-start; }
@@ -1343,4 +1355,77 @@ img {
   }
 }
 
+/* ===== RESPONSIVIDADE MOBILE (< 576px) ===== */
+@media (max-width: 575.98px) {
+  /* Logo menor e reposicionado */
+  #logoini {
+    width: 100px;
+    left: 10px;
+    top: 20px;
+  }
+
+  /* Wave bar mais curta para ganhar espaço */
+  #wave-top {
+    height: 85px;
+    border-bottom-left-radius: 50% 20px;
+    border-bottom-right-radius: 50% 20px;
+  }
+
+  /* Empurrar conteúdo para o centro da área vermelha */
+  #content {
+    margin: 150px 0 80px 0 !important;
+  }
+
+  /* Categorias */
+  .titulo-cidade {
+    font-size: 2rem;
+    letter-spacing: -0.3px;
+    margin-bottom: 15px;
+  }
+
+  /* Restaurantes */
+  .restaurantes-container {
+    padding-top: 100px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .restaurantes-title {
+    font-size: 1.6rem;
+    margin-bottom: 20px;
+    margin-top: 50px;
+    letter-spacing: 0;
+  }
+
+  .restaurantes-subtitle {
+    font-size: 0.95rem;
+    margin-top: 4px;
+  }
+
+  /* Página de menus */
+  .menus-main {
+    padding-top: 90px;
+  }
+
+  /* Categorias: coluna única para caber o nome da categoria */
+  #tipo {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Reduzir padding do container de categorias */
+  #content #div-right #base-right {
+    padding: 12px !important;
+  }
+
+  /* Manter flex centering vertical dentro do div-right */
+  #content #div-right {
+    min-height: 60vh !important;
+  }
+
+  /* Botão de categoria: mais espaço vertical para toque */
+  .categoria-btn {
+    padding: 14px 16px;
+  }
+}
 
