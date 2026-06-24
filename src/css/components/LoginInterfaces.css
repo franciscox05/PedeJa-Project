@@ -520,4 +520,9 @@
   .user-profile-inner p {
     display: none;
   }
+
+    .user-profile-inner img{
+    margin-left: 0px !important;
+  }
+
 }
