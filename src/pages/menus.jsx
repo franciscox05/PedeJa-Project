@@ -103,9 +103,7 @@ export default function Menus() {
   const scrollToCategory = (categoria) => {
     const anchorId = `cat-${slugifyCategory(categoria)}`;
     const el = document.getElementById(anchorId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (

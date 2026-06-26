@@ -105,6 +105,10 @@
   padding-bottom: 36px;
 }
 
+.categoria-wrapper {
+  scroll-margin-top: 146px;
+}
+
 @media (max-width: 768px) {
   .menu-hero-content {
     padding: 18px;

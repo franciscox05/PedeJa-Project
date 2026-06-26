@@ -22,7 +22,16 @@ function resolveStoreImage(value, folder) {
     return raw;
   }
 
-  return `/src/assets/img/restaurantes/${folder}/${raw}`;
+  const base = `/src/assets/img/restaurantes/`;
+  const prefix = `restaurantes/${folder}/`;
+  if (raw.startsWith(prefix)) {
+    return `${base}${raw.slice("restaurantes/".length)}`;
+  }
+  if (raw.startsWith(`${folder}/`)) {
+    return `${base}${raw}`;
+  }
+
+  return `${base}${folder}/${raw}`;
 }
 
 function summarizeSchedule(schedule) {

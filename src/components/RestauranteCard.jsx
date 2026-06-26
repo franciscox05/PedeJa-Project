@@ -163,38 +163,40 @@ function RestauranteCard({
       {showDetails && (
         <div className="store-details-backdrop" onClick={handleCloseDetails}>
           <div className="store-details-sheet" onClick={(e) => e.stopPropagation()}>
-            <button className="store-details-close" onClick={handleCloseDetails}>x</button>
+            <button className="store-details-close" onClick={handleCloseDetails}>✕</button>
 
             <div className="store-details-header">
               <h3>{restaurante.nome}</h3>
-              <span style={{ color: currentStatusColor, fontWeight: 800 }}>{currentStatusText}</span>
+              <span style={{ color: currentStatusColor, fontWeight: 700 }}>{currentStatusText}</span>
             </div>
 
-            <div className="store-details-block">
-              <span>Morada</span>
-              <p>{restaurante.morada || "Morada nao definida"}</p>
-            </div>
-
-            <div className="store-details-block">
-              <span>Contacto</span>
-              <p>{restaurante.contacto || "Sem contacto"}</p>
-            </div>
-
-            <div className="store-details-block">
-              <span>Horario</span>
-              <p>{scheduleSummary}</p>
-            </div>
-
-            {restaurante.statusDetalhe ? (
+            <div className="store-details-blocks">
               <div className="store-details-block">
-                <span>Horario especial</span>
-                <p>{restaurante.statusDetalhe}</p>
+                <span>Morada</span>
+                <p>{restaurante.morada || "Morada nao definida"}</p>
               </div>
-            ) : null}
 
-            <div className="store-details-block">
-              <span>Categorias</span>
-              <p>{subCategoryNames.length > 0 ? subCategoryNames.join(", ") : "Sem categorias"}</p>
+              <div className="store-details-block">
+                <span>Contacto</span>
+                <p>{restaurante.contacto || "Sem contacto"}</p>
+              </div>
+
+              <div className="store-details-block">
+                <span>Horario</span>
+                <p>{scheduleSummary}</p>
+              </div>
+
+              {restaurante.statusDetalhe ? (
+                <div className="store-details-block">
+                  <span>Horario especial</span>
+                  <p>{restaurante.statusDetalhe}</p>
+                </div>
+              ) : null}
+
+              <div className="store-details-block">
+                <span>Categorias</span>
+                <p>{subCategoryNames.length > 0 ? subCategoryNames.join(", ") : "Sem categorias"}</p>
+              </div>
             </div>
 
             <div className="store-details-actions">

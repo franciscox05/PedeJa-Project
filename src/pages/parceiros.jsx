@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LoginButton from "../components/LoginButton";
+import logoImg from "../assets/iconSite/logo.png";
 import {
   fetchRestaurantProfileByUser,
   fetchStoreTypes,
@@ -512,71 +513,65 @@ const handleSubmit = async (e) => {
   };
 
   const heroTitle = isEditMode
-    ? "Atualiza os dados da tua loja PedeJa"
-    : "Faz crescer o teu restaurante com a PedeJa";
+    ? "Atualiza os dados da tua loja PedeJá"
+    : "Faz crescer o teu restaurante com PedeJá";
 
   const heroLead = isEditMode
-    ? "Mantem horarios, imagens e dados fiscais sempre atualizados para melhorar a conversao no marketplace."
+    ? "Mantém horários, imagens e dados fiscais sempre atualizados para melhorar a conversão no marketplace."
     : "Chega a novos clientes, gere o teu menu em minutos e recebe pedidos integrados com Shipday.";
 
   return (
     <main className="partners-page">
       <header className="partners-topbar">
-        <div className="partners-logo">PEDEJA</div>
+        <img
+          src={logoImg}
+          alt="PedeJá"
+          className="partners-logo"
+          onClick={() => navigate("/")}
+          style={{ cursor: "pointer" }}
+        />
         <LoginButton />
       </header>
 
       <section className="partners-hero">
-        <div className="partners-hero-content">
-          <p className="partners-badge">PedeJa Partners</p>
-          <h1>{heroTitle}</h1>
-          <p className="partners-lead">{heroLead}</p>
-          <div className="partners-hero-actions">
-            <button className="btn-primary" onClick={() => document.getElementById("partner-form")?.scrollIntoView({ behavior: "smooth" })}>
-              {isEditMode ? "Editar dados" : "Tornar-me parceiro"}
+        <p className="partners-badge">PedeJá Partners</p>
+        <h1>{heroTitle}</h1>
+        <p className="partners-lead">{heroLead}</p>
+        <div className="partners-hero-actions">
+          <button className="btn-primary" onMouseDown={(e) => e.preventDefault()} onClick={() => document.getElementById("partner-form")?.scrollIntoView({ behavior: "smooth" })}>
+            {isEditMode ? "Editar dados" : "Tornar-me parceiro"}
+          </button>
+          {isEditMode && (
+            <button className="btn-secondary" onClick={() => navigate("/")}>
+              Voltar ao website
             </button>
-            {isEditMode && (
-              <button className="btn-secondary" onClick={() => navigate("/")}>
-                Voltar ao website
-              </button>
-            )}
-            <button className="btn-secondary" onClick={() => window.open("https://pedeja.pt/contatos.html", "_blank")}>Falar com a equipa</button>
-          </div>
-        </div>
-        <div className="partners-hero-card">
-          <div className="metric">
-            <span className="metric-value">+42%</span>
-            <span className="metric-label">media de crescimento mensal</span>
-          </div>
-          <div className="metric">
-            <span className="metric-value">24/7</span>
-            <span className="metric-label">suporte para parceiros</span>
-          </div>
-          <div className="metric">
-            <span className="metric-value">15 min</span>
-            <span className="metric-label">setup inicial do menu</span>
-          </div>
+          )}
+          <button className="btn-secondary" onMouseDown={(e) => e.preventDefault()} onClick={() => window.open("https://pedeja.pt/contatos.html", "_blank")}>Falar com a equipa</button>
         </div>
       </section>
 
       <section className="partners-benefits">
-        <h2>{isEditMode ? "Gestao continua da tua loja" : "Porque vale a pena juntar-se"}</h2>
+        <h2>{isEditMode ? "Gestão contínua da tua loja" : "Porque vale a pena juntar-se"}</h2>
         <div className="benefits-grid">
           <article>
+            <span className="benefit-icon">📣</span>
             <h3>Mais visibilidade</h3>
-            <p>O teu restaurante aparece na app PedeJa para milhares de clientes locais.</p>
+            <p>O teu restaurante aparece na app PedeJá para milhares de clientes locais.</p>
           </article>
           <article>
-            <h3>Gestao simples</h3>
-            <p>Controla menu, horarios e dados da loja num painel unico.</p>
+            <span className="benefit-icon">⚙️</span>
+            <h3>Gestão simples</h3>
+            <p>Controla menu, horários e dados da loja num painel único.</p>
           </article>
           <article>
-            <h3>Logistica integrada</h3>
+            <span className="benefit-icon">🚀</span>
+            <h3>Logística integrada</h3>
             <p>Envios sincronizados com Shipday para entregas consistentes.</p>
           </article>
         </div>
       </section>
 
+      <div className="partners-form-wrap">
       <section className="partners-form" id="partner-form">
         <div className="form-header">
           <h2>{isEditMode ? "Editar dados da loja" : "Pedido de parceria"}</h2>
@@ -589,10 +584,10 @@ const handleSubmit = async (e) => {
 
         {!user ? (
           <div className="login-prompt">
-            <p>Para continuar precisas de iniciar sessao.</p>
-            <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
-              <button className="btn-primary" onClick={promptLogin}>Iniciar sessao</button>
-              <button className="btn-secondary" onClick={() => navigate("/")}>Voltar ao inicio</button>
+            <p>Para continuar, precisas de iniciar sessão.</p>
+            <div className="login-prompt-actions">
+              <button className="btn-primary" onMouseDown={(e) => e.preventDefault()} onClick={promptLogin}>Iniciar sessão</button>
+              <button className="btn-secondary--dark" onMouseDown={(e) => e.preventDefault()} onClick={() => navigate("/")}>Voltar ao início</button>
             </div>
           </div>
         ) : loadingProfile ? (
@@ -601,7 +596,7 @@ const handleSubmit = async (e) => {
           </div>
         ) : isRestaurantRole && !storeProfile ? (
           <div className="login-prompt">
-            <p>Conta restaurante sem loja associada. Contacta o admin para finalizar a associacao.</p>
+            <p>Conta restaurante sem loja associada. Contacta o admin para finalizar a associação.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="form-grid">
@@ -854,6 +849,7 @@ const handleSubmit = async (e) => {
           </form>
         )}
       </section>
+      </div>
 
       <LocationPickerModal
         isOpen={showMapPicker}
