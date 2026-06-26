@@ -105,8 +105,209 @@
   padding-bottom: 36px;
 }
 
+.menu-items-grid > [class*="col-"] {
+  margin-bottom: 14px;
+}
+
 .categoria-wrapper {
   scroll-margin-top: 146px;
+}
+
+/* ── Category title ────────────────────────────── */
+.menu-seccao-titulo {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.01em;
+}
+
+.menu-seccao-titulo::before {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(180deg, #e62429, #c91b20);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Product card ──────────────────────────────── */
+.menu-item-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+  border: 1.5px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  position: relative;
+  min-height: 100px;
+  overflow: hidden;
+}
+
+.menu-item-card:hover {
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+  border-color: #fca5a5;
+}
+
+.menu-item-card.menu-item-card-sold-out {
+  opacity: 0.72;
+  border-color: #fee2e2;
+}
+
+/* thumbnail */
+.menu-item-thumb {
+  width: 82px;
+  height: 82px;
+  border-radius: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.menu-item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menu-item-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #6b1a1a 0%, #b91c1c 50%, #e8a0a0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-item-thumb-placeholder .material-icons {
+  font-size: 36px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* info */
+.menu-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-item-name {
+  font-size: 0.97rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-item-category {
+  display: inline-block;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: fit-content;
+}
+
+.menu-item-badge-soldout {
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #fecaca;
+  width: fit-content;
+  align-self: flex-start;
+}
+
+/* right col */
+.menu-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.menu-item-price {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #c91b20;
+}
+
+.menu-mini-btn.add {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #e62429, #c91b20);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(201, 27, 32, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.menu-mini-btn.add .material-icons {
+  font-size: 20px;
+}
+
+.menu-mini-btn.add:hover:not(.disabled) {
+  transform: scale(1.12);
+  box-shadow: 0 5px 16px rgba(201, 27, 32, 0.45);
+}
+
+.menu-mini-btn.add.disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* toast */
+.menu-toast {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  z-index: 5;
+  pointer-events: none;
+  animation: mpBackdropIn 0.2s ease;
+}
+
+.menu-toast.success {
+  background: #16a34a;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+}
+
+.menu-toast.error {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 @media (max-width: 768px) {

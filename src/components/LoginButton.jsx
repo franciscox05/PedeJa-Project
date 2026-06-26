@@ -113,7 +113,7 @@ function LoginButton() {
           >
             <div className="user-profile-inner">
               <img src={userGif} className="user-icon-img" alt="Login Icon" />
-              <p>Iniciar Sessao</p>
+              <p>Iniciar Sessão</p>
             </div>
           </div>
         </div>

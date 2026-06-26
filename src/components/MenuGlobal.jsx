@@ -59,7 +59,7 @@ function MenuGlobal() {
     }
 
     return {
-      partnerLabel: "Torne-se parceiro PedeJa",
+      partnerLabel: "Torne-se parceiro PedeJá",
       partnerRoute: "/parceiros",
       showPartnerAction: true,
     };
@@ -76,6 +76,7 @@ function MenuGlobal() {
         style={{
           display: menuAberto ? "block" : "none",
           backgroundColor: menuAberto ? "rgba(0,0,0,0.5)" : "transparent",
+          zIndex: 998,
         }}
         tabIndex={-1}
       >
@@ -101,8 +102,8 @@ function MenuGlobal() {
                 }}
                 className="menu-btn-custom"
               >
-                <img src={iconHome} className="menu-item-icon icon-red" alt="Inicio" />
-                Inicio
+                <img src={iconHome} className="menu-item-icon icon-red" alt="Início" />
+                Início
               </button>
 
               {showPartnerAction && (
@@ -127,22 +128,22 @@ function MenuGlobal() {
 
               <a href="https://pedeja.pt/contatos.html" style={{ textDecoration: "none" }}>
                 <button className="menu-btn-custom">
-                  <img src={iconPhone} className="menu-item-icon icon-red" alt="Contatos" />
-                  Contatos
+                  <img src={iconPhone} className="menu-item-icon icon-red" alt="Contactos" />
+                  Contactos
                 </button>
               </a>
 
               <a href="https://pedeja.pt/politicas.html" style={{ textDecoration: "none" }}>
                 <button className="menu-btn-custom">
-                  <img src={iconPolicy} className="menu-item-icon icon-red" alt="Politicas" />
-                  Politicas de privacidade
+                  <img src={iconPolicy} className="menu-item-icon icon-red" alt="Políticas" />
+                  Políticas de privacidade
                 </button>
               </a>
 
               <a href="https://pedeja.pt/termos.html" style={{ textDecoration: "none" }}>
                 <button className="menu-btn-custom">
                   <img src={iconTerms} className="menu-item-icon icon-red" alt="Termos" />
-                  Termos e condicoes
+                  Termos e condições
                 </button>
               </a>
             </div>

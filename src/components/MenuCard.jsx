@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
+import "../css/pages/menus.css";
 import { normalizePricedItem, resolveDisplayPrice } from "../services/pricingService";
 import MenuProductModal from "./MenuProductModal";
 
@@ -90,88 +91,40 @@ export default function MenuCard({ prato }) {
         <div
           className={`menu-item-card ${isSoldOut ? "menu-item-card-sold-out" : ""}`}
           onClick={openProductModal}
-          style={{
-            backgroundColor: "white",
-            borderRadius: "15px",
-            padding: "15px",
-            boxShadow: "0 4px 15px rgba(0,0,0,0.05)",
-            display: "flex",
-            alignItems: "center",
-            marginBottom: "20px",
-            position: "relative",
-            minHeight: "110px",
-            border: `1px solid ${isSoldOut ? "#f5c2c7" : "#f9f9f9"}`,
-            cursor: "pointer",
-            opacity: isSoldOut ? 0.88 : 1,
-          }}
         >
           {notificacao && (
             <div className="menu-toast success">Adicionado ao carrinho.</div>
           )}
-
           {showSoldOutNotice && (
             <div className="menu-toast error">Prato esgotado de momento.</div>
           )}
 
-          <div style={{ marginRight: "15px", flexShrink: 0 }}>
-            <div
-              style={{
-                width: "80px",
-                height: "80px",
-                background: "#f0f0f0",
-                borderRadius: "12px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-              }}
-            >
-              {prato.imagem ? (
-                <img src={prato.imagem} alt={prato.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              ) : (
-                <span className="material-icons" style={{ color: "white", fontSize: "40px", textShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-                  restaurant
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div style={{ flex: 1, paddingRight: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-              <div style={{ fontSize: "1.05rem", color: "#222", fontWeight: "700", lineHeight: "1.2" }}>
-                {prato.nome}
+          <div className="menu-item-thumb">
+            {prato.imagem ? (
+              <img src={prato.imagem} alt={prato.nome} />
+            ) : (
+              <div className="menu-item-thumb-placeholder">
+                <span className="material-icons">restaurant</span>
               </div>
-              {isSoldOut ? <span className="menu-item-badge-soldout">Esgotado</span> : null}
-            </div>
-            <small style={{ color: "#64748b", fontWeight: 600 }}>{categoryName}</small>
+            )}
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              height: "80px",
-              minWidth: "80px",
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontWeight: "800", color: "#d32f2f", fontSize: "1.1rem" }}>
-              {displayPrice.toFixed(2)}EUR
-            </span>
+          <div className="menu-item-info">
+            <span className="menu-item-name">{prato.nome}</span>
+            <span className="menu-item-category">{categoryName}</span>
+            {isSoldOut && <span className="menu-item-badge-soldout">Esgotado</span>}
+          </div>
 
+          <div className="menu-item-right">
+            <span className="menu-item-price">{displayPrice.toFixed(2)}€</span>
             <button
               onClick={openProductModal}
               disabled={isSoldOut}
               className={`menu-mini-btn add ${isSoldOut ? "disabled" : ""}`}
-              style={{
-                transform: animacao ? "scale(1.2)" : "scale(1)",
-                transition: "transform 0.2s",
-              }}
-              title={isSoldOut ? "Prato esgotado" : "Personalizar e adicionar ao carrinho"}
+              style={{ transform: animacao ? "scale(1.2)" : "scale(1)" }}
+              title={isSoldOut ? "Prato esgotado" : "Adicionar ao carrinho"}
             >
-              +
+              <span className="material-icons">add</span>
             </button>
           </div>
         </div>

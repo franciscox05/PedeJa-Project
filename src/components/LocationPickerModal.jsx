@@ -246,7 +246,9 @@ export default function LocationPickerModal({
             <h3>{title}</h3>
             <p>{subtitle}</p>
           </div>
-          <button type="button" className="location-picker-close" onClick={onCancel}>x</button>
+          <button type="button" className="location-picker-close" onClick={onCancel} aria-label="Fechar">
+            <span className="material-icons">close</span>
+          </button>
         </header>
 
         <div className="location-picker-map-wrap">

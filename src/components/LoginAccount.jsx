@@ -40,11 +40,11 @@ function LoginAccount({ aoMudarVista, aoAutenticar }) {
       <hr />
       <div>
         <form className="form" onSubmit={handleLogin}>
-          <label htmlFor="identifier">Email ou Telemovel:</label>
+          <label htmlFor="identifier">Email ou Telemóvel:</label>
           <input
             id="identifier"
             type="text"
-            placeholder="Email ou Telemovel"
+            placeholder="Email ou Telemóvel"
             required
             value={formData.identifier}
             onChange={handleChange}
@@ -69,7 +69,7 @@ function LoginAccount({ aoMudarVista, aoAutenticar }) {
 
         <div className="NaoTemConta">
           <p>
-            Nao tem conta?{" "}
+            Não tem conta?{" "}
             <strong onClick={() => aoMudarVista("criar")}>Criar agora</strong>
           </p>
         </div>

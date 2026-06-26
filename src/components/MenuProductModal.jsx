@@ -304,7 +304,9 @@ export default function MenuProductModal({
   return (
     <div className="menu-product-modal-backdrop" onClick={onClose}>
       <div className="menu-product-modal-sheet" onClick={(event) => event.stopPropagation()}>
-        <button type="button" className="menu-product-modal-close" onClick={onClose}>x</button>
+        <button type="button" className="menu-product-modal-close" onClick={onClose} aria-label="Fechar">
+          <span className="material-icons">close</span>
+        </button>
 
         <div className="menu-product-modal-media">
           {prato.imagem ? (
@@ -317,6 +319,7 @@ export default function MenuProductModal({
         </div>
 
         <div className="menu-product-modal-content">
+
           <header className="menu-product-modal-head">
             <div>
               <h3>{prato.nome}</h3>
@@ -418,15 +421,17 @@ export default function MenuProductModal({
                 type="button"
                 onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
                 disabled={quantity <= 1}
+                aria-label="Diminuir"
               >
-                -
+                <span className="material-icons">remove</span>
               </button>
               <span>{quantity}</span>
               <button
                 type="button"
                 onClick={() => setQuantity((prev) => prev + 1)}
+                aria-label="Aumentar"
               >
-                +
+                <span className="material-icons">add</span>
               </button>
             </div>
 

@@ -163,7 +163,9 @@ function RestauranteCard({
       {showDetails && (
         <div className="store-details-backdrop" onClick={handleCloseDetails}>
           <div className="store-details-sheet" onClick={(e) => e.stopPropagation()}>
-            <button className="store-details-close" onClick={handleCloseDetails}>✕</button>
+            <button className="store-details-close" onClick={handleCloseDetails} aria-label="Fechar">
+              <span className="material-icons">close</span>
+            </button>
 
             <div className="store-details-header">
               <h3>{restaurante.nome}</h3>
