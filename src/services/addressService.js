@@ -68,59 +68,18 @@ function normalizeMorada(row, defaultAddressId = null) {
   };
 }
 
-async function fetchDefaultAddressId(userId) {
-  const normalizedUserId = normalizeUserId(userId);
-  if (!normalizedUserId) return null;
-
-  const { data, error } = await supabase
-    .from("utilizadores")
-    .select("idmoradaentrega")
-    .eq("idutilizador", normalizedUserId)
-    .maybeSingle();
-
-  if (error) return null;
-  return data?.idmoradaentrega || null;
-}
-
 export async function fetchUserAddresses(userId) {
   const normalizedUserId = normalizeUserId(userId);
   if (!normalizedUserId) return [];
 
-  const defaultAddressId = await fetchDefaultAddressId(normalizedUserId);
+  const { data, error } = await supabase.rpc("customer_list_addresses", {
+    caller_user_id: normalizedUserId,
+  });
 
-  const relationQuery = await supabase
-    .from("utilizadoresmoradas")
-    .select("idmorada, moradas(idmorada, morada, latitude, longitude, place_id, nome, data_criacao)")
-    .eq("idutilizador", normalizedUserId);
+  if (error) throw error;
 
-  let moradasRows = [];
-
-  if (!relationQuery.error) {
-    moradasRows = (relationQuery.data || [])
-      .map((row) => (Array.isArray(row.moradas) ? row.moradas[0] : row.moradas))
-      .filter(Boolean);
-  } else {
-    const links = await supabase
-      .from("utilizadoresmoradas")
-      .select("idmorada")
-      .eq("idutilizador", normalizedUserId);
-
-    if (links.error) throw links.error;
-
-    const ids = (links.data || []).map((row) => row.idmorada).filter(Boolean);
-    if (!ids.length) return [];
-
-    const moradas = await supabase
-      .from("moradas")
-      .select("idmorada, morada, latitude, longitude, place_id, nome, data_criacao")
-      .in("idmorada", ids);
-
-    if (moradas.error) throw moradas.error;
-    moradasRows = moradas.data || [];
-  }
-
-  return moradasRows
-    .map((row) => normalizeMorada(row, defaultAddressId))
+  return (data || [])
+    .map((row) => ({ ...normalizeMorada(row), is_default: Boolean(row.is_default) }))
     .sort((a, b) => {
       if (a.is_default && !b.is_default) return -1;
       if (!a.is_default && b.is_default) return 1;
@@ -143,30 +102,18 @@ export async function saveUserAddress(address) {
     address_line: address?.address_line,
   });
 
-  const { data: createdMorada, error: moradaError } = await supabase
-    .from("moradas")
-    .insert({
-      morada: addressLine,
-      latitude: address?.lat ?? null,
-      longitude: address?.lng ?? null,
-      place_id: address?.place_id || null,
-      nome: label,
-      data_criacao: new Date().toISOString(),
-    })
-    .select("idmorada, morada, latitude, longitude, place_id, nome, data_criacao")
-    .single();
+  const { data: createdMorada, error: moradaError } = await supabase.rpc("customer_upsert_address", {
+    caller_user_id: normalizedUserId,
+    idmorada_input: null,
+    morada_input: addressLine,
+    latitude_input: address?.lat ?? null,
+    longitude_input: address?.lng ?? null,
+    place_id_input: address?.place_id || null,
+    nome_input: label,
+    set_as_default: Boolean(address?.is_default),
+  });
 
   if (moradaError) throw moradaError;
-
-  const { error: relationError } = await supabase
-    .from("utilizadoresmoradas")
-    .insert({ idmorada: createdMorada.idmorada, idutilizador: normalizedUserId });
-
-  if (relationError) throw relationError;
-
-  if (address?.is_default) {
-    await setDefaultAddress(normalizedUserId, createdMorada.idmorada);
-  }
 
   return normalizeMorada(createdMorada, address?.is_default ? createdMorada.idmorada : null);
 }
@@ -179,10 +126,10 @@ export async function setDefaultAddress(userId, addressId) {
     throw new Error("Dados invalidos para definir morada principal.");
   }
 
-  const { error } = await supabase
-    .from("utilizadores")
-    .update({ idmoradaentrega: normalizedAddressId })
-    .eq("idutilizador", normalizedUserId);
+  const { error } = await supabase.rpc("customer_set_default_address", {
+    caller_user_id: normalizedUserId,
+    idmorada_input: normalizedAddressId,
+  });
 
   if (error) throw error;
 }
@@ -191,6 +138,11 @@ export async function updateUserAddress(address) {
   const normalizedAddressId = Number(address?.id || address?.idmorada);
   if (!Number.isFinite(normalizedAddressId) || normalizedAddressId <= 0) {
     throw new Error("Morada invalida para editar.");
+  }
+
+  const normalizedUserId = normalizeUserId(address?.user_id);
+  if (!normalizedUserId) {
+    throw new Error("Utilizador invalido para editar morada.");
   }
 
   const label = String(address?.label || "Outro").trim() || "Outro";
@@ -202,18 +154,16 @@ export async function updateUserAddress(address) {
     address_line: address?.address_line,
   });
 
-  const { data, error } = await supabase
-    .from("moradas")
-    .update({
-      morada: addressLine,
-      latitude: address?.lat ?? null,
-      longitude: address?.lng ?? null,
-      place_id: address?.place_id || null,
-      nome: label,
-    })
-    .eq("idmorada", normalizedAddressId)
-    .select("idmorada, morada, latitude, longitude, place_id, nome, data_criacao")
-    .single();
+  const { data, error } = await supabase.rpc("customer_upsert_address", {
+    caller_user_id: normalizedUserId,
+    idmorada_input: normalizedAddressId,
+    morada_input: addressLine,
+    latitude_input: address?.lat ?? null,
+    longitude_input: address?.lng ?? null,
+    place_id_input: address?.place_id || null,
+    nome_input: label,
+    set_as_default: false,
+  });
 
   if (error) throw error;
   return normalizeMorada(data, null);
@@ -227,40 +177,12 @@ export async function deleteUserAddress(userId, addressId) {
     throw new Error("Dados invalidos para apagar morada.");
   }
 
-  const { data: userRow, error: userError } = await supabase
-    .from("utilizadores")
-    .select("idmoradaentrega")
-    .eq("idutilizador", normalizedUserId)
-    .maybeSingle();
+  const { error } = await supabase.rpc("customer_delete_address", {
+    caller_user_id: normalizedUserId,
+    idmorada_input: normalizedAddressId,
+  });
 
-  if (userError) throw userError;
-
-  const { error: relationDeleteError } = await supabase
-    .from("utilizadoresmoradas")
-    .delete()
-    .eq("idutilizador", normalizedUserId)
-    .eq("idmorada", normalizedAddressId);
-
-  if (relationDeleteError) throw relationDeleteError;
-
-  if (Number(userRow?.idmoradaentrega) === normalizedAddressId) {
-    await supabase
-      .from("utilizadores")
-      .update({ idmoradaentrega: null })
-      .eq("idutilizador", normalizedUserId);
-  }
-
-  const { data: linksAfterDelete, error: linksError } = await supabase
-    .from("utilizadoresmoradas")
-    .select("idutilizador")
-    .eq("idmorada", normalizedAddressId)
-    .limit(1);
-
-  if (linksError) throw linksError;
-
-  if (!linksAfterDelete || linksAfterDelete.length === 0) {
-    await supabase.from("moradas").delete().eq("idmorada", normalizedAddressId);
-  }
+  if (error) throw error;
 }
 
 function buildGeocodingUrl(query, limit = "8") {
@@ -351,10 +273,15 @@ export async function geocodePortugalAddress(addressLine, { barcelosOnly = false
   return normalizeSuggestion(candidates[0]);
 }
 
-export async function updateAddressCoordinates(addressId, { lat, lng, place_id = null }) {
+export async function updateAddressCoordinates(addressId, { lat, lng, place_id = null, user_id = null }) {
   const normalizedAddressId = Number(addressId);
   if (!Number.isFinite(normalizedAddressId) || normalizedAddressId <= 0) {
     throw new Error("ID de morada invalido.");
+  }
+
+  const normalizedUserId = normalizeUserId(user_id);
+  if (!normalizedUserId) {
+    throw new Error("Utilizador invalido para atualizar coordenadas da morada.");
   }
 
   const parsedLat = Number(lat);
@@ -363,14 +290,16 @@ export async function updateAddressCoordinates(addressId, { lat, lng, place_id =
     throw new Error("Coordenadas invalidas.");
   }
 
-  const { error } = await supabase
-    .from("moradas")
-    .update({
-      latitude: parsedLat,
-      longitude: parsedLng,
-      place_id: place_id || null,
-    })
-    .eq("idmorada", normalizedAddressId);
+  const { error } = await supabase.rpc("customer_upsert_address", {
+    caller_user_id: normalizedUserId,
+    idmorada_input: normalizedAddressId,
+    morada_input: null,
+    latitude_input: parsedLat,
+    longitude_input: parsedLng,
+    place_id_input: place_id || null,
+    nome_input: null,
+    set_as_default: false,
+  });
 
   if (error) throw error;
 }

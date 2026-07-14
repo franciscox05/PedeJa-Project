@@ -217,6 +217,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
       if (editAddress) {
         await updateUserAddress({
           id: editAddress.id,
+          user_id: userId,
           label: finalLabel,
           address_line: coords.address_line || form.address_line,
           lat: coords.lat,

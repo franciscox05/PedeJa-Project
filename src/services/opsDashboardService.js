@@ -600,7 +600,7 @@ export async function fetchGlobalAutoAssignSettings() {
   };
 }
 
-export async function saveGlobalDeliveryPricingSettings(configuracaoEntrega) {
+export async function saveGlobalDeliveryPricingSettings(configuracaoEntrega, callerUserId) {
   const sanitizedDeliveryConfig = sanitizeDeliveryPricingConfig(
     configuracaoEntrega,
     DEFAULT_PER_KM_DELIVERY_CONFIG.base_fee,
@@ -610,15 +610,16 @@ export async function saveGlobalDeliveryPricingSettings(configuracaoEntrega) {
     throw new Error("A configuracao global de entrega esta invalida.");
   }
 
-  const { data, error } = await supabase
-    .from("configuracoes_plataforma")
-    .upsert({
-      chave: GLOBAL_DELIVERY_PRICING_SETTING_KEY,
-      valor: sanitizedDeliveryConfig,
-      updated_at: new Date().toISOString(),
-    })
-    .select(PLATFORM_SETTINGS_SELECT)
-    .maybeSingle();
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para atualizar configuracoes globais.");
+  }
+
+  const { data, error } = await supabase.rpc("admin_upsert_platform_setting", {
+    caller_user_id: normalizedCallerUserId,
+    chave_input: GLOBAL_DELIVERY_PRICING_SETTING_KEY,
+    valor_input: sanitizedDeliveryConfig,
+  });
 
   if (error) {
     if (isMissingPlatformSettingsTableError(error)) {
@@ -637,21 +638,22 @@ export async function saveGlobalDeliveryPricingSettings(configuracaoEntrega) {
   };
 }
 
-export async function saveGlobalAutoAssignSettings(value) {
+export async function saveGlobalAutoAssignSettings(value, callerUserId) {
   const normalized = sanitizeAutoAssignConfig(
     typeof value === "object" && value !== null ? value : { enabled: value },
     Boolean(typeof value === "boolean" ? value : value?.enabled),
   );
 
-  const { data, error } = await supabase
-    .from("configuracoes_plataforma")
-    .upsert({
-      chave: GLOBAL_AUTO_ASSIGN_SETTING_KEY,
-      valor: normalized,
-      updated_at: new Date().toISOString(),
-    })
-    .select(PLATFORM_SETTINGS_SELECT)
-    .maybeSingle();
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para atualizar configuracoes globais.");
+  }
+
+  const { data, error } = await supabase.rpc("admin_upsert_platform_setting", {
+    caller_user_id: normalizedCallerUserId,
+    chave_input: GLOBAL_AUTO_ASSIGN_SETTING_KEY,
+    valor_input: normalized,
+  });
 
   if (error) {
     if (isMissingPlatformSettingsTableError(error)) {
@@ -1895,18 +1897,14 @@ export async function updateRestaurantSignupRequest(requestId, status, reviewedB
     try {
       let moradaId = null;
       if (request.morada_completa) {
-        const { data: morada, error: moradaError } = await supabase
-          .from("moradas")
-          .insert({
-            morada: request.morada_completa,
-            latitude: request.latitude ?? null,
-            longitude: request.longitude ?? null,
-            place_id: request.place_id || null,
-            nome: request.restaurante_nome,
-            data_criacao: new Date().toISOString(),
-          })
-          .select("idmorada")
-          .single();
+        const { data: morada, error: moradaError } = await supabase.rpc("admin_save_address", {
+          caller_user_id: callerUserId,
+          morada_input: request.morada_completa,
+          latitude_input: request.latitude ?? null,
+          longitude_input: request.longitude ?? null,
+          place_id_input: request.place_id || null,
+          nome_input: request.restaurante_nome,
+        });
 
         if (moradaError) throw moradaError;
         moradaId = morada?.idmorada || null;

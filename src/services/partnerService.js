@@ -164,18 +164,15 @@ export async function updateRestaurantProfile(lojaId, payload, callerUserId) {
 
   let moradaId = null;
   if (payload.morada_completa) {
-    const { data: morada, error: moradaError } = await supabase
-      .from("moradas")
-      .insert({
-        morada: payload.morada_completa,
-        latitude: payload.latitude ?? null,
-        longitude: payload.longitude ?? null,
-        place_id: payload.place_id || null,
-        nome: payload.restaurante_nome || null,
-        data_criacao: new Date().toISOString(),
-      })
-      .select("idmorada")
-      .single();
+    const { data: morada, error: moradaError } = await supabase.rpc("store_save_address", {
+      caller_user_id: normalizedCallerUserId,
+      loja_id_input: normalizedLojaId,
+      morada_input: payload.morada_completa,
+      latitude_input: payload.latitude ?? null,
+      longitude_input: payload.longitude ?? null,
+      place_id_input: payload.place_id || null,
+      nome_input: payload.restaurante_nome || null,
+    });
 
     if (moradaError) throw moradaError;
     moradaId = morada?.idmorada || null;

@@ -386,6 +386,7 @@ export default function Carrinho() {
           lat: geocoded.lat,
           lng: geocoded.lng,
           place_id: geocoded.place_id || null,
+          user_id: extractUserId(user),
         });
         setAddresses((prev) => prev.map((item) => (
           String(item.id) === String(address.id)

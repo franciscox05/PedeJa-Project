@@ -92,11 +92,9 @@ export async function fetchFavoriteStoreIds(user) {
   const userId = normalizeUserId(user);
   if (!userId) return [];
 
-  const { data, error } = await supabase
-    .from("favorite_stores")
-    .select("loja_id, created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  const { data, error } = await supabase.rpc("favorite_stores_list", {
+    caller_user_id: Number(userId),
+  });
 
   if (error) {
     if (isMissingFavoritesStorageError(error)) return [];
@@ -170,40 +168,17 @@ export async function toggleFavoriteStore(user, lojaId) {
     throw new Error("Loja invalida para favoritos.");
   }
 
-  const { data: existing, error: existingError } = await supabase
-    .from("favorite_stores")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("loja_id", normalizedLojaId)
-    .maybeSingle();
+  const { data: isFavorite, error } = await supabase.rpc("favorite_stores_toggle", {
+    caller_user_id: Number(userId),
+    loja_id_input: normalizedLojaId,
+  });
 
-  if (existingError && !isMissingFavoritesStorageError(existingError)) {
-    throw existingError;
+  if (error) {
+    if (isMissingFavoritesStorageError(error)) {
+      throw new Error("A tabela de favoritos ainda nao existe. Executa a migration 012.");
+    }
+    throw error;
   }
 
-  if (isMissingFavoritesStorageError(existingError)) {
-    throw new Error("A tabela de favoritos ainda nao existe. Executa a migration 012.");
-  }
-
-  if (existing?.id) {
-    const { error } = await supabase
-      .from("favorite_stores")
-      .delete()
-      .eq("id", existing.id);
-
-    if (error) throw error;
-
-    return { isFavorite: false };
-  }
-
-  const { error } = await supabase
-    .from("favorite_stores")
-    .insert({
-      user_id: userId,
-      loja_id: normalizedLojaId,
-    });
-
-  if (error) throw error;
-
-  return { isFavorite: true };
+  return { isFavorite: Boolean(isFavorite) };
 }

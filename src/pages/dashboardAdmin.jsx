@@ -1147,7 +1147,7 @@ export default function DashboardAdmin() {
   };
 
   const handleSaveGlobalDeliveryPricingSettings = async (configuracaoEntrega) => {
-    const settings = await saveGlobalDeliveryPricingSettings(configuracaoEntrega);
+    const settings = await saveGlobalDeliveryPricingSettings(configuracaoEntrega, extractUserId(user));
     setGlobalDeliveryPricing({
       config: settings?.config || null,
       updated_at: settings?.updated_at || null,
@@ -1160,7 +1160,7 @@ export default function DashboardAdmin() {
     const settings = await saveGlobalAutoAssignSettings({
       enabled: nextValue,
       criteria: globalAutoAssign.criteria,
-    });
+    }, extractUserId(user));
     setGlobalAutoAssign({
       enabled: Boolean(settings?.enabled),
       criteria: sanitizeAutoAssignConfig(settings, Boolean(settings?.enabled)).criteria,
@@ -1174,7 +1174,7 @@ export default function DashboardAdmin() {
     const settings = await saveGlobalAutoAssignSettings({
       enabled: Boolean(globalAutoAssign.enabled),
       criteria: sanitizeAutoAssignConfig(config, Boolean(globalAutoAssign.enabled)).criteria,
-    });
+    }, extractUserId(user));
     setGlobalAutoAssign({
       enabled: Boolean(settings?.enabled),
       criteria: sanitizeAutoAssignConfig(settings, Boolean(settings?.enabled)).criteria,
