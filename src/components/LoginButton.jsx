@@ -2,65 +2,28 @@ import "../css/index.css";
 import userGif from "../assets/img/perfil.gif";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import LoginAccount from "./LoginAccount";
-import CreateAccount from "./CreateAccount";
-import LoginRecuperarPass from "./LoginRecuperarPass";
 import LogoutConfirm from "./LogoutConfirm";
 import "../css/components/LoginInterfaces.css";
 import UserProfileMenu from "./UserProfileMenu";
-import iconClose from "../assets/img/close.png";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { canAccessPortal, resolveUserRole } from "../utils/roles";
-
-function readSessionUser() {
-  try {
-    const sessionUser = localStorage.getItem("pedeja_user");
-    return sessionUser ? JSON.parse(sessionUser) : null;
-  } catch {
-    return null;
-  }
-}
 
 function LoginButton() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [menuLoginAberto, setMenuLoginAberto] = useState(false);
   const [confirmarLogoutAberto, setConfirmarLogoutAberto] = useState(false);
-  const [vista, setVista] = useState("login");
-  const [user, setUser] = useState(readSessionUser());
+  const { user, logout } = useAuth();
   const { clearCart } = useCart();
 
-  const isRestaurantPage = location.pathname.startsWith("/menus/");
-
   useEffect(() => {
-    const syncUser = () => setUser(readSessionUser());
-    const handleAbrirLogin = () => {
-      setVista("login");
-      setMenuLoginAberto(true);
-    };
-
+    const handleAbrirLogin = () => navigate("/login", { state: { from: location } });
     window.addEventListener("abrirLogin", handleAbrirLogin);
-    window.addEventListener("storage", syncUser);
-    window.addEventListener("pedeja-user-updated", syncUser);
-
-    return () => {
-      window.removeEventListener("abrirLogin", handleAbrirLogin);
-      window.removeEventListener("storage", syncUser);
-      window.removeEventListener("pedeja-user-updated", syncUser);
-    };
-  }, []);
-
-  const handleLoginSuccess = (dadosUtilizador) => {
-    localStorage.setItem("pedeja_user", JSON.stringify(dadosUtilizador));
-    window.dispatchEvent(new Event("pedeja-user-updated"));
-    setUser(dadosUtilizador);
-    setMenuLoginAberto(false);
-  };
+    return () => window.removeEventListener("abrirLogin", handleAbrirLogin);
+  }, [navigate, location]);
 
   const executarLogout = () => {
-    localStorage.removeItem("pedeja_user");
-    window.dispatchEvent(new Event("pedeja-user-updated"));
-    setUser(null);
+    logout();
     setConfirmarLogoutAberto(false);
     clearCart();
     navigate("/");
@@ -68,8 +31,7 @@ function LoginButton() {
 
   const openPortal = () => {
     if (!user) {
-      setMenuLoginAberto(true);
-      setVista("login");
+      navigate("/login", { state: { from: location } });
       return;
     }
 
@@ -106,10 +68,7 @@ function LoginButton() {
             role="button"
             tabIndex="0"
             className="user-profile"
-            onClick={() => {
-              setMenuLoginAberto(true);
-              setVista("login");
-            }}
+            onClick={() => navigate("/login", { state: { from: location } })}
           >
             <div className="user-profile-inner">
               <img src={userGif} className="user-icon-img" alt="Login Icon" />
@@ -121,24 +80,6 @@ function LoginButton() {
 
       {confirmarLogoutAberto && (
         <LogoutConfirm aoConfirmar={executarLogout} aoCancelar={() => setConfirmarLogoutAberto(false)} />
-      )}
-
-      {menuLoginAberto && (
-        <div className="auth-overlay">
-          <div className={`auth-modal${isRestaurantPage ? " auth-modal-centered" : ""}`}>
-            <button type="button" className="close-custom" onClick={() => setMenuLoginAberto(false)}>
-              <img src={iconClose} className="menu-close-icon" alt="Fechar" />
-            </button>
-
-            {vista === "login" && (
-              <LoginAccount aoMudarVista={setVista} aoAutenticar={handleLoginSuccess} />
-            )}
-
-            {vista === "criar" && <CreateAccount aoMudarVista={setVista} />}
-
-            {vista === "recuperar" && <LoginRecuperarPass aoMudarVista={setVista} />}
-          </div>
-        </div>
       )}
     </>
   );

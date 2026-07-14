@@ -3,8 +3,11 @@ import {
   associateRestaurantToUser,
   searchUsersForRestaurantAssociation,
 } from "../../services/rbacAdminService";
+import { useAuth } from "../../context/AuthContext";
+import { extractUserId } from "../../utils/roles";
 
 export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -63,6 +66,7 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
 
     try {
       const result = await associateRestaurantToUser({
+        callerUserId: extractUserId(user),
         userId: selectedUserId,
         lojaId: selectedStoreId,
       });

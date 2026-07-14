@@ -1,10 +1,19 @@
 import { useState } from "react";
-import { loginAndBuildSession } from "../services/authSessionService";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import Logo from "../components/Logo";
 import "../css/components/LoginInterfaces.css";
+import { useAuth } from "../context/AuthContext";
+import { getDefaultPathByRole, resolveUserRole } from "../utils/roles";
 
-function LoginAccount({ aoMudarVista, aoAutenticar }) {
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({ identifier: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const redirectTarget = location.state?.from?.pathname;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -12,33 +21,39 @@ function LoginAccount({ aoMudarVista, aoAutenticar }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
 
     try {
-      const sessionUser = await loginAndBuildSession({
+      const sessionUser = await login({
         identifier: formData.identifier,
         password: formData.password,
       });
 
       if (!sessionUser) {
-        alert("Email ou Password incorretos.");
+        setError("Email ou Password incorretos.");
         return;
       }
 
-      aoAutenticar(sessionUser);
-    } catch (error) {
-      console.error("Erro de login:", error);
-      alert("Ocorreu um erro ao tentar entrar.");
+      const role = resolveUserRole(sessionUser);
+      navigate(redirectTarget || getDefaultPathByRole(role), { replace: true });
+    } catch (err) {
+      console.error("Erro de login:", err);
+      setError("Ocorreu um erro ao tentar entrar. Tenta novamente.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-form">
-      <h2>Entrar</h2>
-      <hr />
-      <div>
+    <div className="auth-page-shell">
+      <Logo />
+      <div className="auth-form">
+        <h2>Entrar</h2>
+        <hr />
+
+        {error && <div className="auth-page-feedback error">{error}</div>}
+
         <form className="form" onSubmit={handleLogin}>
           <label htmlFor="identifier">Email ou Telemóvel:</label>
           <input
@@ -60,28 +75,21 @@ function LoginAccount({ aoMudarVista, aoAutenticar }) {
             onChange={handleChange}
           />
 
-          <input
-            type="submit"
-            value={loading ? "A entrar..." : "Entrar"}
-            disabled={loading}
-          />
+          <input type="submit" value={loading ? "A entrar..." : "Entrar"} disabled={loading} />
         </form>
 
         <div className="NaoTemConta">
           <p>
-            Não tem conta?{" "}
-            <strong onClick={() => aoMudarVista("criar")}>Criar agora</strong>
+            Não tem conta? <Link to="/registo"><strong>Criar agora</strong></Link>
           </p>
         </div>
         <div>
           <p>
             Esqueceu-se da password?{" "}
-            <strong onClick={() => aoMudarVista("recuperar")}>Recuperar</strong>
+            <Link to="/recuperar-password"><strong>Recuperar</strong></Link>
           </p>
         </div>
       </div>
     </div>
   );
 }
-
-export default LoginAccount;

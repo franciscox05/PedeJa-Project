@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect } from "react";
-import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Inicio from "./pages/inicio";
 import Categorias from "./pages/categorias";
@@ -15,10 +15,20 @@ import DashboardRestaurante from "./pages/dashboardRestaurante";
 import DashboardDev from "./pages/dashboardDev";
 import MenuManager from "./pages/menuManager";
 import Parceiros from "./pages/parceiros";
-import PerfilPage from "./pages/perfil";
+import ProfileLayout from "./pages/perfil/ProfileLayout";
+import ProfilePedidos from "./pages/perfil/pedidos";
+import ProfileFavoritos from "./pages/perfil/favoritos";
+import ProfileDados from "./pages/perfil/dados";
+import ProfileSeguranca from "./pages/perfil/seguranca";
+import ProfileMoradas from "./pages/perfil/moradas";
 import ProtectedRoute from "./components/routes/ProtectedRoute";
 import PageErrorBoundary from "./components/routes/PageErrorBoundary";
 import { CartProvider } from "./context/CartContext";
+import { AuthProvider } from "./context/AuthContext";
+import LoginPage from "./pages/login";
+import RegistoPage from "./pages/registo";
+import RecuperarPasswordPage from "./pages/recuperarPassword";
+import NovaPasswordPage from "./pages/novaPassword";
 import { resolveUserRole } from "./utils/roles";
 
 export default function App() {
@@ -83,7 +93,8 @@ export default function App() {
   }, [isDashboardRoute, location.pathname, location.search, navigate]);
 
   return (
-    <CartProvider>
+    <AuthProvider>
+      <CartProvider>
       <Toaster
         position="top-right"
         toastOptions={{
@@ -118,14 +129,25 @@ export default function App() {
           <Route path="/carrinho" element={<Carrinho />} />
           <Route path="/pedido/:orderId" element={<PedidoConfirmado />} />
           <Route path="/parceiros" element={<Parceiros />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/registo" element={<RegistoPage />} />
+          <Route path="/recuperar-password" element={<RecuperarPasswordPage />} />
+          <Route path="/nova-password" element={<NovaPasswordPage />} />
           <Route
             path="/perfil"
             element={
               <ProtectedRoute>
-                <PerfilPage />
+                <ProfileLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<Navigate to="pedidos" replace />} />
+            <Route path="pedidos" element={<ProfilePedidos />} />
+            <Route path="favoritos" element={<ProfileFavoritos />} />
+            <Route path="dados" element={<ProfileDados />} />
+            <Route path="seguranca" element={<ProfileSeguranca />} />
+            <Route path="moradas" element={<ProfileMoradas />} />
+          </Route>
 
           <Route
             path="/menu-manager"
@@ -195,6 +217,7 @@ export default function App() {
           />
         </Routes>
       </main>
-    </CartProvider>
+      </CartProvider>
+    </AuthProvider>
   );
 }

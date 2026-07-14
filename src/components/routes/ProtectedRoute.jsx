@@ -1,25 +1,10 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { extractRestaurantId, resolveUserRole } from "../../utils/roles";
-
-function readUserFromStorage() {
-  try {
-    const raw = localStorage.getItem("pedeja_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+import { useAuth } from "../../context/AuthContext";
+import { extractRestaurantId, getDefaultPathByRole, resolveUserRole } from "../../utils/roles";
 
 function normalizeStoreId(value) {
   if (value === null || value === undefined || value === "") return null;
   return String(value).trim();
-}
-
-function getDefaultPathByRole(role) {
-  if (role === "admin") return "/dashboard/admin";
-  if (role === "restaurant") return "/dashboard/restaurante";
-  if (role === "dev") return "/dashboard/dev";
-  return "/";
 }
 
 export default function ProtectedRoute({
@@ -28,10 +13,10 @@ export default function ProtectedRoute({
   children,
 }) {
   const location = useLocation();
-  const user = readUserFromStorage();
+  const { user } = useAuth();
 
   if (!user) {
-    return <Navigate to="/" replace state={{ from: location }} />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   const role = resolveUserRole(user);

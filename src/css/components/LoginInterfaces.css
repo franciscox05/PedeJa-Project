@@ -500,6 +500,51 @@
   justify-self: center;
 }
 
+/* --- PÁGINAS DE AUTH ROTEADAS (/login, /registo, /recuperar-password, /nova-password) --- */
+.auth-page-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 20px;
+  background: #f7f7f8;
+}
+
+.auth-page-logo {
+  height: 42px;
+  width: auto;
+  cursor: pointer;
+}
+
+.auth-page-shell .auth-form {
+  background: white;
+  padding: 35px;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.auth-page-feedback {
+  font-size: 0.9rem;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.auth-page-feedback.error {
+  background: #fdecea;
+  color: #c0392b;
+}
+
+.auth-page-feedback.success {
+  background: #eafaf1;
+  color: #1e8449;
+}
+
 @media (max-width: 575.98px) {
   .user-profile-container {
     top: 15px;

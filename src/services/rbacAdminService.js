@@ -164,35 +164,19 @@ async function enrichUsersWithRbac(users) {
   });
 }
 
-async function findRestaurantPermissionId() {
-  const { data, error } = await supabase
-    .from("permissoes")
-    .select("idpermissao, permissao")
-    .order("idpermissao", { ascending: true });
-
-  if (error) throw error;
-
-  const rows = data || [];
-  const candidate = rows.find((row) => {
-    const text = normalizeText(row.permissao);
-    return text.includes("restaur") || text.includes("restaurant") || text.includes("loja") || text.includes("merchant");
-  });
-
-  if (!candidate) {
-    throw new Error("Nao existe permissao de restaurante na tabela permissoes.");
-  }
-
-  return candidate.idpermissao;
-}
-
 export async function searchUsersForRestaurantAssociation(term, limit = 20) {
   const users = await queryUsersByTerm(term, limit);
   return enrichUsersWithRbac(users);
 }
 
-export async function associateRestaurantToUser({ userId, lojaId }) {
+export async function associateRestaurantToUser({ callerUserId, userId, lojaId }) {
+  const normalizedCallerId = Number(callerUserId);
   const normalizedUserId = Number(userId);
   const normalizedLojaId = Number(lojaId);
+
+  if (!Number.isFinite(normalizedCallerId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente.");
+  }
 
   if (!Number.isFinite(normalizedUserId)) {
     throw new Error("Utilizador invalido para associacao.");
@@ -202,79 +186,20 @@ export async function associateRestaurantToUser({ userId, lojaId }) {
     throw new Error("Loja invalida para associacao.");
   }
 
-  const { data: user, error: userError } = await supabase
-    .from("utilizadores")
-    .select("idutilizador, username, email")
-    .eq("idutilizador", normalizedUserId)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("admin_associate_restaurant_to_user", {
+    caller_user_id: normalizedCallerId,
+    target_user_id: normalizedUserId,
+    loja_id_input: normalizedLojaId,
+  });
 
-  if (userError) throw userError;
-  if (!user) throw new Error("Utilizador nao encontrado.");
-
-  const { data: store, error: storeError } = await supabase
-    .from("lojas")
-    .select("idloja, nome")
-    .eq("idloja", normalizedLojaId)
-    .maybeSingle();
-
-  if (storeError) throw storeError;
-  if (!store) throw new Error("Loja nao encontrada.");
-
-  const restaurantPermissionId = await findRestaurantPermissionId();
-
-  const { error: permissionError } = await supabase
-    .from("utilizadorespermissoes")
-    .upsert(
-      {
-        idutilizador: normalizedUserId,
-        idpermissao: restaurantPermissionId,
-      },
-      { onConflict: "idutilizador,idpermissao" },
-    );
-
-  if (permissionError) throw permissionError;
-
-  const { data: existingStaff, error: existingStaffError } = await supabase
-    .from("restaurant_staff_access")
-    .select("id")
-    .eq("user_id", String(normalizedUserId))
-    .eq("loja_id", normalizedLojaId)
-    .limit(1);
-
-  if (existingStaffError) throw existingStaffError;
-
-  if (existingStaff && existingStaff.length > 0) {
-    const { error: staffUpdateError } = await supabase
-      .from("restaurant_staff_access")
-      .update({ role: "OWNER" })
-      .eq("id", existingStaff[0].id);
-
-    if (staffUpdateError) throw staffUpdateError;
-  } else {
-    const { error: staffInsertError } = await supabase
-      .from("restaurant_staff_access")
-      .insert({
-        user_id: String(normalizedUserId),
-        loja_id: normalizedLojaId,
-        role: "OWNER",
-      });
-
-    if (staffInsertError) throw staffInsertError;
-  }
-
-  const { error: ownerUpdateError } = await supabase
-    .from("lojas")
-    .update({ idutilizador: normalizedUserId })
-    .eq("idloja", normalizedLojaId);
-
-  if (ownerUpdateError) throw ownerUpdateError;
+  if (error) throw error;
 
   return {
     user: {
-      ...user,
+      ...data.user,
       role: resolveUserRole({ role: "restaurant" }),
       loja_id: normalizedLojaId,
     },
-    store,
+    store: data.store,
   };
 }

@@ -69,3 +69,10 @@ export function canAccessPortal(user) {
   const role = resolveUserRole(user);
   return role === "admin" || role === "restaurant" || role === "dev";
 }
+
+export function getDefaultPathByRole(role) {
+  if (role === "admin") return "/dashboard/admin";
+  if (role === "restaurant") return "/dashboard/restaurante";
+  if (role === "dev") return "/dashboard/dev";
+  return "/";
+}
