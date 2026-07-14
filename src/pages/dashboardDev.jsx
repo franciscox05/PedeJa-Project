@@ -1,7 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/pages/dashboard.css";
 import { fetchDevDashboard } from "../services/opsDashboardService";
+import { extractUserId } from "../utils/roles";
+
+function parseSessionUser(raw) {
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 function statusClass(status) {
   if (["DELIVERED", "CONFIRMED"].includes(status)) return "tag ok";
@@ -11,6 +20,8 @@ function statusClass(status) {
 
 export default function DashboardDev() {
   const navigate = useNavigate();
+  const userRaw = localStorage.getItem("pedeja_user");
+  const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
   const [periodDays, setPeriodDays] = useState(7);
   const [state, setState] = useState({
     events: [],
@@ -22,7 +33,7 @@ export default function DashboardDev() {
 
   const load = async (days = periodDays) => {
     setState((prev) => ({ ...prev, loading: true }));
-    const data = await fetchDevDashboard(days);
+    const data = await fetchDevDashboard(days, extractUserId(user));
     setState({ ...data, loading: false, error: data.error || "" });
   };
 

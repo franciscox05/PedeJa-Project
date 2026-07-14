@@ -841,82 +841,7 @@ function buildTimeline({
 }
 
 async function fetchOrderRecordWithCompatibility(normalizedOrderId: number) {
-  const selectWithTiming = `
-      id,
-      loja_id,
-      customer_user_id,
-      customer_nome,
-      customer_phone,
-      customer_email,
-      customer_address,
-      customer_address_label,
-      customer_notes,
-      subtotal,
-      taxa_entrega,
-      total,
-      payment_method,
-      payment_label,
-      status,
-      estado_interno,
-      shipday_order_id,
-      shipday_tracking_url,
-      previsao_entrega,
-      veiculo_estafeta,
-      driver_name,
-      driver_phone,
-      created_at,
-      updated_at,
-      submitted_at,
-      order_timing_mode,
-      scheduled_for,
-      aceite_em,
-      atribuido_em,
-      recolhido_em,
-      entregue_em
-    `;
-
-  const selectLegacy = `
-      id,
-      loja_id,
-      customer_user_id,
-      customer_nome,
-      customer_phone,
-      customer_email,
-      customer_address,
-      customer_address_label,
-      customer_notes,
-      subtotal,
-      taxa_entrega,
-      total,
-      payment_method,
-      payment_label,
-      status,
-      estado_interno,
-      shipday_order_id,
-      shipday_tracking_url,
-      previsao_entrega,
-      veiculo_estafeta,
-      driver_name,
-      driver_phone,
-      created_at,
-      updated_at
-    `;
-
-  let response = await supabase
-    .from("orders")
-    .select(selectWithTiming)
-    .eq("id", normalizedOrderId)
-    .maybeSingle();
-
-  if (response.error && /submitted_at|order_timing_mode|payment_method|payment_label|previsao_entrega|veiculo_estafeta|scheduled_for|aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(response.error.message || ""))) {
-    response = await supabase
-      .from("orders")
-      .select(selectLegacy)
-      .eq("id", normalizedOrderId)
-      .maybeSingle();
-  }
-
-  return response;
+  return supabase.rpc("get_order_by_id", { order_id_input: normalizedOrderId });
 }
 
 async function fetchDeliveryEvents(deliveryIds: Array<number | string> = []) {
@@ -981,40 +906,17 @@ export async function fetchOrderDetails(
   }
 
   const [itemsRes, lojaRes, deliveriesRes] = await Promise.all([
-    supabase
-      .from("order_items")
-      .select("id, order_id, menu_id, nome, quantidade, preco_unitario, subtotal, opcoes_selecionadas, created_at")
-      .eq("order_id", normalizedOrderId)
-      .order("created_at", { ascending: true }),
+    supabase.rpc("get_order_items_by_order_id", { order_id_input: normalizedOrderId }),
     supabase
       .from("lojas")
       .select("idloja, nome, contacto, morada_completa, icon")
       .eq("idloja", Number(order.loja_id))
       .maybeSingle(),
-    supabase
-      .from("deliveries")
-      .select("id, order_id, provider, external_delivery_id, tracking_url, status, provider_payload, shipday_error, created_at, updated_at")
-      .eq("order_id", normalizedOrderId)
-      .order("updated_at", { ascending: false })
-      .order("created_at", { ascending: false }),
+    supabase.rpc("get_deliveries_by_order_id", { order_id_input: normalizedOrderId }),
   ]);
 
-  let itemsData = itemsRes.data || [];
-  if (itemsRes.error) {
-    const itemsErrorMessage = String(itemsRes.error?.message || "").toLowerCase();
-    if (itemsErrorMessage.includes("order_items") && itemsErrorMessage.includes("opcoes_selecionadas")) {
-      const fallbackItemsRes = await supabase
-        .from("order_items")
-        .select("id, order_id, menu_id, nome, quantidade, preco_unitario, subtotal, created_at")
-        .eq("order_id", normalizedOrderId)
-        .order("created_at", { ascending: true });
-
-      if (fallbackItemsRes.error) throw fallbackItemsRes.error;
-      itemsData = fallbackItemsRes.data || [];
-    } else {
-      throw itemsRes.error;
-    }
-  }
+  if (itemsRes.error) throw itemsRes.error;
+  const itemsData = itemsRes.data || [];
   if (lojaRes.error) throw lojaRes.error;
   if (deliveriesRes.error) throw deliveriesRes.error;
 

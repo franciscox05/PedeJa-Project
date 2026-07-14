@@ -272,26 +272,23 @@ export async function fetchAdminPerformanceData({
   granularity = "day",
   dateFrom = null,
   dateTo = null,
+  callerUserId = null,
 } = {}) {
   const since = toIsoOrNull(dateFrom) || daysToIso(periodDays);
   const until = toIsoOrNull(dateTo);
   const fetchLimit = until || dateFrom ? 5000 : 1500;
-
-  let ordersRes = await supabase
-    .from("orders")
-    .select("id, loja_id, total, taxa_entrega, created_at, updated_at, submitted_at, scheduled_for, status, estado_interno, aceite_em, atribuido_em, recolhido_em, entregue_em")
-    .or(`submitted_at.gte.${since},and(submitted_at.is.null,created_at.gte.${since})`)
-    .order("created_at", { ascending: false })
-    .limit(fetchLimit);
-
-  if (ordersRes.error && /submitted_at|scheduled_for|aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(ordersRes.error.message || ""))) {
-    ordersRes = await supabase
-      .from("orders")
-      .select("id, loja_id, total, taxa_entrega, created_at, updated_at, status, estado_interno")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(fetchLimit);
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente.");
   }
+
+  const ordersRes = await supabase.rpc("list_orders_for_viewer", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_filter: null,
+    since_input: since,
+    until_input: until,
+    limit_count: fetchLimit,
+  });
 
   if (ordersRes.error) throw ordersRes.error;
 
@@ -318,16 +315,8 @@ export async function fetchAdminPerformanceData({
   }
 
   const [orderItemsRes, deliveriesRes] = await Promise.all([
-    supabase
-      .from("order_items")
-      .select("id, order_id, nome, quantidade, subtotal")
-      .in("order_id", orderIds),
-    supabase
-      .from("deliveries")
-      .select("id, order_id, status, created_at, updated_at, provider_payload")
-      .in("order_id", orderIds)
-      .order("updated_at", { ascending: false })
-      .order("created_at", { ascending: false }),
+    supabase.rpc("list_order_items_for_orders", { caller_user_id: normalizedCallerUserId, order_ids: orderIds }),
+    supabase.rpc("list_deliveries_for_orders", { caller_user_id: normalizedCallerUserId, order_ids: orderIds }),
   ]);
 
   if (orderItemsRes.error) throw orderItemsRes.error;

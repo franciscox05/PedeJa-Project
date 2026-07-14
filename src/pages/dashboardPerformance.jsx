@@ -16,6 +16,15 @@ import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayo
 import DatePickerCustom from "../components/ui/DatePickerCustom";
 import "../css/pages/dashboard.css";
 import { fetchAdminPerformanceData } from "../services/adminPerformanceService";
+import { extractUserId } from "../utils/roles";
+
+function parseSessionUser(raw) {
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 const ADMIN_DASHBOARD_TABS = [
   { id: "dashboard", label: "Dashboard", description: "Ultimos pedidos e entregas recentes", icon: "dashboard" },
@@ -52,6 +61,8 @@ function normalizePerformanceFilters(searchParams) {
 
 export default function DashboardPerformance() {
   const navigate = useNavigate();
+  const userRaw = localStorage.getItem("pedeja_user");
+  const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
   const [searchParams, setSearchParams] = useSearchParams();
   const { periodDays, granularity, rangeMode, customRange } = useMemo(
     () => normalizePerformanceFilters(searchParams),
@@ -95,6 +106,7 @@ export default function DashboardPerformance() {
         granularity: effectiveGranularity,
         dateFrom: effectiveRangeMode === "custom" ? effectiveCustomRange?.from || null : null,
         dateTo: effectiveRangeMode === "custom" ? effectiveCustomRange?.to || null : null,
+        callerUserId: extractUserId(user),
       });
       setState({ loading: false, error: "", data });
     } catch (error) {
@@ -104,7 +116,7 @@ export default function DashboardPerformance() {
         data: null,
       });
     }
-  }, [customRange, granularity, periodDays, rangeMode]);
+  }, [customRange, granularity, periodDays, rangeMode, user]);
 
   useEffect(() => {
     let active = true;
@@ -115,6 +127,7 @@ export default function DashboardPerformance() {
         granularity,
         dateFrom: rangeMode === "custom" ? customRange.from || null : null,
         dateTo: rangeMode === "custom" ? customRange.to || null : null,
+        callerUserId: extractUserId(user),
       }))
       .then((data) => {
         if (!active) return;
@@ -132,7 +145,7 @@ export default function DashboardPerformance() {
     return () => {
       active = false;
     };
-  }, [customRange.from, customRange.to, granularity, periodDays, rangeMode]);
+  }, [customRange.from, customRange.to, granularity, periodDays, rangeMode, user]);
 
   const overview = state.data?.overview;
   const revenueSeries = useMemo(

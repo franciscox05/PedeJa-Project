@@ -514,9 +514,10 @@ export default function DashboardRestaurante() {
       periodDays: dashboardWindowInput.periodDays,
       dateFrom: dashboardWindowInput.dateFrom,
       dateTo: dashboardWindowInput.dateTo,
+      callerUserId: extractUserId(user),
     });
     setState({ ...data, loading: false, error: data.error || "" });
-  }, [dashboardWindowInput, scopedStoreId]);
+  }, [dashboardWindowInput, scopedStoreId, user]);
 
   const loadLiveCarriers = useCallback(async () => {
     try {

@@ -131,28 +131,13 @@ function isTerminalOrderState(estadoInterno, status) {
 async function fetchOrderBootstrapContext(orderId) {
   if (!Number.isFinite(orderId) || orderId <= 0) return null;
 
-  let response = await supabase
-    .from("orders")
-    .select("id, loja_id, shipday_order_id, estado_interno, status, driver_name, driver_phone, shipday_driver_name, shipday_driver_phone")
-    .eq("id", orderId)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("get_order_by_id", { order_id_input: orderId });
 
-  if (
-    response.error
-    && /shipday_driver_name|shipday_driver_phone/i.test(String(response.error.message || ""))
-  ) {
-    response = await supabase
-      .from("orders")
-      .select("id, loja_id, shipday_order_id, estado_interno, status, driver_name, driver_phone")
-      .eq("id", orderId)
-      .maybeSingle();
+  if (error) {
+    throw error;
   }
 
-  if (response.error) {
-    throw response.error;
-  }
-
-  return response.data || null;
+  return data || null;
 }
 
 async function fetchStoreAutomationSettings(lojaId) {

@@ -3,6 +3,15 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import { fetchAdminRevenueBreakdown } from "../services/adminRevenueService";
+import { extractUserId } from "../utils/roles";
+
+function parseSessionUser(raw) {
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 const ADMIN_DASHBOARD_TABS = [
   { id: "dashboard", label: "Dashboard", description: "Ultimos pedidos e entregas recentes", icon: "dashboard" },
@@ -16,6 +25,8 @@ function formatMoney(value) {
 
 export default function DashboardRevenue() {
   const navigate = useNavigate();
+  const userRaw = localStorage.getItem("pedeja_user");
+  const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
   const [searchParams, setSearchParams] = useSearchParams();
   const queryDays = Number(searchParams.get("days") || 7);
   const periodDays = [7, 30, 90].includes(queryDays) ? queryDays : 7;
@@ -31,7 +42,7 @@ export default function DashboardRevenue() {
     setState((prev) => ({ ...prev, loading: true, error: "" }));
 
     try {
-      const data = await fetchAdminRevenueBreakdown(days);
+      const data = await fetchAdminRevenueBreakdown(days, extractUserId(user));
       setState({ loading: false, error: "", data });
     } catch (error) {
       setState({
@@ -40,7 +51,7 @@ export default function DashboardRevenue() {
         data: null,
       });
     }
-  }, [periodDays]);
+  }, [periodDays, user]);
 
   useEffect(() => {
     let active = true;
@@ -51,7 +62,7 @@ export default function DashboardRevenue() {
           setState((prev) => ({ ...prev, loading: true, error: "" }));
         }
 
-        return fetchAdminRevenueBreakdown(periodDays);
+        return fetchAdminRevenueBreakdown(periodDays, extractUserId(user));
       })
       .then((data) => {
         if (active) {
@@ -71,7 +82,7 @@ export default function DashboardRevenue() {
     return () => {
       active = false;
     };
-  }, [periodDays]);
+  }, [periodDays, user]);
 
   return (
     <DashboardSidebarLayout

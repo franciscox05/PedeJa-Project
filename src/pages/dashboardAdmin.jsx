@@ -655,7 +655,7 @@ export default function DashboardAdmin() {
     }));
 
     try {
-      const data = await fetchAdminCustomerInsights(input);
+      const data = await fetchAdminCustomerInsights(input, extractUserId(user));
       const normalizedMetrics = {
         totalCustomers: Number(data?.metrics?.totalCustomers || 0),
         customersWithOrders: Number(data?.metrics?.customersWithOrders || 0),
@@ -680,7 +680,7 @@ export default function DashboardAdmin() {
         error: error?.message || "Falha inesperada ao carregar clientes.",
       }));
     }
-  }, [dashboardWindowInput]);
+  }, [dashboardWindowInput, user]);
 
   const loadLiveCarriers = useCallback(async () => {
     try {

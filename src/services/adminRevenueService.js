@@ -261,27 +261,21 @@ function extractDriverReportedEarnings(payloads) {
   ]);
 }
 
-export async function fetchAdminRevenueBreakdown(periodDays = 7) {
+export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = null) {
   const since = daysToIso(periodDays);
   const until = new Date().toISOString();
-
-  let ordersRes = await supabase
-    .from("orders")
-    .select("id, loja_id, subtotal, taxa_entrega, total, driver_name, driver_phone, created_at, submitted_at, status, estado_interno")
-    .or(`submitted_at.gte.${since},and(submitted_at.is.null,created_at.gte.${since})`)
-    .lte("created_at", until)
-    .order("created_at", { ascending: false })
-    .limit(1200);
-
-  if (ordersRes.error && /submitted_at/i.test(String(ordersRes.error.message || ""))) {
-    ordersRes = await supabase
-      .from("orders")
-      .select("id, loja_id, subtotal, taxa_entrega, total, driver_name, driver_phone, created_at, status, estado_interno")
-      .gte("created_at", since)
-      .lte("created_at", until)
-      .order("created_at", { ascending: false })
-      .limit(1200);
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente.");
   }
+
+  const ordersRes = await supabase.rpc("list_orders_for_viewer", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_filter: null,
+    since_input: since,
+    until_input: until,
+    limit_count: 1200,
+  });
 
   if (ordersRes.error) throw ordersRes.error;
 
@@ -295,10 +289,7 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7) {
   const storeIds = [...new Set(orders.map((order) => order.loja_id).filter(Boolean))];
 
   const [orderItemsRes, storesRes, storeTypesRes, deliveriesRes] = await Promise.all([
-    supabase
-      .from("order_items")
-      .select("id, order_id, menu_id, nome, quantidade, preco_unitario, subtotal")
-      .in("order_id", orderIds),
+    supabase.rpc("list_order_items_for_orders", { caller_user_id: normalizedCallerUserId, order_ids: orderIds }),
     supabase
       .from("lojas")
       .select(`
@@ -313,10 +304,7 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7) {
     supabase
       .from("tiposloja")
       .select("idtipoloja, descricao, tipoloja"),
-    supabase
-      .from("deliveries")
-      .select("id, order_id, provider_payload, tracking_url, created_at, updated_at")
-      .in("order_id", orderIds),
+    supabase.rpc("list_deliveries_for_orders", { caller_user_id: normalizedCallerUserId, order_ids: orderIds }),
   ]);
 
   if (orderItemsRes.error) throw orderItemsRes.error;

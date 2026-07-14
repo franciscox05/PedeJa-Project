@@ -16,9 +16,6 @@ const EMPTY_SUMMARY = {
   averageTicket: 0,
 };
 
-const PROFILE_ORDER_SELECT_WITH_TIMING = "id, loja_id, subtotal, taxa_entrega, total, status, estado_interno, created_at, updated_at, customer_user_id, customer_email, submitted_at, order_timing_mode, scheduled_for";
-const PROFILE_ORDER_SELECT_LEGACY = "id, loja_id, subtotal, taxa_entrega, total, status, estado_interno, created_at, updated_at, customer_user_id, customer_email";
-
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -168,72 +165,16 @@ function normalizeOrderRow(order, lojaNameMap, latestDeliveryMap) {
   };
 }
 
-async function fetchOrdersByUserId(userId, limit) {
-  if (!userId) return [];
+async function fetchOwnOrders(callerUserId, limit) {
+  if (!Number.isFinite(callerUserId)) return [];
 
-  let query = supabase
-    .from("orders")
-    .select(PROFILE_ORDER_SELECT_WITH_TIMING)
-    .eq("customer_user_id", String(userId))
-    .order("created_at", { ascending: false });
-
-  if (Number.isFinite(limit) && Number(limit) > 0) {
-    query = query.limit(Number(limit));
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc("customer_list_own_orders", {
+    caller_user_id: callerUserId,
+    limit_count: Number.isFinite(limit) && Number(limit) > 0 ? Number(limit) : 100,
+  });
 
   if (error) {
-    if (/submitted_at|order_timing_mode|scheduled_for/i.test(String(error.message || ""))) {
-      const fallback = await supabase
-        .from("orders")
-        .select(PROFILE_ORDER_SELECT_LEGACY)
-        .eq("customer_user_id", String(userId))
-        .order("created_at", { ascending: false })
-        .limit(Number.isFinite(limit) && Number(limit) > 0 ? Number(limit) : 100);
-
-      if (!fallback.error) {
-        return fallback.data || [];
-      }
-    }
-
-    console.error("Erro ao buscar pedidos por user id:", error);
-    return [];
-  }
-
-  return data || [];
-}
-
-async function fetchOrdersByEmail(email, limit) {
-  if (!email) return [];
-
-  let query = supabase
-    .from("orders")
-    .select(PROFILE_ORDER_SELECT_WITH_TIMING)
-    .ilike("customer_email", String(email).trim())
-    .order("created_at", { ascending: false });
-
-  if (Number.isFinite(limit) && Number(limit) > 0) {
-    query = query.limit(Number(limit));
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    if (/submitted_at|order_timing_mode|scheduled_for/i.test(String(error.message || ""))) {
-      const fallback = await supabase
-        .from("orders")
-        .select(PROFILE_ORDER_SELECT_LEGACY)
-        .ilike("customer_email", String(email).trim())
-        .order("created_at", { ascending: false })
-        .limit(Number.isFinite(limit) && Number(limit) > 0 ? Number(limit) : 100);
-
-      if (!fallback.error) {
-        return fallback.data || [];
-      }
-    }
-
-    console.error("Erro ao buscar pedidos por email:", error);
+    console.error("Erro ao buscar pedidos do cliente:", error);
     return [];
   }
 
@@ -241,19 +182,13 @@ async function fetchOrdersByEmail(email, limit) {
 }
 
 export async function fetchProfileOrders(user, { limit = 100 } = {}) {
-  const userId = extractUserId(user);
-  const email = String(user?.email || "").trim();
+  const callerUserId = Number(extractUserId(user));
 
-  if (!userId && !email) {
+  if (!Number.isFinite(callerUserId)) {
     return { summary: EMPTY_SUMMARY, orders: [] };
   }
 
-  const [byUserId, byEmail] = await Promise.all([
-    fetchOrdersByUserId(userId, limit),
-    fetchOrdersByEmail(email, limit),
-  ]);
-
-  const orderRows = uniqueOrderRows([...(byUserId || []), ...(byEmail || [])]);
+  const orderRows = uniqueOrderRows(await fetchOwnOrders(callerUserId, limit));
 
   if (!orderRows.length) {
     return { summary: EMPTY_SUMMARY, orders: [] };
@@ -267,10 +202,7 @@ export async function fetchProfileOrders(user, { limit = 100 } = {}) {
       ? supabase.from("lojas").select("idloja, nome").in("idloja", lojaIds)
       : Promise.resolve({ data: [], error: null }),
     orderIds.length
-      ? supabase
-        .from("deliveries")
-        .select("order_id, status, tracking_url, shipday_error, updated_at, created_at")
-        .in("order_id", orderIds)
+      ? supabase.rpc("list_deliveries_for_orders", { caller_user_id: callerUserId, order_ids: orderIds })
       : Promise.resolve({ data: [], error: null }),
   ]);
 

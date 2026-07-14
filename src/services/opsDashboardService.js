@@ -12,12 +12,6 @@ import { cancelShipdayOrder, createShipdayOrderForOrder, updateShipdayOrderStatu
 import { sanitizeCommissionConfig } from "./pricingService";
 import { sanitizeAutoAssignConfig } from "./autoAssignConfig";
 
-const ORDER_SELECT_FULL = "id, loja_id, customer_nome, customer_address, customer_lat, customer_lng, subtotal, taxa_entrega, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, shipday_driver_name, shipday_driver_phone, veiculo_estafeta, submitted_at, order_timing_mode, scheduled_for, aceite_em, atribuido_em, recolhido_em, entregue_em, created_at, updated_at";
-const ORDER_SELECT_BASIC = "id, loja_id, customer_nome, customer_address, subtotal, taxa_entrega, total, status, estado_interno, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, shipday_driver_name, shipday_driver_phone, veiculo_estafeta, submitted_at, order_timing_mode, scheduled_for, aceite_em, atribuido_em, recolhido_em, entregue_em, created_at, updated_at";
-const ORDER_SELECT_FULL_LEGACY = "id, loja_id, customer_nome, customer_address, customer_lat, customer_lng, total, status, created_at, updated_at";
-const ORDER_SELECT_BASIC_LEGACY = "id, loja_id, customer_nome, customer_address, total, status, created_at, updated_at";
-const DELIVERY_SELECT_ADMIN = "id, order_id, external_delivery_id, status, tracking_url, shipday_error, provider_payload, created_at";
-const DELIVERY_SELECT_RESTAURANT = "id, order_id, status, tracking_url, shipday_error, provider_payload, created_at";
 const STORE_SELECT_WITH_SETTINGS = "idloja, nome, ativo, taxaentrega, latitude, longitude, aceitacao_automatica_pedidos, atribuicao_automatica_estafeta, configuracao_auto_assign, comissao_pedeja_percent, configuracoes_comissao, configuracao_entrega, horario_funcionamento";
 const STORE_SELECT_LEGACY_SETTINGS = "idloja, nome, ativo, taxaentrega, latitude, longitude, aceitacao_automatica_pedidos, comissao_pedeja_percent, horario_funcionamento";
 const STORE_SELECT_BASIC = "idloja, nome, ativo, latitude, longitude, horario_funcionamento";
@@ -37,31 +31,6 @@ const COMMISSION_MENU_SELECT = `
 
 function safeNumber(value) {
   return Number(value || 0);
-}
-
-function isMissingOrderColumnError(error) {
-  const message = String(error?.message || "").toLowerCase();
-  return message.includes("column")
-    && message.includes("orders")
-    && (
-      message.includes("estado_interno")
-      || message.includes("subtotal")
-      || message.includes("taxa_entrega")
-      || message.includes("shipday_order_id")
-      || message.includes("shipday_tracking_url")
-      || message.includes("driver_name")
-      || message.includes("driver_phone")
-      || message.includes("shipday_driver_name")
-      || message.includes("shipday_driver_phone")
-      || message.includes("veiculo_estafeta")
-      || message.includes("submitted_at")
-      || message.includes("order_timing_mode")
-      || message.includes("scheduled_for")
-      || message.includes("aceite_em")
-      || message.includes("atribuido_em")
-      || message.includes("recolhido_em")
-      || message.includes("entregue_em")
-    );
 }
 
 function withOrderCompatibility(rows = []) {
@@ -911,20 +880,6 @@ function buildLiveOrders(orders, stores) {
     }));
 }
 
-function withOrderFilters(query, { since = null, lojaId = null } = {}) {
-  let nextQuery = query;
-
-  if (since) {
-    nextQuery = nextQuery.or(`submitted_at.gte.${since},and(submitted_at.is.null,created_at.gte.${since})`);
-  }
-
-  if (lojaId !== null && lojaId !== undefined && lojaId !== "") {
-    nextQuery = nextQuery.eq("loja_id", normalizeLojaId(lojaId));
-  }
-
-  return nextQuery;
-}
-
 function withTransitionTimestampPatch(currentOrder, normalizedEstado, timestamp) {
   const patch = {};
 
@@ -947,60 +902,27 @@ function withTransitionTimestampPatch(currentOrder, normalizedEstado, timestamp)
   return patch;
 }
 
-async function queryOrdersRaw({ since = null, lojaId = null, limit = 220, basic = false } = {}) {
-  const select = basic ? ORDER_SELECT_BASIC : ORDER_SELECT_FULL;
-
-  let query = supabase
-    .from("orders")
-    .select(select)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  query = withOrderFilters(query, { since, lojaId });
-
-  const response = await query;
-  if (!response.error) {
-    const normalizedRows = withOrderCompatibility(response.data || []);
-    return basic
-      ? {
-        data: normalizedRows.map((order) => ({ ...order, customer_lat: null, customer_lng: null })),
-        error: null,
-      }
-      : { data: normalizedRows, error: null };
+async function queryOrdersRaw({ since = null, lojaId = null, limit = 220, callerUserId = null } = {}) {
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    return { data: null, error: new Error("Sessao invalida: inicia sessao novamente.") };
   }
 
-  if (isMissingOrderColumnError(response.error)) {
-    const legacySelect = basic ? ORDER_SELECT_BASIC_LEGACY : ORDER_SELECT_FULL_LEGACY;
+  const response = await supabase.rpc("list_orders_for_viewer", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_filter: lojaId !== null && lojaId !== undefined && lojaId !== "" ? normalizeLojaId(lojaId) : null,
+    since_input: since || null,
+    until_input: null,
+    limit_count: limit,
+  });
 
-    let legacyQuery = supabase
-      .from("orders")
-      .select(legacySelect)
-      .order("created_at", { ascending: false })
-      .limit(limit);
+  if (response.error) return response;
 
-    legacyQuery = withOrderFilters(legacyQuery, { since, lojaId });
-
-    const legacyResponse = await legacyQuery;
-    if (!legacyResponse.error) {
-      const normalizedLegacyRows = withOrderCompatibility(legacyResponse.data || []);
-      return basic
-        ? {
-          data: normalizedLegacyRows.map((order) => ({ ...order, customer_lat: null, customer_lng: null })),
-          error: null,
-        }
-        : { data: normalizedLegacyRows, error: null };
-    }
-  }
-
-  if (!basic) {
-    return queryOrdersRaw({ since, lojaId, limit, basic: true });
-  }
-
-  return response;
+  return { data: withOrderCompatibility(response.data || []), error: null };
 }
 
-async function fetchOrdersForDashboard({ since = null, until = null, lojaId = null, limit = 220 } = {}) {
-  const withPeriod = await queryOrdersRaw({ since, lojaId, limit });
+async function fetchOrdersForDashboard({ since = null, until = null, lojaId = null, limit = 220, callerUserId = null } = {}) {
+  const withPeriod = await queryOrdersRaw({ since, lojaId, limit, callerUserId });
   if (withPeriod.error) return withPeriod;
 
   const scopedRows = filterRowsByDashboardWindow(withPeriod.data || [], { since, until });
@@ -1008,24 +930,24 @@ async function fetchOrdersForDashboard({ since = null, until = null, lojaId = nu
     return { data: scopedRows, error: null };
   }
 
-  const withoutPeriod = await queryOrdersRaw({ since: null, lojaId, limit });
+  const withoutPeriod = await queryOrdersRaw({ since: null, lojaId, limit, callerUserId });
   if (withoutPeriod.error) return withoutPeriod;
 
   return { data: filterRowsByDashboardWindow(withoutPeriod.data || [], { since, until }), error: null };
 }
 
-async function fetchDeliveriesForDashboard({ since = null, until = null, limit = 220 } = {}) {
-  let query = supabase
-    .from("deliveries")
-    .select(DELIVERY_SELECT_ADMIN)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (since) {
-    query = query.gte("created_at", since);
+async function fetchDeliveriesForDashboard({ since = null, until = null, limit = 220, callerUserId = null } = {}) {
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    return { data: null, error: new Error("Sessao invalida: inicia sessao novamente.") };
   }
 
-  const scoped = await query;
+  const scoped = await supabase.rpc("list_deliveries_for_viewer", {
+    caller_user_id: normalizedCallerUserId,
+    since_input: since || null,
+    until_input: null,
+    limit_count: limit,
+  });
   if (scoped.error) return scoped;
 
   const scopedRows = filterRowsByDashboardWindow(scoped.data || [], { since, until });
@@ -1033,11 +955,12 @@ async function fetchDeliveriesForDashboard({ since = null, until = null, limit =
     return { ...scoped, data: scopedRows };
   }
 
-  const fallback = await supabase
-    .from("deliveries")
-    .select(DELIVERY_SELECT_ADMIN)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const fallback = await supabase.rpc("list_deliveries_for_viewer", {
+    caller_user_id: normalizedCallerUserId,
+    since_input: null,
+    until_input: null,
+    limit_count: limit,
+  });
 
   return fallback.error
     ? fallback
@@ -1102,8 +1025,8 @@ export async function fetchAdminDashboard(input = 7, { user } = {}) {
 
   try {
     const [ordersRes, deliveriesRes, storesRes, requestsRes, storeTypesRes] = await Promise.all([
-      fetchOrdersForDashboard({ since, until, limit: until ? 1500 : 300 }),
-      fetchDeliveriesForDashboard({ since, until, limit: until ? 1500 : 300 }),
+      fetchOrdersForDashboard({ since, until, limit: until ? 1500 : 300, callerUserId }),
+      fetchDeliveriesForDashboard({ since, until, limit: until ? 1500 : 300, callerUserId }),
       fetchStoresWithAdminSettings(),
       Number.isFinite(callerUserId)
         ? supabase.rpc("admin_list_restaurant_signup_requests", {
@@ -1203,8 +1126,12 @@ function buildRestaurantSeries(orders) {
   return { byDay, byHour };
 }
 
-export async function fetchAdminCustomerInsights(input = 30) {
+export async function fetchAdminCustomerInsights(input = 30, callerUserId = null) {
   const { since, until } = normalizeDashboardWindow(input);
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente.");
+  }
 
   try {
     const [
@@ -1220,11 +1147,10 @@ export async function fetchAdminCustomerInsights(input = 30) {
         .select("idutilizador, username, email, dataregisto")
         .order("dataregisto", { ascending: false })
         .limit(5000),
-      supabase
-        .from("orders")
-        .select("id, loja_id, customer_user_id, total, status, estado_interno, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20000),
+      supabase.rpc("admin_list_customer_order_insights", {
+        caller_user_id: normalizedCallerUserId,
+        limit_count: 20000,
+      }),
       supabase
         .from("lojas")
         .select("idloja, nome"),
@@ -1240,24 +1166,13 @@ export async function fetchAdminCustomerInsights(input = 30) {
     ]);
 
     if (usersRes.error) throw usersRes.error;
-    if (ordersRes.error && !isMissingOrderColumnError(ordersRes.error, "estado_interno")) throw ordersRes.error;
+    if (ordersRes.error) throw ordersRes.error;
     if (storesRes.error) throw storesRes.error;
     if (adminsRes.error) throw adminsRes.error;
     if (staffAccessRes.error) throw staffAccessRes.error;
     if (permissionsRes.error) throw permissionsRes.error;
 
-    let ordersRaw = ordersRes.data || [];
-    if (ordersRes.error && isMissingOrderColumnError(ordersRes.error, "estado_interno")) {
-      const legacyOrdersRes = await supabase
-        .from("orders")
-        .select("id, loja_id, customer_user_id, total, status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20000);
-      if (legacyOrdersRes.error) throw legacyOrdersRes.error;
-      ordersRaw = legacyOrdersRes.data || [];
-    }
-
-    const orders = withOrderCompatibility(ordersRaw || [])
+    const orders = withOrderCompatibility(ordersRes.data || [])
       .filter((order) => isWithinDashboardWindow(order, { since, until }));
 
     const storeNameById = new Map((storesRes.data || []).map((store) => [String(store.idloja), store.nome || `Loja ${store.idloja}`]));
@@ -1396,7 +1311,7 @@ export async function fetchAdminCustomerInsights(input = 30) {
   }
 }
 
-export async function fetchRestaurantDashboard({ lojaId, periodDays = 7, dateFrom = null, dateTo = null } = {}) {
+export async function fetchRestaurantDashboard({ lojaId, periodDays = 7, dateFrom = null, dateTo = null, callerUserId = null } = {}) {
   const normalizedLojaId = normalizeLojaId(lojaId);
 
   if (!normalizedLojaId) {
@@ -1418,6 +1333,7 @@ export async function fetchRestaurantDashboard({ lojaId, periodDays = 7, dateFro
       until,
       lojaId: normalizedLojaId,
       limit: until ? 1500 : 300,
+      callerUserId,
     });
     if (ordersRes.error) throw ordersRes.error;
 
@@ -1427,34 +1343,13 @@ export async function fetchRestaurantDashboard({ lojaId, periodDays = 7, dateFro
 
     let deliveries = [];
     if (orderIds.length > 0) {
-      let deliveryQuery = supabase
-        .from("deliveries")
-        .select(DELIVERY_SELECT_RESTAURANT)
-        .in("order_id", orderIds)
-        .order("created_at", { ascending: false })
-        .limit(300);
-
-      if (since) {
-        deliveryQuery = deliveryQuery.gte("created_at", since);
-      }
-
-      const scopedDeliveries = await deliveryQuery;
+      const scopedDeliveries = await supabase.rpc("list_deliveries_for_orders", {
+        caller_user_id: Number(callerUserId),
+        order_ids: orderIds,
+      });
       if (scopedDeliveries.error) throw scopedDeliveries.error;
 
       deliveries = filterRowsByDashboardWindow(scopedDeliveries.data || [], { since, until });
-
-      if (deliveries.length === 0 && since) {
-        const fallbackDeliveries = await supabase
-          .from("deliveries")
-          .select(DELIVERY_SELECT_RESTAURANT)
-          .in("order_id", orderIds)
-          .order("created_at", { ascending: false })
-          .limit(300);
-
-        if (!fallbackDeliveries.error) {
-          deliveries = filterRowsByDashboardWindow(fallbackDeliveries.data || [], { since, until });
-        }
-      }
     }
 
     return {
@@ -1512,31 +1407,14 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
 
   const normalizedLojaId = normalizeLojaId(lojaId);
 
-  let lookupQuery = supabase
-    .from("orders")
-    .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, aceite_em, atribuido_em, recolhido_em, entregue_em")
-    .eq("id", orderId);
-
-  if (normalizedLojaId) {
-    lookupQuery = lookupQuery.eq("loja_id", normalizedLojaId);
-  }
-
-  let lookupResponse = await lookupQuery.maybeSingle();
-
+  const lookupResponse = await supabase.rpc("get_order_by_id", { order_id_input: orderId });
   if (
-    lookupResponse.error
-    && /aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(lookupResponse.error.message || ""))
+    !lookupResponse.error
+    && lookupResponse.data
+    && normalizedLojaId
+    && String(lookupResponse.data.loja_id) !== String(normalizedLojaId)
   ) {
-    let fallbackLookupQuery = supabase
-      .from("orders")
-      .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone")
-      .eq("id", orderId);
-
-    if (normalizedLojaId) {
-      fallbackLookupQuery = fallbackLookupQuery.eq("loja_id", normalizedLojaId);
-    }
-
-    lookupResponse = await fallbackLookupQuery.maybeSingle();
+    lookupResponse.data = null;
   }
 
   const { data: currentOrder, error: lookupError } = lookupResponse;
@@ -1697,8 +1575,17 @@ export async function updateOrderStatus(orderId, status, lojaId = null, callerUs
   return { order: { id: orderId, status }, shipdaySync: { ok: false, skipped: true, reason: "legacy_update" } };
 }
 
-export async function fetchDevDashboard(periodDays = 7) {
+export async function fetchDevDashboard(periodDays = 7, callerUserId = null) {
   const since = daysToIso(periodDays);
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    return {
+      events: [],
+      deliveries: [],
+      metrics: { webhookEvents: 0, failedDeliveries: 0, latestDeliveryStatus: "N/A" },
+      error: "Sessao invalida: inicia sessao novamente.",
+    };
+  }
 
   try {
     const [eventsRes, deliveriesRes] = await Promise.all([
@@ -1708,12 +1595,12 @@ export async function fetchDevDashboard(periodDays = 7) {
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(200),
-      supabase
-        .from("deliveries")
-        .select("id, order_id, external_delivery_id, status, shipday_error, provider_payload, created_at")
-        .gte("created_at", since)
-        .order("created_at", { ascending: false })
-        .limit(200),
+      supabase.rpc("list_deliveries_for_viewer", {
+        caller_user_id: normalizedCallerUserId,
+        since_input: since,
+        until_input: null,
+        limit_count: 200,
+      }),
     ]);
 
     if (eventsRes.error) throw eventsRes.error;
