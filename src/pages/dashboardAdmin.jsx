@@ -64,9 +64,8 @@ function normalizeSearch(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function readUserFromStorageSafe() {
+function readUserFromStorageSafe(raw) {
   try {
-    const raw = localStorage.getItem("pedeja_user");
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -263,7 +262,10 @@ const ADMIN_DASHBOARD_TABS = [
 export default function DashboardAdmin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const user = readUserFromStorageSafe();
+  const userRaw = localStorage.getItem("pedeja_user");
+  // Memoized on the raw string (not recomputed into a fresh object every render) so useCallback
+  // deps that include `user` don't recreate on every render and re-trigger their effects in a loop.
+  const user = useMemo(() => readUserFromStorageSafe(userRaw), [userRaw]);
   const queryStoreId = searchParams.get("loja") || "";
   const queryTab = searchParams.get("tab") || "";
   const initialTab = ADMIN_DASHBOARD_TABS.some((tab) => tab.id === queryTab) ? queryTab : "dashboard";
