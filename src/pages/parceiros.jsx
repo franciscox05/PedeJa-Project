@@ -490,7 +490,7 @@ const handleSubmit = async (e) => {
       };
 
       if (isEditMode) {
-        await updateRestaurantProfile(storeProfile.idloja, payload);
+        await updateRestaurantProfile(storeProfile.idloja, payload, extractUserId(user));
         setStatus({ type: "success", message: "Dados da loja atualizados com sucesso." });
       } else {
         await submitPartnerRequest(payload);

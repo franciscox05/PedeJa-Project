@@ -473,10 +473,15 @@ export async function fetchStoresWithAdminSettings({ lojaId = null } = {}) {
   return withStoreSettingsCompatibility(response.data || []);
 }
 
-export async function updateRestaurantAdminSettings(lojaId, patch = {}) {
+export async function updateRestaurantAdminSettings(lojaId, patch = {}, callerUserId = null) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   if (normalizedLojaId === null) {
     throw new Error("Loja invalida para atualizar configuracao.");
+  }
+
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para atualizar esta loja.");
   }
 
   const updatePayload = {};
@@ -544,12 +549,11 @@ export async function updateRestaurantAdminSettings(lojaId, patch = {}) {
     return null;
   }
 
-  const { data, error } = await supabase
-    .from("lojas")
-    .update(updatePayload)
-    .eq("idloja", normalizedLojaId)
-    .select(STORE_SELECT_WITH_SETTINGS)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("stores_apply_authorized_patch", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    patch: updatePayload,
+  });
 
   if (error) {
     if (isMissingStoreSettingsColumnError(error)) {
@@ -941,19 +945,6 @@ function withTransitionTimestampPatch(currentOrder, normalizedEstado, timestamp)
   return patch;
 }
 
-function stripUnsupportedTransitionColumns(patch, error) {
-  const message = String(error?.message || "").toLowerCase();
-  const nextPatch = { ...patch };
-
-  ["aceite_em", "atribuido_em", "recolhido_em", "entregue_em"].forEach((columnName) => {
-    if (message.includes("column") && message.includes("orders") && message.includes(columnName)) {
-      delete nextPatch[columnName];
-    }
-  });
-
-  return nextPatch;
-}
-
 async function queryOrdersRaw({ since = null, lojaId = null, limit = 220, basic = false } = {}) {
   const select = basic ? ORDER_SELECT_BASIC : ORDER_SELECT_FULL;
 
@@ -1103,19 +1094,21 @@ export async function resolveRestaurantStoreId(user) {
   return null;
 }
 
-export async function fetchAdminDashboard(input = 7) {
+export async function fetchAdminDashboard(input = 7, { user } = {}) {
   const { since, until } = normalizeDashboardWindow(input);
+  const callerUserId = Number(extractUserId(user));
 
   try {
     const [ordersRes, deliveriesRes, storesRes, requestsRes, storeTypesRes] = await Promise.all([
       fetchOrdersForDashboard({ since, until, limit: until ? 1500 : 300 }),
       fetchDeliveriesForDashboard({ since, until, limit: until ? 1500 : 300 }),
       fetchStoresWithAdminSettings(),
-      supabase
-        .from("restaurant_signup_requests")
-        .select("id, nome, email, telefone, restaurante_nome, nif, morada_completa, horario_funcionamento, latitude, longitude, place_id, user_id, idtipoloja, imagemfundo, icon, status, created_at")
-        .eq("status", "PENDING")
-        .order("created_at", { ascending: true }),
+      Number.isFinite(callerUserId)
+        ? supabase.rpc("admin_list_restaurant_signup_requests", {
+            caller_user_id: callerUserId,
+            status_filter: "PENDING",
+          })
+        : Promise.resolve({ data: [], error: null }),
       supabase
         .from("tiposloja")
         .select("idtipoloja, tipoloja, descricao")
@@ -1490,6 +1483,11 @@ export async function fetchRestaurantDashboard({ lojaId, periodDays = 7, dateFro
 export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId = null, options = {}) {
   assertSupabaseClientAvailable("opsDashboardService.updateOrderWorkflowStatus");
 
+  const callerUserId = Number(options.callerUserId);
+  if (!Number.isFinite(callerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para atualizar este pedido.");
+  }
+
   const mappedFromLegacy = mapLegacyStatusToEstadoInterno(estadoInterno);
   const normalizedEstado = mappedFromLegacy || String(estadoInterno || "").trim().toLowerCase();
 
@@ -1584,34 +1582,11 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
     patch.shipday_tracking_url = null;
   }
 
-  let updateQuery = supabase
-    .from("orders")
-    .update(patch)
-    .eq("id", orderId);
-
-  if (normalizedLojaId) {
-    updateQuery = updateQuery.eq("loja_id", normalizedLojaId);
-  }
-
-  let response = await updateQuery
-    .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, veiculo_estafeta, aceite_em, atribuido_em, recolhido_em, entregue_em")
-    .maybeSingle();
-
-  if (
-    response.error
-    && /aceite_em|atribuido_em|recolhido_em|entregue_em/i.test(String(response.error.message || ""))
-  ) {
-    const fallbackPatch = stripUnsupportedTransitionColumns(patch, response.error);
-    response = await supabase
-      .from("orders")
-      .update(fallbackPatch)
-      .eq("id", orderId)
-      .eq("loja_id", normalizedLojaId ?? currentOrder.loja_id)
-      .select("id, loja_id, estado_interno, status, shipday_order_id, shipday_tracking_url, driver_name, driver_phone, veiculo_estafeta")
-      .maybeSingle();
-  }
-
-  const { data, error } = response;
+  const { data, error } = await supabase.rpc("orders_apply_authorized_patch", {
+    caller_user_id: callerUserId,
+    order_id_input: orderId,
+    patch,
+  });
 
   if (error) {
     console.error("Erro ao atualizar workflow do pedido", {
@@ -1649,10 +1624,11 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
           const rollbackLegacyStatus = mapEstadoInternoToLegacyStatus(rollbackEstado);
           if (rollbackLegacyStatus) rollbackPatch.status = rollbackLegacyStatus;
 
-          await supabase
-            .from("orders")
-            .update(rollbackPatch)
-            .eq("id", data.id);
+          await supabase.rpc("orders_apply_authorized_patch", {
+            caller_user_id: callerUserId,
+            order_id_input: data.id,
+            patch: rollbackPatch,
+          });
 
           throw shipdayCreateError;
         }
@@ -1693,27 +1669,26 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
   return { order: data, shipdaySync };
 }
 
-export async function updateOrderStatus(orderId, status, lojaId = null) {
+export async function updateOrderStatus(orderId, status, lojaId = null, callerUserId = null) {
   const mappedEstado = mapLegacyStatusToEstadoInterno(status);
 
   if (mappedEstado) {
-    return updateOrderWorkflowStatus(orderId, mappedEstado, lojaId, { syncShipday: false });
+    return updateOrderWorkflowStatus(orderId, mappedEstado, lojaId, { syncShipday: false, callerUserId });
   }
 
-  let query = supabase
-    .from("orders")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", orderId);
-
-  const normalizedLojaId = normalizeLojaId(lojaId);
-  if (normalizedLojaId) {
-    query = query.eq("loja_id", normalizedLojaId);
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para atualizar este pedido.");
   }
 
-  const { data, error } = await query.select("id");
+  const { data, error } = await supabase.rpc("orders_apply_authorized_patch", {
+    caller_user_id: normalizedCallerUserId,
+    order_id_input: orderId,
+    patch: { status, updated_at: new Date().toISOString() },
+  });
 
   if (error) throw error;
-  if (!data || data.length === 0) {
+  if (!data) {
     throw new Error("Pedido nao encontrado para esta loja.");
   }
 
@@ -1765,31 +1740,26 @@ export async function fetchDevDashboard(periodDays = 7) {
 }
 
 export async function createRestaurantSignupRequest(payload) {
-  const { data, error } = await supabase
-    .from("restaurant_signup_requests")
-    .insert({
-      nome: payload.nome,
-      email: payload.email,
-      telefone: payload.telefone || null,
-      restaurante_nome: payload.restaurante_nome,
-      nif: payload.nif || null,
-      cidade: payload.cidade || null,
-      morada_completa: payload.morada_completa || null,
-      horario_funcionamento: payload.horario_funcionamento || null,
-      latitude: payload.latitude ?? null,
-      longitude: payload.longitude ?? null,
-      place_id: payload.place_id || null,
-      idtipoloja: payload.idtipoloja ? Number(payload.idtipoloja) : null,
-      imagemfundo: payload.imagemfundo || null,
-      icon: payload.icon || null,
-      user_id: payload.user_id || payload.email || null,
-      status: "PENDING",
-    })
-    .select("id")
-    .single();
+  const { error } = await supabase.from("restaurant_signup_requests").insert({
+    nome: payload.nome,
+    email: payload.email,
+    telefone: payload.telefone || null,
+    restaurante_nome: payload.restaurante_nome,
+    nif: payload.nif || null,
+    cidade: payload.cidade || null,
+    morada_completa: payload.morada_completa || null,
+    horario_funcionamento: payload.horario_funcionamento || null,
+    latitude: payload.latitude ?? null,
+    longitude: payload.longitude ?? null,
+    place_id: payload.place_id || null,
+    idtipoloja: payload.idtipoloja ? Number(payload.idtipoloja) : null,
+    imagemfundo: payload.imagemfundo || null,
+    icon: payload.icon || null,
+    user_id: payload.user_id || payload.email || null,
+    status: "PENDING",
+  });
 
   if (error) throw error;
-  return data;
 }
 
 function normalizeStoreNameForMatch(value) {
@@ -1905,11 +1875,15 @@ async function resolveExistingStoreIdForApproval({ request, ownerUserId, current
 }
 
 export async function updateRestaurantSignupRequest(requestId, status, reviewedBy = null) {
-  const { data: request, error: requestError } = await supabase
-    .from("restaurant_signup_requests")
-    .select("*")
-    .eq("id", requestId)
-    .single();
+  const callerUserId = Number(reviewedBy);
+  if (!Number.isFinite(callerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para rever candidaturas.");
+  }
+
+  const { data: request, error: requestError } = await supabase.rpc("admin_get_restaurant_signup_request", {
+    caller_user_id: callerUserId,
+    request_id_input: requestId,
+  });
 
   if (requestError) throw requestError;
 
@@ -1999,99 +1973,52 @@ export async function updateRestaurantSignupRequest(requestId, status, reviewedB
       }
 
       if (lojaId) {
-        const { data: lojaUpdated, error: lojaUpdateError } = await supabase
-          .from("lojas")
-          .update(lojaPayload)
-          .eq("idloja", lojaId)
-          .select("idloja")
-          .limit(1);
+        const { error: lojaUpdateError } = await supabase.rpc("admin_provision_store_from_signup", {
+          caller_user_id: callerUserId,
+          loja_id_input: lojaId,
+          payload: lojaPayload,
+        });
 
-        if (lojaUpdateError) throw lojaUpdateError;
-        if (!lojaUpdated || lojaUpdated.length === 0) {
-          lojaId = null;
+        if (lojaUpdateError) {
+          if (lojaUpdateError.code === "P0002") {
+            lojaId = null;
+          } else {
+            throw lojaUpdateError;
+          }
         }
       }
 
       if (!lojaId) {
-        const { data: loja, error: lojaError } = await supabase
-          .from("lojas")
-          .insert(lojaPayload)
-          .select("idloja")
-          .single();
+        const { data: loja, error: lojaError } = await supabase.rpc("admin_provision_store_from_signup", {
+          caller_user_id: callerUserId,
+          loja_id_input: null,
+          payload: lojaPayload,
+        });
 
         if (lojaError) throw lojaError;
-        lojaId = loja?.idloja || loja?.id || null;
+        lojaId = loja?.idloja || null;
       }
 
-      if (Number.isFinite(ownerUserId)) {
-        const { data: permissionRows, error: permissionError } = await supabase
-          .from("permissoes")
-          .select("idpermissao, permissao");
+      if (Number.isFinite(ownerUserId) && lojaId) {
+        const { error: associateError } = await supabase.rpc("admin_associate_restaurant_to_user", {
+          caller_user_id: callerUserId,
+          target_user_id: ownerUserId,
+          loja_id_input: lojaId,
+        });
 
-        if (permissionError) throw permissionError;
-
-        const restaurantPermission = (permissionRows || []).find((row) =>
-          /restaur|restaurant|loja|merchant/i.test(String(row.permissao || "")),
-        );
-
-        if (restaurantPermission?.idpermissao) {
-          const { error: linkPermissionError } = await supabase
-            .from("utilizadorespermissoes")
-            .upsert(
-              {
-                idutilizador: ownerUserId,
-                idpermissao: restaurantPermission.idpermissao,
-              },
-              { onConflict: "idutilizador,idpermissao" },
-            );
-
-          if (linkPermissionError) throw linkPermissionError;
-        }
-      }
-
-      const staffUserId = Number.isFinite(ownerUserId)
-        ? String(ownerUserId)
-        : String(request.user_id || request.email || "").trim();
-
-      if (lojaId && staffUserId) {
-        const { data: staffExisting, error: staffLookupError } = await supabase
-          .from("restaurant_staff_access")
-          .select("id")
-          .eq("user_id", staffUserId)
-          .eq("loja_id", lojaId)
-          .limit(1);
-
-        if (staffLookupError) throw staffLookupError;
-
-        if (staffExisting && staffExisting.length > 0) {
-          const { error: staffUpdateError } = await supabase
-            .from("restaurant_staff_access")
-            .update({ role: "OWNER" })
-            .eq("id", staffExisting[0].id);
-
-          if (staffUpdateError) throw staffUpdateError;
-        } else {
-          const { error: staffInsertError } = await supabase
-            .from("restaurant_staff_access")
-            .insert({ user_id: staffUserId, loja_id: lojaId, role: "OWNER" });
-
-          if (staffInsertError) throw staffInsertError;
-        }
+        if (associateError) throw associateError;
       }
     } catch (err) {
       provisionError = err;
     }
   }
 
-  const { error } = await supabase
-    .from("restaurant_signup_requests")
-    .update({
-      status: normalizedStatus,
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: reviewedBy,
-      loja_id: lojaId,
-    })
-    .eq("id", requestId);
+  const { error } = await supabase.rpc("admin_update_restaurant_signup_request_status", {
+    caller_user_id: callerUserId,
+    request_id_input: requestId,
+    new_status: normalizedStatus,
+    loja_id_input: lojaId,
+  });
 
   if (error) throw error;
   if (provisionError) throw provisionError;

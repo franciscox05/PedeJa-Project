@@ -1054,10 +1054,16 @@ export async function persistAssignedCarrierSelection({
   nextEstado = "atribuindo_estafeta",
   nextStatus = "ASSIGNED",
   updatedAt = new Date().toISOString(),
+  callerUserId = null,
 }) {
   const normalizedOrderId = toText(orderId);
   if (!normalizedOrderId) {
     throw new Error("orderId em falta para guardar estafeta atribuido.");
+  }
+
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para atribuir estafeta.");
   }
 
   const patch = {
@@ -1069,12 +1075,11 @@ export async function persistAssignedCarrierSelection({
     veiculo_estafeta: toText(carrier?.vehicle) || null,
   };
 
-  const { data, error } = await supabase
-    .from("orders")
-    .update(patch)
-    .eq("id", normalizedOrderId)
-    .select("id, driver_name, driver_phone, veiculo_estafeta, estado_interno, status, updated_at")
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("orders_apply_authorized_patch", {
+    caller_user_id: normalizedCallerUserId,
+    order_id_input: normalizedOrderId,
+    patch,
+  });
 
   if (error) {
     throw error;

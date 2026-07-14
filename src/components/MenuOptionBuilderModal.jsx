@@ -154,6 +154,7 @@ export default function MenuOptionBuilderModal({
   isOpen,
   lojaId,
   menuItem,
+  callerUserId,
   onClose,
   onSaved,
 }) {
@@ -391,11 +392,11 @@ export default function MenuOptionBuilderModal({
     if (normalizedOrder.length === 0) return false;
     if (!groupOrderDirty && !includeGroupId) return false;
 
-    await reorderMenuOptionGroupsByMenu(menuId, normalizedOrder);
+    await reorderMenuOptionGroupsByMenu(menuId, normalizedOrder, callerUserId);
     setGroupOrderDirty(false);
     if (!silent) setError("");
     return true;
-  }, [groupOrderDraft, groupOrderDirty, menuId]);
+  }, [groupOrderDraft, groupOrderDirty, menuId, callerUserId]);
 
   const handleSaveGroup = async (event) => {
     event.preventDefault();
@@ -415,9 +416,9 @@ export default function MenuOptionBuilderModal({
     setError("");
     try {
       if (editingGroupId) {
-        await updateMenuOptionLibraryGroup(lojaId, editingGroupId, payload);
+        await updateMenuOptionLibraryGroup(lojaId, editingGroupId, payload, callerUserId);
       } else {
-        await createMenuOptionGroupForMenu(lojaId, menuId, payload);
+        await createMenuOptionGroupForMenu(lojaId, menuId, payload, callerUserId);
       }
 
       resetDraft();
@@ -438,7 +439,7 @@ export default function MenuOptionBuilderModal({
     setSaving(true);
     setError("");
     try {
-      await unlinkMenuOptionLibraryGroupFromMenu(menuId, groupId);
+      await unlinkMenuOptionLibraryGroupFromMenu(menuId, groupId, callerUserId);
       if (String(editingGroupId || "") === String(groupId)) resetDraft();
       await loadGroups();
       await onSaved?.();

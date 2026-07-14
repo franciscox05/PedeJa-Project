@@ -616,7 +616,7 @@ export default function DashboardAdmin() {
   const load = useCallback(async (input = dashboardWindowInput) => {
     setState((prev) => ({ ...prev, loading: true }));
     try {
-      const data = await fetchAdminDashboard(input);
+      const data = await fetchAdminDashboard(input, { user });
       const normalized = normalizeAdminDashboardData(data);
       setState({
         ...normalized,
@@ -643,7 +643,7 @@ export default function DashboardAdmin() {
         error: error?.message || "Falha inesperada no dashboard admin.",
       }));
     }
-  }, [dashboardWindowInput, queryStoreId]);
+  }, [dashboardWindowInput, queryStoreId, user]);
 
   const loadCustomerInsights = useCallback(async (input = dashboardWindowInput) => {
     setCustomerInsights((prev) => ({
@@ -722,28 +722,16 @@ export default function DashboardAdmin() {
       updated_at: new Date().toISOString(),
     };
 
-    let response = await supabase
-      .from("orders")
-      .update({
-        ...basePatch,
-        shipday_driver_name: null,
-        shipday_driver_phone: null,
-      })
-      .eq("id", orderId)
-      .select("id, estado_interno, status, driver_name, driver_phone, veiculo_estafeta, shipday_tracking_url, updated_at")
-      .maybeSingle();
-
-    if (
-      response.error
-      && /shipday_driver_name|shipday_driver_phone/i.test(String(response.error.message || ""))
-    ) {
-      response = await supabase
-        .from("orders")
-        .update(basePatch)
-        .eq("id", orderId)
-        .select("id, estado_interno, status, driver_name, driver_phone, veiculo_estafeta, shipday_tracking_url, updated_at")
-        .maybeSingle();
+    const callerUserId = Number(extractUserId(user));
+    if (!Number.isFinite(callerUserId)) {
+      return { ok: false, error: new Error("Sessao invalida: inicia sessao novamente.") };
     }
+
+    const response = await supabase.rpc("orders_apply_authorized_patch", {
+      caller_user_id: callerUserId,
+      order_id_input: orderId,
+      patch: basePatch,
+    });
 
     if (response.error) {
       return {
@@ -756,7 +744,7 @@ export default function DashboardAdmin() {
       ok: true,
       data: response.data || { id: orderId, ...basePatch },
     };
-  }, []);
+  }, [user]);
 
   const applyAcceptedCarrierResetLocally = useCallback((orderId, updatedAt = null) => {
     setState((prev) => ({
@@ -785,6 +773,7 @@ export default function DashboardAdmin() {
       nextEstado: "atribuindo_estafeta",
       nextStatus: "ASSIGNED",
       updatedAt: new Date().toISOString(),
+      callerUserId: extractUserId(user),
     });
 
     setState((prev) => ({
@@ -804,7 +793,7 @@ export default function DashboardAdmin() {
     }));
 
     return result;
-  }, []);
+  }, [user]);
 
   const runAutoAssignForOrder = useCallback(async (order, { silent = true } = {}) => {
     const orderId = String(order?.id || "");
@@ -1110,7 +1099,7 @@ export default function DashboardAdmin() {
   const handleToggleAutoAccept = async (store, nextValue) => {
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
       aceitacao_automatica_pedidos: nextValue,
-    });
+    }, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
@@ -1124,7 +1113,7 @@ export default function DashboardAdmin() {
           Boolean(nextValue),
         ).criteria,
       },
-    });
+    }, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
@@ -1134,26 +1123,26 @@ export default function DashboardAdmin() {
         enabled: Boolean(store?.atribuicao_automatica_estafeta),
         criteria: sanitizeAutoAssignConfig(config, Boolean(store?.atribuicao_automatica_estafeta)).criteria,
       },
-    });
+    }, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
   const handleSaveCommissionSettings = async (store, payload) => {
-    const updatedStore = await updateRestaurantAdminSettings(store.idloja, payload);
+    const updatedStore = await updateRestaurantAdminSettings(store.idloja, payload, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
   const handleSaveScheduleSettings = async (store, horario_funcionamento) => {
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
       horario_funcionamento,
-    });
+    }, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
   const handleSaveDeliveryPricingSettings = async (store, configuracao_entrega) => {
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
       configuracao_entrega,
-    });
+    }, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
@@ -1199,7 +1188,10 @@ export default function DashboardAdmin() {
     setUpdatingOrderId(String(order?.id || ""));
 
     try {
-      const result = await updateOrderWorkflowStatus(order.id, toEstado, order?.loja_id ?? null, { syncShipday: true });
+      const result = await updateOrderWorkflowStatus(order.id, toEstado, order?.loja_id ?? null, {
+        syncShipday: true,
+        callerUserId: extractUserId(user),
+      });
 
       if (result?.shipdaySync && !result.shipdaySync.ok && !result.shipdaySync.skipped) {
         toast.error(`Pedido atualizado no PedeJa, mas falhou sync Shipday: ${result.shipdaySync.error || "erro desconhecido"}`);

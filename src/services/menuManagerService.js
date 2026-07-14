@@ -261,94 +261,6 @@ async function detectMenuOptionLinkSchema() {
   return menuOptionLinkSchemaPromise;
 }
 
-function hasOwn(obj, key) {
-  return Object.prototype.hasOwnProperty.call(obj || {}, key);
-}
-
-function applyMissingColumnFallbackToGroupBody(body, error) {
-  const message = String(error?.message || "").toLowerCase();
-  if (!message.includes("menu_option_groups") || !message.includes("column")) return null;
-
-  const next = { ...(body || {}) };
-  let changed = false;
-
-  const swap = (from, to) => {
-    if (!hasOwn(next, from)) return;
-    if (!hasOwn(next, to)) next[to] = next[from];
-    delete next[from];
-    changed = true;
-  };
-  const drop = (column) => {
-    if (!hasOwn(next, column)) return;
-    delete next[column];
-    changed = true;
-  };
-
-  if (message.includes("'min_choices'")) drop("min_choices");
-  if (message.includes("'min_selecoes'")) drop("min_selecoes");
-
-  if (message.includes("'titulo'")) swap("titulo", "name");
-  if (message.includes("'name'")) swap("name", "titulo");
-
-  if (message.includes("'tipo'")) swap("tipo", "type");
-  if (message.includes("'type'")) swap("type", "tipo");
-
-  if (message.includes("'obrigatorio'")) swap("obrigatorio", "is_required");
-  if (message.includes("'is_required'")) swap("is_required", "obrigatorio");
-
-  if (message.includes("'max_selecoes'")) swap("max_selecoes", "max_choices");
-  if (message.includes("'max_choices'")) swap("max_choices", "max_selecoes");
-
-  if (message.includes("'depends_on_option_ids'")) {
-    if (hasOwn(next, "depends_on_item_ids")) swap("depends_on_option_ids", "depends_on_item_ids");
-    else drop("depends_on_option_ids");
-  }
-  if (message.includes("'depends_on_item_ids'")) {
-    if (hasOwn(next, "depends_on_option_ids")) swap("depends_on_item_ids", "depends_on_option_ids");
-    else drop("depends_on_item_ids");
-  }
-
-  return changed ? next : null;
-}
-
-function applyMissingColumnFallbackToItemBody(body, error) {
-  const message = String(error?.message || "").toLowerCase();
-  if (!message.includes("menu_option_items") || !message.includes("column")) return null;
-
-  const next = { ...(body || {}) };
-  let changed = false;
-
-  const swap = (from, to) => {
-    if (!hasOwn(next, from)) return;
-    if (!hasOwn(next, to)) next[to] = next[from];
-    delete next[from];
-    changed = true;
-  };
-
-  const drop = (column) => {
-    if (!hasOwn(next, column)) return;
-    delete next[column];
-    changed = true;
-  };
-
-  if (message.includes("'nome'")) swap("nome", "name");
-  if (message.includes("'name'")) swap("name", "nome");
-  if (message.includes("'preco'")) swap("preco", "price");
-  if (message.includes("'price'")) swap("price", "preco");
-  if (message.includes("'default_selected'")) swap("default_selected", "is_default");
-  if (message.includes("'is_default'")) swap("is_default", "default_selected");
-  if (message.includes("'depends_on_option_ids'")) {
-    if (hasOwn(next, "depends_on_item_ids")) swap("depends_on_option_ids", "depends_on_item_ids");
-    else drop("depends_on_option_ids");
-  }
-  if (message.includes("'depends_on_item_ids'")) {
-    if (hasOwn(next, "depends_on_option_ids")) swap("depends_on_item_ids", "depends_on_option_ids");
-    else drop("depends_on_item_ids");
-  }
-
-  return changed ? next : null;
-}
-
 function mapMenuRow(row, resolvedLibrary = {}) {
   const linkedGroups = Array.isArray(resolvedLibrary?.linkedGroups) ? resolvedLibrary.linkedGroups : [];
   const linkedGroupIds = Array.isArray(resolvedLibrary?.linkedGroupIds) ? resolvedLibrary.linkedGroupIds : [];
@@ -627,72 +539,21 @@ async function loadMenuOptionLibraryDataset(lojaId) {
   };
 }
 
-async function syncMenuOptionGroupLinks(idmenu, groupIds = []) {
+async function syncMenuOptionGroupLinks(idmenu, groupIds = [], callerUserId = null) {
   const normalizedMenuId = normalizeMenuId(idmenu);
   const normalizedGroupIds = normalizeGroupIdList(groupIds);
-  const linkSchema = await detectMenuOptionLinkSchema();
-  const selectColumns = linkSchema.hasSortOrder
-    ? "id, grupo_id, sort_order"
-    : "id, grupo_id";
-
-  let linksQuery = supabase
-    .from("menu_option_group_links")
-    .select(selectColumns)
-    .eq("idmenu", normalizedMenuId);
-
-  if (linkSchema.hasSortOrder) {
-    linksQuery = linksQuery.order("sort_order", { ascending: true });
-  }
-  linksQuery = linksQuery.order("id", { ascending: true });
-
-  const { data: existingLinks, error: existingLinksError } = await linksQuery;
-
-  if (existingLinksError) {
-    ensureLibraryTablesAvailable(existingLinksError);
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para gerir os extras deste prato.");
   }
 
-  const existingGroupIds = (existingLinks || [])
-    .map((link) => normalizeGroupId(link.grupo_id))
-    .filter((value) => Number.isFinite(value));
+  const { error } = await supabase.rpc("menu_manager_sync_menu_option_links", {
+    caller_user_id: normalizedCallerUserId,
+    idmenu_input: normalizedMenuId,
+    group_ids: normalizedGroupIds,
+  });
 
-  const toDelete = existingGroupIds.filter((groupId) => !normalizedGroupIds.includes(groupId));
-  const toInsert = normalizedGroupIds.filter((groupId) => !existingGroupIds.includes(groupId));
-
-  if (toDelete.length > 0) {
-    const { error: deleteError } = await supabase
-      .from("menu_option_group_links")
-      .delete()
-      .eq("idmenu", normalizedMenuId)
-      .in("grupo_id", toDelete);
-
-    if (deleteError) ensureLibraryTablesAvailable(deleteError);
-  }
-
-  if (linkSchema.hasSortOrder && normalizedGroupIds.length > 0) {
-    const orderedRows = normalizedGroupIds.map((groupId, index) => ({
-      idmenu: normalizedMenuId,
-      grupo_id: groupId,
-      sort_order: index,
-    }));
-
-    const { error: upsertError } = await supabase
-      .from("menu_option_group_links")
-      .upsert(orderedRows, { onConflict: "idmenu,grupo_id" });
-
-    if (upsertError) ensureLibraryTablesAvailable(upsertError);
-    return;
-  }
-
-  if (toInsert.length > 0) {
-    const { error: insertError } = await supabase
-      .from("menu_option_group_links")
-      .insert(toInsert.map((groupId) => ({
-        idmenu: normalizedMenuId,
-        grupo_id: groupId,
-      })));
-
-    if (insertError) ensureLibraryTablesAvailable(insertError);
-  }
+  if (error) ensureLibraryTablesAvailable(error);
 }
 
 export async function fetchMenus(lojaId) {
@@ -741,7 +602,7 @@ export async function fetchMenuOptionGroupsByMenu(lojaId, idmenu) {
     .filter(Boolean);
 }
 
-export async function linkMenuOptionLibraryGroupToMenu(idmenu, groupId) {
+export async function linkMenuOptionLibraryGroupToMenu(idmenu, groupId, callerUserId) {
   const normalizedMenuId = normalizeMenuId(idmenu);
   const normalizedGroupId = normalizeGroupId(groupId);
   if (!normalizedMenuId || !Number.isFinite(normalizedGroupId)) {
@@ -773,38 +634,43 @@ export async function linkMenuOptionLibraryGroupToMenu(idmenu, groupId) {
   );
   if (!orderedGroupIds.includes(normalizedGroupId)) {
     orderedGroupIds.push(normalizedGroupId);
-    await syncMenuOptionGroupLinks(normalizedMenuId, orderedGroupIds);
+    await syncMenuOptionGroupLinks(normalizedMenuId, orderedGroupIds, callerUserId);
   }
 
   return { idmenu: normalizedMenuId, grupo_id: normalizedGroupId };
 }
 
-export async function unlinkMenuOptionLibraryGroupFromMenu(idmenu, groupId) {
+export async function unlinkMenuOptionLibraryGroupFromMenu(idmenu, groupId, callerUserId) {
   const normalizedMenuId = normalizeMenuId(idmenu);
   const normalizedGroupId = normalizeGroupId(groupId);
   if (!normalizedMenuId || !Number.isFinite(normalizedGroupId)) {
     throw new Error("Menu ou grupo invalido para remover associacao.");
   }
 
-  const { error } = await supabase
+  const { data: existingLinks, error: existingLinkError } = await supabase
     .from("menu_option_group_links")
-    .delete()
-    .eq("idmenu", normalizedMenuId)
-    .eq("grupo_id", normalizedGroupId);
+    .select("grupo_id")
+    .eq("idmenu", normalizedMenuId);
 
-  if (error) ensureLibraryTablesAvailable(error);
+  if (existingLinkError) ensureLibraryTablesAvailable(existingLinkError);
+
+  const remainingGroupIds = normalizeGroupIdList(
+    (existingLinks || []).map((link) => link?.grupo_id),
+  ).filter((id) => id !== normalizedGroupId);
+
+  await syncMenuOptionGroupLinks(normalizedMenuId, remainingGroupIds, callerUserId);
 }
 
-export async function reorderMenuOptionGroupsByMenu(idmenu, orderedGroupIds = []) {
+export async function reorderMenuOptionGroupsByMenu(idmenu, orderedGroupIds = [], callerUserId) {
   const normalizedMenuId = normalizeMenuId(idmenu);
   if (!normalizedMenuId) {
     throw new Error("Menu invalido para ordenar grupos.");
   }
 
-  await syncMenuOptionGroupLinks(normalizedMenuId, orderedGroupIds);
+  await syncMenuOptionGroupLinks(normalizedMenuId, orderedGroupIds, callerUserId);
 }
 
-export async function reorderMenuOptionLibraryGroups(lojaId, orderedGroupIds = []) {
+export async function reorderMenuOptionLibraryGroups(lojaId, orderedGroupIds = [], callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   if (!normalizedLojaId) {
     throw new Error("Loja invalida para ordenar grupos da biblioteca.");
@@ -813,40 +679,42 @@ export async function reorderMenuOptionLibraryGroups(lojaId, orderedGroupIds = [
   const normalizedGroupIds = normalizeGroupIdList(orderedGroupIds);
   if (normalizedGroupIds.length === 0) return;
 
-  const schema = await detectMenuOptionGroupSchema();
-  if (!schema.hasSortOrder) return;
-
-  const updatedAt = new Date().toISOString();
-  for (let index = 0; index < normalizedGroupIds.length; index += 1) {
-    const groupId = normalizedGroupIds[index];
-    const { error } = await supabase
-      .from("menu_option_groups")
-      .update({
-        sort_order: index,
-        updated_at: updatedAt,
-      })
-      .eq("id", groupId)
-      .eq("idloja", normalizedLojaId);
-
-    if (error) ensureLibraryTablesAvailable(error);
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para ordenar os extras.");
   }
+
+  const { error } = await supabase.rpc("menu_manager_reorder_option_groups", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    ordered_group_ids: normalizedGroupIds,
+  });
+
+  if (error) ensureLibraryTablesAvailable(error);
 }
 
-export async function createMenu(lojaId, payload) {
+function requireCallerUserId(callerUserId, message) {
+  const normalized = Number(callerUserId);
+  if (!Number.isFinite(normalized)) {
+    throw new Error(message);
+  }
+  return normalized;
+}
+
+export async function createMenu(lojaId, payload, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   if (!normalizedLojaId) throw new Error("Loja invalida para criar prato.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para criar pratos.");
 
   const descriptionColumn = await detectDescriptionColumn();
-  const body = {
-    idloja: normalizedLojaId,
-    ...buildMenuBody(payload, descriptionColumn),
-  };
+  const body = buildMenuBody(payload, descriptionColumn);
 
-  const { data, error } = await supabase
-    .from("menus")
-    .insert(body)
-    .select("idmenu")
-    .single();
+  const { data, error } = await supabase.rpc("menu_manager_upsert_menu", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    idmenu_input: null,
+    patch: body,
+  });
 
   if (error) throw error;
 
@@ -855,77 +723,87 @@ export async function createMenu(lojaId, payload) {
   );
 
   if (linkedGroupIds.length > 0) {
-    await syncMenuOptionGroupLinks(data.idmenu, linkedGroupIds);
+    await syncMenuOptionGroupLinks(data.idmenu, linkedGroupIds, normalizedCallerUserId);
   }
 
   return data;
 }
 
-export async function updateMenu(lojaId, idmenu, payload) {
+export async function updateMenu(lojaId, idmenu, payload, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedMenuId = normalizeMenuId(idmenu);
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para editar pratos.");
   const descriptionColumn = await detectDescriptionColumn();
 
   const body = buildMenuBody(payload, descriptionColumn);
 
-  const { error } = await supabase
-    .from("menus")
-    .update(body)
-    .eq("idmenu", normalizedMenuId)
-    .eq("idloja", normalizedLojaId);
+  const { error } = await supabase.rpc("menu_manager_upsert_menu", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    idmenu_input: normalizedMenuId,
+    patch: body,
+  });
 
   if (error) throw error;
 
   await syncMenuOptionGroupLinks(
     normalizedMenuId,
     payload?.menu_option_group_ids || payload?.option_group_ids,
+    normalizedCallerUserId,
   );
 }
 
-export async function deleteMenu(lojaId, idmenu) {
+export async function deleteMenu(lojaId, idmenu, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedMenuId = normalizeMenuId(idmenu);
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para apagar pratos.");
 
-  const { error } = await supabase
-    .from("menus")
-    .delete()
-    .eq("idmenu", normalizedMenuId)
-    .eq("idloja", normalizedLojaId);
+  const { error } = await supabase.rpc("menu_manager_delete_menu", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    idmenu_input: normalizedMenuId,
+  });
 
   if (error) throw error;
 }
 
-export async function toggleDisponivel(lojaId, idmenu, disponivel) {
+export async function toggleDisponivel(lojaId, idmenu, disponivel, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedMenuId = normalizeMenuId(idmenu);
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para atualizar o prato.");
 
-  const { error } = await supabase
-    .from("menus")
-    .update({ ativo: Boolean(disponivel) })
-    .eq("idmenu", normalizedMenuId)
-    .eq("idloja", normalizedLojaId);
+  const { error } = await supabase.rpc("menu_manager_upsert_menu", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    idmenu_input: normalizedMenuId,
+    patch: { ativo: Boolean(disponivel) },
+  });
 
   if (error) throw error;
 }
 
-export async function toggleVisibilidade(lojaId, idmenu, visivel) {
+export async function toggleVisibilidade(lojaId, idmenu, visivel, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedMenuId = normalizeMenuId(idmenu);
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para atualizar o prato.");
 
-  const { error } = await supabase
-    .from("menus")
-    .update({ visivel: Boolean(visivel) })
-    .eq("idmenu", normalizedMenuId)
-    .eq("idloja", normalizedLojaId);
+  const { error } = await supabase.rpc("menu_manager_upsert_menu", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    idmenu_input: normalizedMenuId,
+    patch: { visivel: Boolean(visivel) },
+  });
 
   if (error) throw error;
 }
 
-export async function createMenuOptionLibraryGroup(lojaId, payload) {
+export async function createMenuOptionLibraryGroup(lojaId, payload, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   if (!normalizedLojaId) throw new Error("Loja invalida para criar grupo.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para criar grupos de extras.");
 
   const body = await buildLibraryGroupBody(normalizedLojaId, payload);
+  delete body.idloja;
   const groupTitle = toTrimmedText(payload?.title || payload?.titulo || payload?.name);
   if (!groupTitle) {
     throw new Error("O grupo precisa de um titulo.");
@@ -936,60 +814,49 @@ export async function createMenuOptionLibraryGroup(lojaId, payload) {
     throw new Error("O grupo precisa de pelo menos uma opcao.");
   }
 
-  let insertedGroup = null;
-  let insertBody = { ...body };
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const { data, error: groupError } = await supabase
-      .from("menu_option_groups")
-      .insert(insertBody)
-      .select("*")
-      .single();
+  const { data: insertedGroup, error: groupError } = await supabase.rpc("menu_manager_upsert_option_group", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    group_id_input: null,
+    patch: body,
+  });
 
-    if (!groupError) {
-      insertedGroup = data;
-      break;
-    }
-
-    const fallbackBody = applyMissingColumnFallbackToGroupBody(insertBody, groupError);
-    if (!fallbackBody) ensureLibraryTablesAvailable(groupError);
-    insertBody = fallbackBody;
-  }
-
+  if (groupError) ensureLibraryTablesAvailable(groupError);
   if (!insertedGroup) {
     throw new Error("Nao foi possivel criar o grupo de opcoes com o schema atual.");
   }
 
-  const itemsPayload = options.map((option) => ({
-    ...option,
-    grupo_id: insertedGroup.id,
-  })).map((option) => {
+  const itemsPayload = options.map((option) => {
     const next = { ...option };
     delete next._optionId;
+    delete next.grupo_id;
     return next;
   });
 
-  const { error: itemsError } = await supabase
-    .from("menu_option_items")
-    .insert(itemsPayload);
+  const { error: itemsError } = await supabase.rpc("menu_manager_upsert_option_items", {
+    caller_user_id: normalizedCallerUserId,
+    group_id_input: insertedGroup.id,
+    items: itemsPayload,
+  });
 
   if (itemsError) ensureLibraryTablesAvailable(itemsError);
 
   return insertedGroup;
 }
 
-export async function createMenuOptionGroupForMenu(lojaId, idmenu, payload) {
+export async function createMenuOptionGroupForMenu(lojaId, idmenu, payload, callerUserId) {
   const normalizedMenuId = normalizeMenuId(idmenu);
   if (!normalizedMenuId) throw new Error("Menu invalido para criar grupo.");
 
-  const createdGroup = await createMenuOptionLibraryGroup(lojaId, payload);
-  await linkMenuOptionLibraryGroupToMenu(normalizedMenuId, createdGroup?.id);
+  const createdGroup = await createMenuOptionLibraryGroup(lojaId, payload, callerUserId);
+  await linkMenuOptionLibraryGroupToMenu(normalizedMenuId, createdGroup?.id, callerUserId);
   return createdGroup;
 }
 
 export async function duplicateMenuOptionLibraryGroup(lojaId, sourceGroupId, {
   title = "",
   attachToMenuId = null,
-} = {}) {
+} = {}, callerUserId) {
   const normalizedSourceGroupId = normalizeGroupId(sourceGroupId);
   if (!Number.isFinite(normalizedSourceGroupId)) {
     throw new Error("Grupo invalido para duplicar.");
@@ -1030,21 +897,23 @@ export async function duplicateMenuOptionLibraryGroup(lojaId, sourceGroupId, {
     })),
   };
 
-  const createdGroup = await createMenuOptionLibraryGroup(lojaId, duplicatedPayload);
+  const createdGroup = await createMenuOptionLibraryGroup(lojaId, duplicatedPayload, callerUserId);
 
   if (attachToMenuId !== null && attachToMenuId !== undefined && attachToMenuId !== "") {
-    await linkMenuOptionLibraryGroupToMenu(attachToMenuId, createdGroup?.id);
+    await linkMenuOptionLibraryGroupToMenu(attachToMenuId, createdGroup?.id, callerUserId);
   }
 
   return createdGroup;
 }
 
-export async function updateMenuOptionLibraryGroup(lojaId, groupId, payload) {
+export async function updateMenuOptionLibraryGroup(lojaId, groupId, payload, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedGroupId = normalizeGroupId(groupId);
   if (!Number.isFinite(normalizedGroupId)) throw new Error("Grupo invalido.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para editar grupos de extras.");
 
   const body = await buildLibraryGroupBody(normalizedLojaId, payload);
+  delete body.idloja;
   const groupTitle = toTrimmedText(payload?.title || payload?.titulo || payload?.name);
   if (!groupTitle) {
     throw new Error("O grupo precisa de um titulo.");
@@ -1055,28 +924,14 @@ export async function updateMenuOptionLibraryGroup(lojaId, groupId, payload) {
     throw new Error("O grupo precisa de pelo menos uma opcao.");
   }
 
-  let updateBody = { ...body };
-  let updated = false;
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const { error: groupError } = await supabase
-      .from("menu_option_groups")
-      .update(updateBody)
-      .eq("id", normalizedGroupId)
-      .eq("idloja", normalizedLojaId);
+  const { error: groupError } = await supabase.rpc("menu_manager_upsert_option_group", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    group_id_input: normalizedGroupId,
+    patch: body,
+  });
 
-    if (!groupError) {
-      updated = true;
-      break;
-    }
-
-    const fallbackBody = applyMissingColumnFallbackToGroupBody(updateBody, groupError);
-    if (!fallbackBody) ensureLibraryTablesAvailable(groupError);
-    updateBody = fallbackBody;
-  }
-
-  if (!updated) {
-    throw new Error("Nao foi possivel atualizar o grupo de opcoes com o schema atual.");
-  }
+  if (groupError) ensureLibraryTablesAvailable(groupError);
 
   const { data: existingItems, error: existingItemsError } = await supabase
     .from("menu_option_items")
@@ -1090,89 +945,53 @@ export async function updateMenuOptionLibraryGroup(lojaId, groupId, payload) {
       .map((item) => normalizeOptionId(item?.id))
       .filter((value) => Number.isFinite(value)),
   );
-  const keepIds = [];
 
-  for (const rawOption of options) {
+  const itemsPayload = options.map((rawOption) => {
     const optionId = normalizeOptionId(rawOption?._optionId);
-    const baseBody = { ...rawOption };
-    delete baseBody._optionId;
-
+    const next = { ...rawOption };
+    delete next._optionId;
+    delete next.grupo_id;
     if (Number.isFinite(optionId) && existingIds.has(optionId)) {
-      let optionBody = { ...baseBody };
-      let optionUpdated = false;
-
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const { error: optionUpdateError } = await supabase
-          .from("menu_option_items")
-          .update(optionBody)
-          .eq("id", optionId)
-          .eq("grupo_id", normalizedGroupId);
-
-        if (!optionUpdateError) {
-          optionUpdated = true;
-          break;
-        }
-
-        const fallbackBody = applyMissingColumnFallbackToItemBody(optionBody, optionUpdateError);
-        if (!fallbackBody) ensureLibraryTablesAvailable(optionUpdateError);
-        optionBody = fallbackBody;
-      }
-
-      if (!optionUpdated) {
-        throw new Error("Nao foi possivel atualizar uma opcao do grupo.");
-      }
-      keepIds.push(optionId);
-      continue;
+      next.id = optionId;
     }
+    return next;
+  });
 
-    let insertBody = { ...baseBody };
-    let insertedOption = null;
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const { data: optionData, error: optionInsertError } = await supabase
-        .from("menu_option_items")
-        .insert(insertBody)
-        .select("id")
-        .single();
+  const { data: upsertedItems, error: itemsError } = await supabase.rpc("menu_manager_upsert_option_items", {
+    caller_user_id: normalizedCallerUserId,
+    group_id_input: normalizedGroupId,
+    items: itemsPayload,
+  });
 
-      if (!optionInsertError) {
-        insertedOption = optionData;
-        break;
-      }
+  if (itemsError) ensureLibraryTablesAvailable(itemsError);
 
-      const fallbackBody = applyMissingColumnFallbackToItemBody(insertBody, optionInsertError);
-      if (!fallbackBody) ensureLibraryTablesAvailable(optionInsertError);
-      insertBody = fallbackBody;
-    }
-
-    if (!insertedOption?.id) {
-      throw new Error("Nao foi possivel criar uma opcao do grupo.");
-    }
-
-    keepIds.push(normalizeOptionId(insertedOption.id));
-  }
+  const keepIds = (upsertedItems || [])
+    .map((item) => normalizeOptionId(item?.id))
+    .filter((value) => Number.isFinite(value));
 
   const idsToDelete = [...existingIds].filter((id) => !keepIds.includes(id));
   if (idsToDelete.length > 0) {
-    const { error: deleteItemsError } = await supabase
-      .from("menu_option_items")
-      .delete()
-      .eq("grupo_id", normalizedGroupId)
-      .in("id", idsToDelete);
+    const { error: deleteItemsError } = await supabase.rpc("menu_manager_delete_option_items", {
+      caller_user_id: normalizedCallerUserId,
+      group_id_input: normalizedGroupId,
+      item_ids: idsToDelete,
+    });
 
     if (deleteItemsError) ensureLibraryTablesAvailable(deleteItemsError);
   }
 }
 
-export async function deleteMenuOptionLibraryGroup(lojaId, groupId) {
+export async function deleteMenuOptionLibraryGroup(lojaId, groupId, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedGroupId = normalizeGroupId(groupId);
   if (!Number.isFinite(normalizedGroupId)) throw new Error("Grupo invalido.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para apagar grupos de extras.");
 
-  const { error } = await supabase
-    .from("menu_option_groups")
-    .delete()
-    .eq("id", normalizedGroupId)
-    .eq("idloja", normalizedLojaId);
+  const { error } = await supabase.rpc("menu_manager_delete_option_group", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    group_id_input: normalizedGroupId,
+  });
 
   if (error) ensureLibraryTablesAvailable(error);
 }

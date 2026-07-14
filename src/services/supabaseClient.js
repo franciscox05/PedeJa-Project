@@ -389,10 +389,10 @@ async function syncStoresAvailability(lojas = []) {
 
   await Promise.allSettled(
     changes.map((item) =>
-      supabase
-        .from("lojas")
-        .update({ ativo: item.ativo })
-        .eq("idloja", item.idloja),
+      supabase.rpc("sync_store_availability_from_schedule", {
+        loja_id_input: item.idloja,
+        computed_ativo: item.ativo,
+      }),
     ),
   );
 

@@ -23,7 +23,7 @@ import {
 } from "../services/menuOptionsService";
 import { resolveRestaurantStoreId } from "../services/opsDashboardService";
 import { supabase } from "../services/supabaseClient";
-import { extractRestaurantId, isAdmin } from "../utils/roles";
+import { extractRestaurantId, extractUserId, isAdmin } from "../utils/roles";
 import "../css/pages/dashboard.css";
 
 const STORE_MENU_CATEGORY_PREFIX = "__store_menu__";
@@ -55,7 +55,6 @@ const parseScopedMenuCategory = (rawName) => {
   if (!Number.isFinite(storeId) || !label) return { scoped: false, storeId: null, label: raw };
   return { scoped: true, storeId, label };
 };
-const buildScopedMenuCategory = (storeId, label) => `${STORE_MENU_CATEGORY_PREFIX}${Number(storeId)}::${String(label || "").trim()}`;
 const displayMenuCategoryLabel = (rawName) => parseScopedMenuCategory(rawName).label || String(rawName || "").trim();
 const sortCategoryOptions = (list = []) => [...list].sort((a, b) => String(a?.label || "").localeCompare(String(b?.label || ""), "pt", { sensitivity: "base" }));
 const mergeTiposMenu = (current = [], nextItem = null) => {
@@ -385,7 +384,7 @@ export default function MenuManager() {
         return;
       }
 
-      await reorderMenuOptionLibraryGroups(scopedLoja, order);
+      await reorderMenuOptionLibraryGroups(scopedLoja, order, extractUserId(user));
       await Promise.all([loadLibraryGroups(), loadMenus()]);
       setLibraryGroupOrderDirty(false);
     } catch (err) {
@@ -407,7 +406,7 @@ export default function MenuManager() {
     try {
       const duplicated = await duplicateMenuOptionLibraryGroup(scopedLoja, sourceGroupId, {
         title: duplicatedName.trim(),
-      });
+      }, extractUserId(user));
 
       if (duplicated?.id || duplicated?.library_group_id) {
         setLibraryGroupOrderDraft((prev) => {
@@ -448,12 +447,12 @@ export default function MenuManager() {
     });
     if (existingScoped?.idtipomenu) return Number(existingScoped.idtipomenu);
 
-    const encodedName = buildScopedMenuCategory(normalizedStoreId, cleanName);
-    const { data, error: insertError } = await supabase
-      .from("tiposmenu")
-      .insert({ tipomenu: encodedName })
-      .select("idtipomenu, tipomenu")
-      .single();
+    const { data, error: insertError } = await supabase.rpc("menu_manager_upsert_category", {
+      caller_user_id: extractUserId(user),
+      loja_id_input: normalizedStoreId,
+      tipo_id_input: null,
+      label: cleanName,
+    });
 
     if (insertError) throw insertError;
     if (data?.idtipomenu) {
@@ -520,8 +519,8 @@ export default function MenuManager() {
         menu_option_group_ids: form.menu_option_group_ids || [],
       };
 
-      if (editingId) await updateMenu(scopedLoja, editingId, payload);
-      else await createMenu(scopedLoja, payload);
+      if (editingId) await updateMenu(scopedLoja, editingId, payload, extractUserId(user));
+      else await createMenu(scopedLoja, payload, extractUserId(user));
 
       resetForm();
       await Promise.all([loadMenus(), loadLibraryGroups()]);
@@ -555,7 +554,7 @@ export default function MenuManager() {
     setSaving(true);
     setError("");
     try {
-      await deleteMenu(scopedLoja, idmenu);
+      await deleteMenu(scopedLoja, idmenu, extractUserId(user));
       if (editingId === idmenu) resetForm();
       await Promise.all([loadMenus(), loadLibraryGroups()]);
     } catch (err) {
@@ -567,7 +566,7 @@ export default function MenuManager() {
 
   const handleToggle = async (item) => {
     try {
-      await toggleDisponivel(scopedLoja, item.idmenu, !(item.ativo !== false));
+      await toggleDisponivel(scopedLoja, item.idmenu, !(item.ativo !== false), extractUserId(user));
       await loadMenus();
     } catch (err) {
       setError(err.message || "Erro ao alterar disponibilidade.");
@@ -576,7 +575,7 @@ export default function MenuManager() {
 
   const handleToggleVisibility = async (item) => {
     try {
-      await toggleVisibilidade(scopedLoja, item.idmenu, !(item.visivel !== false));
+      await toggleVisibilidade(scopedLoja, item.idmenu, !(item.visivel !== false), extractUserId(user));
       await loadMenus();
     } catch (err) {
       setError(err.message || "Erro ao alterar visibilidade.");
@@ -654,17 +653,22 @@ export default function MenuManager() {
       let newTipoId = sourceId;
 
       if (parsedSource.scoped && parsedSource.storeId === normalizedStoreId) {
-        const encodedName = buildScopedMenuCategory(normalizedStoreId, cleanName);
-        const { error: updateError } = await supabase.from("tiposmenu").update({ tipomenu: encodedName }).eq("idtipomenu", sourceId);
+        const { error: updateError } = await supabase.rpc("menu_manager_upsert_category", {
+          caller_user_id: extractUserId(user),
+          loja_id_input: normalizedStoreId,
+          tipo_id_input: sourceId,
+          label: cleanName,
+        });
         if (updateError) throw updateError;
       } else {
         newTipoId = await ensureScopedTipoMenuIdByLabel(cleanName);
         if (Number.isFinite(newTipoId) && newTipoId !== sourceId) {
-          const { error: remapError } = await supabase
-            .from("menus")
-            .update({ idtipomenu: Number(newTipoId) })
-            .eq("idloja", normalizedStoreId)
-            .eq("idtipomenu", sourceId);
+          const { error: remapError } = await supabase.rpc("menu_manager_reassign_category", {
+            caller_user_id: extractUserId(user),
+            loja_id_input: normalizedStoreId,
+            old_idtipomenu: sourceId,
+            new_idtipomenu: Number(newTipoId),
+          });
           if (remapError) throw remapError;
         }
       }
@@ -697,23 +701,12 @@ export default function MenuManager() {
     setError("");
     try {
       const normalizedStoreId = Number(scopedLoja);
-      const { error: clearMenuCategoryError } = await supabase
-        .from("menus")
-        .update({ idtipomenu: null })
-        .eq("idtipomenu", sourceId)
-        .eq("idloja", normalizedStoreId);
-      if (clearMenuCategoryError) throw clearMenuCategoryError;
-
-      const sourceRow = (tiposMenu || []).find((item) => Number(item.idtipomenu) === sourceId);
-      const parsedSource = parseScopedMenuCategory(sourceRow?.tipomenu || "");
-      if (parsedSource.scoped && parsedSource.storeId === normalizedStoreId) {
-        const { data: usedRows, error: usedError } = await supabase.from("menus").select("idmenu").eq("idtipomenu", sourceId).limit(1);
-        if (usedError) throw usedError;
-        if (!usedRows || usedRows.length === 0) {
-          const { error: deleteError } = await supabase.from("tiposmenu").delete().eq("idtipomenu", sourceId);
-          if (deleteError) throw deleteError;
-        }
-      }
+      const { error: deleteCategoryError } = await supabase.rpc("menu_manager_delete_category", {
+        caller_user_id: extractUserId(user),
+        loja_id_input: normalizedStoreId,
+        tipo_id_input: sourceId,
+      });
+      if (deleteCategoryError) throw deleteCategoryError;
 
       if (String(form.idtipomenu || "") === String(sourceId)) setForm((prev) => ({ ...prev, idtipomenu: "" }));
       if (String(categoryFilter || "") === String(sourceId)) setCategoryFilter("ALL");
@@ -755,8 +748,8 @@ export default function MenuManager() {
           }))
           .filter((option) => option.name),
       };
-      if (libraryEditingId) await updateMenuOptionLibraryGroup(scopedLoja, libraryEditingId, payload);
-      else await createMenuOptionLibraryGroup(scopedLoja, payload);
+      if (libraryEditingId) await updateMenuOptionLibraryGroup(scopedLoja, libraryEditingId, payload, extractUserId(user));
+      else await createMenuOptionLibraryGroup(scopedLoja, payload, extractUserId(user));
       resetLibraryForm();
       await Promise.all([loadLibraryGroups(), loadMenus()]);
     } catch (err) {
@@ -772,7 +765,7 @@ export default function MenuManager() {
     setLibrarySaving(true);
     setError("");
     try {
-      await deleteMenuOptionLibraryGroup(scopedLoja, group.library_group_id || group.id);
+      await deleteMenuOptionLibraryGroup(scopedLoja, group.library_group_id || group.id, extractUserId(user));
       if (String(libraryEditingId || "") === String(group.library_group_id || group.id)) resetLibraryForm();
       setForm((prev) => ({
         ...prev,
@@ -1449,6 +1442,7 @@ export default function MenuManager() {
         isOpen={Boolean(modifierManagerTarget)}
         lojaId={scopedLoja}
         menuItem={activeModifierMenuItem}
+        callerUserId={extractUserId(user)}
         onClose={closeModifierManager}
         onSaved={handleModifierManagerSaved}
       />

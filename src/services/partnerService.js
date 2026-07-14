@@ -146,20 +146,20 @@ export async function submitPartnerRequest(payload) {
     status: "PENDING",
   };
 
-  const { data, error } = await supabase
-    .from("restaurant_signup_requests")
-    .insert(body)
-    .select("id")
-    .single();
+  const { error } = await supabase.from("restaurant_signup_requests").insert(body);
 
   if (error) throw error;
-  return data;
 }
 
-export async function updateRestaurantProfile(lojaId, payload) {
+export async function updateRestaurantProfile(lojaId, payload, callerUserId) {
   const normalizedLojaId = normalizeId(lojaId);
   if (!normalizedLojaId) {
     throw new Error("Loja invalida para atualizar.");
+  }
+
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para atualizar o perfil da loja.");
   }
 
   let moradaId = null;
@@ -211,10 +211,11 @@ export async function updateRestaurantProfile(lojaId, payload) {
     body.ativo = payload.horario_funcionamento ? isStoreOpenNow(payload.horario_funcionamento) : Boolean(currentLoja?.ativo);
   }
 
-  const { error } = await supabase
-    .from("lojas")
-    .update(body)
-    .eq("idloja", normalizedLojaId);
+  const { error } = await supabase.rpc("stores_apply_authorized_patch", {
+    caller_user_id: normalizedCallerUserId,
+    loja_id_input: normalizedLojaId,
+    patch: body,
+  });
 
   if (error) throw error;
 }

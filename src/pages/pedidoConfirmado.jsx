@@ -10,7 +10,7 @@ import EmbeddedTrackingCard from "../components/order/EmbeddedTrackingCard";
 import { groupSelectedMenuOptionsForDisplay } from "../services/menuOptionsService";
 import { updateOrderWorkflowStatus } from "../services/opsDashboardService";
 import { fetchOrderDetails, getStatusTone } from "../services/orderDetailsService";
-import { resolveUserRole } from "../utils/roles";
+import { extractUserId, resolveUserRole } from "../utils/roles";
 import "../css/pages/pedidoDetalhe.css";
 
 const CUSTOMER_CANCEL_WINDOW_MS = 5 * 60 * 1000;
@@ -231,7 +231,7 @@ export default function PedidoConfirmado() {
         details.order.id,
         "cancelado",
         details.order.loja_id ?? null,
-        { syncShipday: true },
+        { syncShipday: true, callerUserId: extractUserId(user) },
       );
 
       if (result?.shipdaySync && !result.shipdaySync.ok && !result.shipdaySync.skipped) {
@@ -246,7 +246,7 @@ export default function PedidoConfirmado() {
     } finally {
       setCancelling(false);
     }
-  }, [customerOrderEstadoInterno, details?.order, loadOrder]);
+  }, [customerOrderEstadoInterno, details?.order, loadOrder, user]);
 
   return (
     <main className="pedido-detalhe-main">

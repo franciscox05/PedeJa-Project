@@ -11,7 +11,7 @@ import {
   updateRestaurantAdminSettings,
   updateOrderWorkflowStatus,
 } from "../services/opsDashboardService";
-import { extractRestaurantId, isAdmin } from "../utils/roles";
+import { extractRestaurantId, extractUserId, isAdmin } from "../utils/roles";
 import { supabase } from "../services/supabaseClient";
 import TrendBars from "../components/dashboard/TrendBars";
 import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
@@ -548,6 +548,7 @@ export default function DashboardRestaurante() {
       nextEstado: "atribuindo_estafeta",
       nextStatus: "ASSIGNED",
       updatedAt: new Date().toISOString(),
+      callerUserId: extractUserId(user),
     });
 
     setState((prev) => ({
@@ -567,7 +568,7 @@ export default function DashboardRestaurante() {
     }));
 
     return result;
-  }, []);
+  }, [user]);
 
   const runAutoAssignForOrder = useCallback(async (order, { silent = true } = {}) => {
     const orderId = String(order?.id || "");
@@ -743,7 +744,10 @@ export default function DashboardRestaurante() {
   const handleOrderAction = async (order, toEstado) => {
     setUpdatingOrderId(order.id);
     try {
-      const result = await updateOrderWorkflowStatus(order.id, toEstado, scopedStoreId, { syncShipday: true });
+      const result = await updateOrderWorkflowStatus(order.id, toEstado, scopedStoreId, {
+        syncShipday: true,
+        callerUserId: extractUserId(user),
+      });
 
       if (result?.shipdaySync && !result.shipdaySync.ok && !result.shipdaySync.skipped) {
         toast.error(`Pedido atualizado no PedeJa, mas falhou sync Shipday: ${result.shipdaySync.error || "erro desconhecido"}`);
@@ -798,7 +802,7 @@ export default function DashboardRestaurante() {
 
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
       aceitacao_automatica_pedidos: nextValue,
-    });
+    }, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
@@ -809,7 +813,7 @@ export default function DashboardRestaurante() {
 
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
       atribuicao_automatica_estafeta: nextValue,
-    });
+    }, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
@@ -818,14 +822,14 @@ export default function DashboardRestaurante() {
       throw new Error("Apenas o admin pode alterar a comissao.");
     }
 
-    const updatedStore = await updateRestaurantAdminSettings(store.idloja, payload);
+    const updatedStore = await updateRestaurantAdminSettings(store.idloja, payload, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
   const handleSaveScheduleSettings = async (store, horario_funcionamento) => {
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
       horario_funcionamento,
-    });
+    }, extractUserId(user));
     syncUpdatedStore(updatedStore);
   };
 
