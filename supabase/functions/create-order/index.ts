@@ -689,7 +689,29 @@ serve(async (req) => {
 
     const subtotal = toNumber(payload.subtotal, 0);
     const taxaEntrega = toNumber(deliveryQuote.fee, 0);
-    const total = subtotal + taxaEntrega;
+
+    const couponCode = String(payload?.coupon_code || "").trim();
+    let discountAmount = 0;
+    if (couponCode) {
+      if (!customer?.user_id) {
+        return json({ error: "Inicia sessao para usar um cupao de desconto." }, 400);
+      }
+
+      const { data: couponValidation, error: couponError } = await supabase.rpc("validate_coupon", {
+        caller_user_id: Number(customer.user_id),
+        code_input: couponCode,
+        order_subtotal: subtotal,
+      });
+
+      if (couponError) {
+        return json({ error: couponError.message || "Cupao invalido." }, 400);
+      }
+
+      const validationRow = Array.isArray(couponValidation) ? couponValidation[0] : couponValidation;
+      discountAmount = toNumber(validationRow?.discount_amount, 0);
+    }
+
+    const total = subtotal + taxaEntrega - discountAmount;
     const submittedAt = new Date().toISOString();
     const storedPaymentMethod = normalizePaymentCode(payload?.payment_label || payload?.payment_method || "CASH") || "CASH";
     const storedPaymentLabel = paymentCodeToLabel(storedPaymentMethod) || "Dinheiro";
@@ -726,6 +748,8 @@ serve(async (req) => {
       subtotal,
       taxa_entrega: taxaEntrega,
       total,
+      discount_amount: discountAmount,
+      coupon_code: couponCode || null,
       payment_method: storedPaymentMethod,
       payment_label: storedPaymentLabel,
       status: initialStatus,
@@ -764,6 +788,22 @@ serve(async (req) => {
     if (itemsError) {
       await supabase.from("orders").delete().eq("id", orderId);
       return json({ error: itemsError.message }, 500);
+    }
+
+    if (couponCode && customer?.user_id) {
+      const { error: redeemError } = await supabase.rpc("redeem_coupon", {
+        caller_user_id: Number(customer.user_id),
+        code_input: couponCode,
+        order_id_input: orderId,
+      });
+
+      if (redeemError) {
+        console.error("create-order coupon redemption failed", {
+          order_id: orderId,
+          coupon_code: couponCode,
+          message: redeemError.message,
+        });
+      }
     }
 
     let shipdayResult: any = null;

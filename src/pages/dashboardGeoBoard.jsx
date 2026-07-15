@@ -7,13 +7,7 @@ import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
 import { fetchAdminDashboard } from "../services/opsDashboardService";
 import { buildLiveCarrierBoardEntries, retrieveShipdayCarriers } from "../services/shipdayService";
 import { getEstadoInternoLabelPt, getEstadoInternoTagClass, resolveOrderEstadoInterno } from "../services/orderStatusMapper";
-
-const ADMIN_DASHBOARD_TABS = [
-  { id: "dashboard", label: "Dashboard", description: "Ultimos pedidos e entregas recentes", icon: "dashboard" },
-  { id: "customers", label: "Clientes", description: "Analise de atividade e valor por cliente", icon: "dashboard" },
-  { id: "restaurants", label: "Gestao de Restaurantes", description: "Auto-accept e comissao por loja", icon: "restaurants" },
-  { id: "promotions", label: "Promocoes", description: "Campanhas e futuras ativacoes", icon: "promotions" },
-];
+import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 
 function normalizeSearchWindow(searchParams) {
   const mode = String(searchParams.get("mode") || "preset");
@@ -161,7 +155,7 @@ export default function DashboardGeoBoard() {
     <DashboardSidebarLayout
       tabs={ADMIN_DASHBOARD_TABS}
       activeTab="dashboard"
-      onTabChange={(tabId) => navigate(`/dashboard/admin?tab=${tabId}`)}
+      onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Live Geo"
       title="Geo Board Expandido"
       subtitle="Vista dedicada para monitorizacao operacional de pedidos, lojas e estafetas."

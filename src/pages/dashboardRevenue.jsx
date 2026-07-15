@@ -4,6 +4,7 @@ import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import { fetchAdminRevenueBreakdown } from "../services/adminRevenueService";
 import { extractUserId } from "../utils/roles";
+import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 
 function parseSessionUser(raw) {
   try {
@@ -12,12 +13,6 @@ function parseSessionUser(raw) {
     return null;
   }
 }
-
-const ADMIN_DASHBOARD_TABS = [
-  { id: "dashboard", label: "Dashboard", description: "Ultimos pedidos e entregas recentes", icon: "dashboard" },
-  { id: "restaurants", label: "Gestao de Restaurantes", description: "Auto-accept e comissao por loja", icon: "restaurants" },
-  { id: "promotions", label: "Promocoes", description: "Campanhas e futuras ativacoes", icon: "promotions" },
-];
 
 function formatMoney(value) {
   return `${Number(value || 0).toFixed(2)}EUR`;
@@ -88,7 +83,7 @@ export default function DashboardRevenue() {
     <DashboardSidebarLayout
       tabs={ADMIN_DASHBOARD_TABS}
       activeTab="dashboard"
-      onTabChange={(tabId) => navigate(`/dashboard/admin?tab=${tabId}`)}
+      onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       title="PedeJa Control Center"
       subtitle="Origem da receita faturada, comissao e performance por loja/estafeta."
       footerLabel="Analise"

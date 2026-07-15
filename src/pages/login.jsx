@@ -39,7 +39,7 @@ export default function LoginPage() {
       navigate(redirectTarget || getDefaultPathByRole(role), { replace: true });
     } catch (err) {
       console.error("Erro de login:", err);
-      setError("Ocorreu um erro ao tentar entrar. Tenta novamente.");
+      setError(err?.message || "Ocorreu um erro ao tentar entrar. Tenta novamente.");
     } finally {
       setLoading(false);
     }

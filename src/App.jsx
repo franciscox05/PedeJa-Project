@@ -13,6 +13,10 @@ import DashboardPerformance from "./pages/dashboardPerformance";
 import DashboardRevenue from "./pages/dashboardRevenue";
 import DashboardRestaurante from "./pages/dashboardRestaurante";
 import DashboardDev from "./pages/dashboardDev";
+import DashboardCategorias from "./pages/dashboardCategorias";
+import DashboardBanners from "./pages/dashboardBanners";
+import DashboardCupoes from "./pages/dashboardCupoes";
+import DashboardPromocoes from "./pages/dashboardPromocoes";
 import MenuManager from "./pages/menuManager";
 import Parceiros from "./pages/parceiros";
 import ProfileLayout from "./pages/perfil/ProfileLayout";
@@ -212,6 +216,42 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["dev", "admin"]}>
                 <DashboardDev />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/categorias"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <DashboardCategorias />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/banners"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <DashboardBanners />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/cupoes"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <DashboardCupoes />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/promocoes"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <DashboardPromocoes />
               </ProtectedRoute>
             }
           />

@@ -19,6 +19,7 @@ import {
   getDrivingDistanceKm,
 } from "../services/googleMapsService";
 import { extractUserId } from "../utils/roles";
+import { validateCoupon } from "../services/couponsService";
 import { groupSelectedMenuOptionsForDisplay } from "../services/menuOptionsService";
 import { resolveDisplayPrice } from "../services/pricingService";
 import { fetchGlobalDeliveryPricingConfig, supabase } from "../services/supabaseClient";
@@ -97,6 +98,11 @@ export default function Carrinho() {
   const [scheduledAt, setScheduledAt] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
 
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [couponError, setCouponError] = useState("");
+
   const selectedAddress = useMemo(
     () => addresses.find((item) => String(item.id) === String(selectedAddressId)) || null,
     [addresses, selectedAddressId],
@@ -108,7 +114,8 @@ export default function Carrinho() {
     0,
   );
   const taxaEntrega = deliveryQuote.deliverable ? Number(deliveryQuote.fee || 0) : 0;
-  const totalFinal = subtotal + taxaEntrega;
+  const couponDiscount = appliedCoupon ? Number(appliedCoupon.discount_amount || 0) : 0;
+  const totalFinal = Math.max(0, subtotal + taxaEntrega - couponDiscount);
 
   const cartLojaId = useMemo(() => {
     const firstId = Number(cart?.[0]?.idloja);
@@ -345,6 +352,35 @@ export default function Carrinho() {
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setDadosEntrega((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) return;
+
+    const userId = extractUserId(user);
+    if (!userId) {
+      setCouponError("Inicia sessao para usar um cupao de desconto.");
+      return;
+    }
+
+    setCouponChecking(true);
+    setCouponError("");
+    try {
+      const result = await validateCoupon(userId, code, subtotal);
+      setAppliedCoupon(result);
+      setCouponInput("");
+    } catch (error) {
+      setAppliedCoupon(null);
+      setCouponError(error?.message || "Cupao invalido.");
+    } finally {
+      setCouponChecking(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError("");
   };
 
   const handleAddressSelect = (e) => {
@@ -698,6 +734,7 @@ export default function Carrinho() {
           scheduledAt: deliveryMode === "SCHEDULED" ? scheduledAt : null,
         },
         paymentMethod,
+        couponCode: appliedCoupon?.code || "",
         customer: {
           nome: dadosEntrega.nome.trim(),
           telefone: dadosEntrega.telefone.trim(),
@@ -715,6 +752,8 @@ export default function Carrinho() {
       });
 
       clearCart();
+      setAppliedCoupon(null);
+      setCouponInput("");
       navigate(`/pedido/${resultado.order_id}`, {
         state: {
           tracking_url: resultado.tracking_url || null,
@@ -801,7 +840,40 @@ export default function Carrinho() {
           <h2 style={{ marginTop: 0, marginBottom: "25px" }}>Resumo</h2>
           <div className="summary-row"><span>Subtotal</span><span>{subtotal.toFixed(2)}EUR</span></div>
           <div className="summary-row"><span>Taxa de Entrega</span><span>{taxaEntrega.toFixed(2)}EUR</span></div>
+          {appliedCoupon ? (
+            <div className="summary-row"><span>Desconto ({appliedCoupon.code})</span><span>-{couponDiscount.toFixed(2)}EUR</span></div>
+          ) : null}
           <div className="summary-row total"><span>Total a Pagar</span><span style={{ color: "#ff3b30" }}>{totalFinal.toFixed(2)}EUR</span></div>
+
+          <div style={{ marginTop: "10px", display: "grid", gap: "6px" }}>
+            {appliedCoupon ? (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #d1fae5", background: "#ecfdf5", borderRadius: "10px", padding: "10px" }}>
+                <span style={{ color: "#166534", fontWeight: 600 }}>Cupao {appliedCoupon.code} aplicado</span>
+                <button type="button" onClick={handleRemoveCoupon} style={{ border: "none", background: "none", color: "#166534", textDecoration: "underline", cursor: "pointer" }}>
+                  Remover
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  type="text"
+                  placeholder="Codigo de desconto"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }}
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={couponChecking || !couponInput.trim()}
+                  style={{ border: "1px solid #ddd", borderRadius: "10px", padding: "10px 16px", background: "#fff", cursor: "pointer" }}
+                >
+                  {couponChecking ? "A validar..." : "Aplicar"}
+                </button>
+              </div>
+            )}
+            {couponError ? <p style={{ color: "#c62828", margin: 0, fontSize: "0.88rem" }}>{couponError}</p> : null}
+          </div>
 
           <div style={{
             marginTop: "10px",

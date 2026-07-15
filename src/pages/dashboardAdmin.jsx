@@ -18,6 +18,7 @@ import AdminRestaurantAssociation from "../components/admin/AdminRestaurantAssoc
 import TrendBars from "../components/dashboard/TrendBars";
 import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import { ADMIN_DASHBOARD_TABS } from "../constants/adminDashboardTabs";
 import RestaurantManagementPanel from "../components/dashboard/RestaurantManagementPanel";
 import StoreDeliveryPricingPanel from "../components/dashboard/StoreDeliveryPricingPanel";
 import StoreSpecialHoursPanel from "../components/dashboard/StoreSpecialHoursPanel";
@@ -251,13 +252,6 @@ function buildPerformanceSearchParams({ periodDays, rangeMode, customRange, gran
   params.set("days", String(periodDays));
   return params.toString();
 }
-
-const ADMIN_DASHBOARD_TABS = [
-  { id: "dashboard", label: "Dashboard", description: "Ultimos pedidos e entregas recentes", icon: "dashboard" },
-  { id: "customers", label: "Clientes", description: "Analise de atividade e valor por cliente", icon: "dashboard" },
-  { id: "restaurants", label: "Gestao de Restaurantes", description: "Auto-accept e comissao por loja", icon: "restaurants" },
-  { id: "promotions", label: "Promocoes", description: "Campanhas e futuras ativacoes", icon: "promotions" },
-];
 
 export default function DashboardAdmin() {
   const navigate = useNavigate();
@@ -1259,7 +1253,14 @@ export default function DashboardAdmin() {
       subtitle="Menu lateral retratil para pedidos, restaurantes e campanhas."
       tabs={ADMIN_DASHBOARD_TABS}
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={(tabId) => {
+        const tab = ADMIN_DASHBOARD_TABS.find((entry) => entry.id === tabId);
+        if (tab?.route) {
+          navigate(tab.route);
+          return;
+        }
+        setActiveTab(tabId);
+      }}
       storageKey="dashboard-admin-sidebar-collapsed"
       footer={selectedStore ? (
         <div>
@@ -2033,21 +2034,6 @@ export default function DashboardAdmin() {
             </div>
           </article>
         </div>
-      ) : null}
-
-      {activeTab === "promotions" ? (
-        <section className="panel empty-state-panel">
-          <div>
-            <p className="kicker">Promocoes</p>
-            <h3>Gestao de Campanhas</h3>
-            <p className="muted">Container preparado para a futura configuracao de campanhas e descontos.</p>
-          </div>
-          <div>
-            <button type="button" className="btn-dashboard secondary" disabled>
-              Criar Nova Promocao
-            </button>
-          </div>
-        </section>
       ) : null}
 
       <ShipdayTrackingModal

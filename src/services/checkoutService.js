@@ -531,6 +531,7 @@ export async function criarPedidoCheckout({
   deliveryFee = 2.5,
   deliverySchedule = { mode: "ASAP", scheduledAt: null },
   paymentMethod = "CASH",
+  couponCode = "",
 }) {
   if (!Array.isArray(cart) || cart.length === 0) {
     throw new Error("Carrinho vazio.");
@@ -565,6 +566,7 @@ export async function criarPedidoCheckout({
     tax,
     tips,
     discount_amount: discount,
+    coupon_code: couponCode ? String(couponCode).trim().toUpperCase() : null,
     items,
     expected_delivery_date: formatShipdayDate(expectedDelivery),
     expected_delivery_time: formatShipdayTime(expectedDelivery),
