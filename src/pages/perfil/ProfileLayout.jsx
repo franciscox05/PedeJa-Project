@@ -1,25 +1,26 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Navigate, Outlet, useOutletContext } from "react-router-dom";
 import Logo from "../../components/Logo";
 import LoginButton from "../../components/LoginButton";
 import CartWidget from "../../components/CartWidget";
 import Voltar from "../../components/Voltar";
 import MenuGlobal from "../../components/MenuGlobal";
 import { useAuth } from "../../context/AuthContext";
-import { resolveUserRole } from "../../utils/roles";
+import { getDefaultPathByRole, resolveUserRole } from "../../utils/roles";
 import userGif from "../../assets/img/perfil.gif";
 import "../../css/pages/perfil.css";
 
 const TABS = [
-  { path: "pedidos", label: "Pedidos" },
-  { path: "favoritos", label: "Favoritos", customerOnly: true },
+  { path: "pedidos", label: "Pedidos", roles: ["customer"] },
+  { path: "favoritos", label: "Favoritos", roles: ["customer"] },
   { path: "dados", label: "Dados pessoais" },
   { path: "seguranca", label: "Segurança" },
-  { path: "moradas", label: "Moradas" },
+  { path: "moradas", label: "Moradas", roles: ["customer"] },
 ];
 
 export default function ProfileLayout() {
   const { user } = useAuth();
-  const isCustomer = resolveUserRole(user) === "customer";
+  const role = resolveUserRole(user);
+  const isCustomer = role === "customer";
 
   return (
     <main className="perfil-main">
@@ -47,10 +48,18 @@ export default function ProfileLayout() {
                   Membro desde: {user?.dataregisto ? new Date(user.dataregisto).toLocaleDateString("pt-PT") : "-"}
                 </p>
               </div>
+
+              {!isCustomer ? (
+                <div className="profile-header-actions">
+                  <Link to={getDefaultPathByRole(role)} className="profile-btn secondary profile-back-btn">
+                    Voltar ao painel
+                  </Link>
+                </div>
+              ) : null}
             </header>
 
             <nav className="profile-tabs" aria-label="Secoes do perfil">
-              {TABS.filter((tab) => !tab.customerOnly || isCustomer).map((tab) => (
+              {TABS.filter((tab) => !tab.roles || tab.roles.includes(role)).map((tab) => (
                 <NavLink
                   key={tab.path}
                   to={`/perfil/${tab.path}`}
@@ -62,7 +71,7 @@ export default function ProfileLayout() {
             </nav>
 
             <div className="profile-tab-panel">
-              <Outlet context={{ user }} />
+              <Outlet context={{ user, role }} />
             </div>
           </section>
         </section>
@@ -72,4 +81,9 @@ export default function ProfileLayout() {
       <MenuGlobal />
     </main>
   );
+}
+
+export function ProfileIndexRedirect() {
+  const { role } = useOutletContext();
+  return <Navigate to={role === "customer" ? "pedidos" : "dados"} replace />;
 }

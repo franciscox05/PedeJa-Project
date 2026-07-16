@@ -13,6 +13,8 @@ import {
 } from "../services/opsDashboardService";
 import { extractRestaurantId, extractUserId, isAdmin } from "../utils/roles";
 import { supabase } from "../services/supabaseClient";
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import TrendBars from "../components/dashboard/TrendBars";
 import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
@@ -184,6 +186,8 @@ const RESTAURANT_DASHBOARD_TABS = [
 
 export default function DashboardRestaurante() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+  const { clearCart } = useCart();
   const [searchParams] = useSearchParams();
 
   const userRaw = localStorage.getItem("pedeja_user");
@@ -700,9 +704,11 @@ export default function DashboardRestaurante() {
   }, [state.orders]);
 
   const handleLogout = () => {
-    localStorage.removeItem("pedeja_user");
-    localStorage.removeItem("pedeja_cart");
-    navigate("/", { replace: true });
+    logout();
+    clearCart();
+    // Reload (nao navigate client-side): sair de uma rota protegida deixa o
+    // ProtectedRoute reagir ao user=null antes do router assentar em "/".
+    window.location.href = "/";
   };
 
   const goToWebsite = () => {

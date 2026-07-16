@@ -177,6 +177,50 @@
   margin-bottom: 0;
 }
 
+.dashboard-sidebar-account {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  display: grid;
+  gap: 8px;
+}
+
+.dashboard-sidebar-account-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #9aa4b2;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+}
+
+.dashboard-sidebar-account-btn .material-icons {
+  font-size: 18px;
+}
+
+.dashboard-sidebar-account-btn:hover {
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #dbe3ef;
+}
+
+.dashboard-sidebar-account-btn--logout:hover {
+  border-color: rgba(230, 36, 41, 0.4);
+  color: #ff8b8e;
+}
+
+.dashboard-shell--with-sidebar.is-collapsed .dashboard-sidebar-account-btn {
+  justify-content: center;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 .dashboard-main {
   min-width: 0;
   min-height: calc(100vh - 48px);

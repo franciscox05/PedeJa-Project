@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Inicio from "./pages/inicio";
 import Categorias from "./pages/categorias";
@@ -19,7 +19,7 @@ import DashboardCupoes from "./pages/dashboardCupoes";
 import DashboardPromocoes from "./pages/dashboardPromocoes";
 import MenuManager from "./pages/menuManager";
 import Parceiros from "./pages/parceiros";
-import ProfileLayout from "./pages/perfil/ProfileLayout";
+import ProfileLayout, { ProfileIndexRedirect } from "./pages/perfil/ProfileLayout";
 import ProfilePedidos from "./pages/perfil/pedidos";
 import ProfileFavoritos from "./pages/perfil/favoritos";
 import ProfileDados from "./pages/perfil/dados";
@@ -145,7 +145,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="pedidos" replace />} />
+            <Route index element={<ProfileIndexRedirect />} />
             <Route path="pedidos" element={<ProfilePedidos />} />
             <Route path="favoritos" element={<ProfileFavoritos />} />
             <Route path="dados" element={<ProfileDados />} />

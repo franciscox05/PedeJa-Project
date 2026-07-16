@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "../css/pages/dashboard.css";
 import { fetchDevDashboard } from "../services/opsDashboardService";
 import { extractUserId } from "../utils/roles";
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 
 function parseSessionUser(raw) {
   try {
@@ -20,8 +22,18 @@ function statusClass(status) {
 
 export default function DashboardDev() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+  const { clearCart } = useCart();
   const userRaw = localStorage.getItem("pedeja_user");
   const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
+
+  const handleLogout = () => {
+    logout();
+    clearCart();
+    // Reload (nao navigate client-side): sair de uma rota protegida deixa o
+    // ProtectedRoute reagir ao user=null antes do router assentar em "/".
+    window.location.href = "/";
+  };
   const [periodDays, setPeriodDays] = useState(7);
   const [state, setState] = useState({
     events: [],
@@ -58,6 +70,8 @@ export default function DashboardDev() {
           </select>
           <button className="btn-dashboard" onClick={() => load(periodDays)}>Atualizar</button>
           <button className="btn-dashboard" onClick={() => navigate("/")}>Website</button>
+          <button className="btn-dashboard secondary" onClick={() => navigate("/perfil")}>A minha conta</button>
+          <button className="btn-dashboard secondary" onClick={handleLogout}>Sair</button>
         </div>
       </header>
 

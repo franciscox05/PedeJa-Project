@@ -73,6 +73,16 @@
   font-size: 0.92rem;
 }
 
+.profile-header-actions {
+  margin-left: auto;
+}
+
+.profile-back-btn {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}
+
 .profile-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -599,6 +609,12 @@
 
   .profile-header {
     align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .profile-header-actions {
+    margin-left: 0;
+    width: 100%;
   }
 
   .profile-actions-row {

@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/CartContext";
 
 function SidebarIcon({ name }) {
   const iconName = String(name || "dashboard").toLowerCase();
@@ -48,6 +51,18 @@ export default function DashboardSidebarLayout({
   children,
 }) {
   const [collapsed, setCollapsed] = useState(() => getInitialCollapsedState(storageKey));
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { clearCart } = useCart();
+
+  const handleAccountLogout = () => {
+    logout();
+    clearCart();
+    // Navegacao "dura" (nao client-side): sair de uma rota protegida via navigate()
+    // deixa o ProtectedRoute reagir ao user=null antes do router assentar em "/",
+    // e o utilizador acaba momentaneamente em /login. Um reload evita essa corrida.
+    window.location.href = "/";
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -114,6 +129,29 @@ export default function DashboardSidebarLayout({
           </nav>
 
           {footer && !collapsed ? <div className="dashboard-sidebar-footer">{footer}</div> : null}
+
+          {user ? (
+            <div className="dashboard-sidebar-account">
+              <button
+                type="button"
+                className="dashboard-sidebar-account-btn"
+                onClick={() => navigate("/perfil")}
+                title={collapsed ? "A minha conta" : undefined}
+              >
+                <span className="material-icons" aria-hidden="true">person</span>
+                {!collapsed ? <span>A minha conta</span> : null}
+              </button>
+              <button
+                type="button"
+                className="dashboard-sidebar-account-btn dashboard-sidebar-account-btn--logout"
+                onClick={handleAccountLogout}
+                title={collapsed ? "Sair" : undefined}
+              >
+                <span className="material-icons" aria-hidden="true">logout</span>
+                {!collapsed ? <span>Sair</span> : null}
+              </button>
+            </div>
+          ) : null}
         </div>
       </aside>
 
