@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase, buildSupabaseFunctionHeaders, getSupabaseFunctionUrl } from "./supabaseClient";
 
 /**
  * Envia o email de recuperação usando o sistema nativo de Auth do Supabase
@@ -20,27 +20,35 @@ export async function updateAuthPassword(newPassword) {
 }
 
 /**
- * TODO (decisão do dono do projeto): o login da app NÃO usa o Supabase Auth
- * (auth.users) — usa a RPC customizada `login_utilizador`, que verifica a
- * password guardada na tabela `utilizadores`. `updateAuthPassword` acima só
- * atualiza a password do lado do Supabase Auth, por isso a password nova
- * ainda não fica válida para entrar via `login_utilizador`.
- *
- * Duas abordagens possíveis para fechar este gap (ambas exigem trabalho no
- * backend/Supabase que não é visível a partir do frontend):
- *   1. Dual-write: criar/atualizar também um registo em auth.users no
- *      registo e no reset, e passar `login_utilizador` a validar contra
- *      auth.users em vez da coluna de password em `utilizadores`.
- *   2. Migração completa: mover a autenticação toda para o Supabase Auth
- *      (signUp/signInWithPassword) e usar `utilizadores` só como perfil.
- *
- * Escolhe a abordagem e implementa aqui a sincronização (ex: RPC que recebe
- * o novo hash/plaintext via Edge Function autenticada e atualiza
- * `utilizadores.password`).
+ * O login da app usa a RPC customizada `login_utilizador` (tabela
+ * `utilizadores` / `private.utilizador_credenciais`), não o Supabase Auth
+ * diretamente. Para que uma password redefinida via /recuperar-password
+ * também funcione no login normal, é preciso escrevê-la nas duas tabelas
+ * (dual-write): esta função trata do lado da tabela custom, através da RPC
+ * `sync_custom_password_from_auth`, que identifica a conta pelo email do
+ * token de sessão do Supabase Auth (nunca por um parâmetro manipulável).
  */
-export async function syncPasswordWithCustomAuthTable(_newPassword) {
-  console.warn(
-    "[passwordResetService] syncPasswordWithCustomAuthTable não está implementado — " +
-    "a password só foi atualizada no Supabase Auth, não na tabela utilizadores.",
-  );
+export async function syncPasswordWithCustomAuthTable(newPassword) {
+  const { error } = await supabase.rpc("sync_custom_password_from_auth", { nova_senha: newPassword });
+  if (error) throw error;
+}
+
+/**
+ * Garante que existe um utilizador correspondente em auth.users para que
+ * /recuperar-password consiga enviar o email de reset. Chamada depois de um
+ * registo bem-sucedido via `registar_utilizador`; falhas aqui não devem
+ * bloquear o registo (a conta continua a funcionar via login_utilizador).
+ */
+export async function syncAuthUserForEmail(email) {
+  const headers = await buildSupabaseFunctionHeaders();
+  const response = await fetch(getSupabaseFunctionUrl("sync-auth-user"), {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    const rawText = await response.text();
+    throw new Error(rawText || `Falha ao sincronizar conta (${response.status}).`);
+  }
 }

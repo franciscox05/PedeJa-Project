@@ -77,7 +77,8 @@
   margin-left: auto;
 }
 
-.profile-back-btn {
+.profile-back-btn,
+.profile-back-btn:hover {
   display: inline-block;
   text-decoration: none;
   text-align: center;
@@ -98,18 +99,23 @@
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
+  text-decoration: none;
   transition: all 0.2s ease;
 }
 
 .profile-tab-btn:hover {
   background: #fff4f5;
+  color: #c91b20;
+  text-decoration: none;
 }
 
-.profile-tab-btn.active {
+.profile-tab-btn.active,
+.profile-tab-btn.active:hover {
   background: linear-gradient(135deg, #e62429, #c91b20);
   color: #fff;
   border-color: transparent;
   box-shadow: 0 8px 18px rgba(230, 36, 41, 0.25);
+  text-decoration: none;
 }
 
 .profile-tab-panel {

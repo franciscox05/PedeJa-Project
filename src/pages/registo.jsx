@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 import "../css/components/LoginInterfaces.css";
 import { supabase } from "../services/supabaseClient.js";
+import { syncAuthUserForEmail } from "../services/passwordResetService";
 
 export default function RegistoPage() {
   const navigate = useNavigate();
@@ -50,6 +51,12 @@ export default function RegistoPage() {
       });
 
       if (rpcError) throw rpcError;
+
+      try {
+        await syncAuthUserForEmail(formData.email);
+      } catch (syncError) {
+        console.error("Nao foi possivel sincronizar a conta com o Supabase Auth:", syncError);
+      }
 
       setSuccess(true);
       setTimeout(() => navigate("/login"), 1500);
