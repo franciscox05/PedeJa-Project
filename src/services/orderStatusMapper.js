@@ -179,7 +179,7 @@ export function getRestaurantActionsForEstado(estadoInterno) {
     ];
   }
 
-  if (key === "estafeta_aceitou" || key === "iniciado") {
+  if (key === "aceite" || key === "atribuindo_estafeta" || key === "estafeta_aceitou" || key === "iniciado") {
     return [{ action: "preparar", toEstado: "em_preparacao", label: "Comecar a Preparar", variant: "primary" }];
   }
 

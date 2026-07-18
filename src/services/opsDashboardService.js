@@ -1442,13 +1442,6 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
     throw new Error("Pedido nao encontrado para esta loja.");
   }
 
-  if (normalizedEstado === "em_preparacao") {
-    const hasDriver = String(currentOrder.driver_name || "").trim().length > 0;
-    if (!hasDriver) {
-      throw new Error("Aguarde que um estafeta seja atribuido antes de comecar a preparar.");
-    }
-  }
-
   const legacyStatus = mapEstadoInternoToLegacyStatus(normalizedEstado);
   const nowIso = new Date().toISOString();
   const patch = {
