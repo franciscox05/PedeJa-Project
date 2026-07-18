@@ -35,7 +35,7 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
     setSuccess("");
 
     try {
-      const result = await searchUsersForRestaurantAssociation(search, 20);
+      const result = await searchUsersForRestaurantAssociation(search, 20, extractUserId(user));
       setUsers(result);
 
       if (!selectedUserId && result.length > 0) {
@@ -73,7 +73,7 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
 
       setSuccess(`Utilizador ${result.user.username} associado a ${result.store.nome}.`);
 
-      const refreshed = await searchUsersForRestaurantAssociation(search, 20);
+      const refreshed = await searchUsersForRestaurantAssociation(search, 20, extractUserId(user));
       setUsers(refreshed);
 
       if (onLinked) {

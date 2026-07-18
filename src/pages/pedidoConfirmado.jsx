@@ -273,7 +273,7 @@ export default function PedidoConfirmado() {
             <div>
               <p className="pedido-kicker">Pedido #{orderId}</p>
               <h1>Detalhes do pedido</h1>
-              <p className="pedido-muted">Consulta estado, itens, dados de entrega e tracking Shipday.</p>
+              <p className="pedido-muted">Consulta estado, itens, dados de entrega e tracking em tempo real.</p>
             </div>
 
             <div className="pedido-header-actions">
@@ -377,7 +377,9 @@ export default function PedidoConfirmado() {
                 <article className="pedido-panel">
                   <h3>Entrega e tracking</h3>
                   <div className="pedido-delivery-meta">
-                    <p><strong>ID Shipday:</strong> {details.shipday_delivery_id || "-"}</p>
+                    {details.shipday_delivery_id ? (
+                      <p><strong>ID de entrega (Shipday):</strong> {details.shipday_delivery_id}</p>
+                    ) : null}
                     <p>
                       <strong>Previsao:</strong>
                       {" "}

@@ -137,6 +137,9 @@ export default function DashboardPromocoes() {
   };
 
   const handleDelete = async (promotion) => {
+    const confirmed = window.confirm(`Eliminar a promocao "${promotion.title || "(sem titulo)"}"? Esta acao nao pode ser desfeita.`);
+    if (!confirmed) return;
+
     setBusyId(promotion.id);
     try {
       await deletePromotion(callerUserId, promotion.id);

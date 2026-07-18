@@ -90,6 +90,9 @@ export default function DashboardCategorias() {
   };
 
   const handleDelete = async (category) => {
+    const confirmed = window.confirm(`Eliminar a categoria "${category.categoria}"? Esta acao nao pode ser desfeita.`);
+    if (!confirmed) return;
+
     setBusyId(category.idcategoria);
     try {
       await deleteCategory(callerUserId, category.idcategoria);

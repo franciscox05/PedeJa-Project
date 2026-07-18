@@ -86,9 +86,13 @@ export default function DashboardRevenue() {
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       title="PedeJa Control Center"
       subtitle="Origem da receita faturada, comissao e performance por loja/estafeta."
-      footerLabel="Analise"
-      footerValue="Receita detalhada"
-      footerMeta={`${periodDays} dias`}
+      footer={(
+        <div>
+          <p className="muted dashboard-sidebar-footer-label">Analise</p>
+          <strong>Receita detalhada</strong>
+          <p className="muted dashboard-sidebar-footer-meta">{periodDays} dias</p>
+        </div>
+      )}
     >
       <div className="dashboard-tab-section">
         <header className="dashboard-header enterprise-header">

@@ -128,6 +128,9 @@ export default function DashboardCupoes() {
   };
 
   const handleDelete = async (coupon) => {
+    const confirmed = window.confirm(`Eliminar o cupao "${coupon.code}"? Esta acao nao pode ser desfeita e o codigo deixa de funcionar de imediato.`);
+    if (!confirmed) return;
+
     setBusyId(coupon.id);
     try {
       await deleteCoupon(callerUserId, coupon.id);

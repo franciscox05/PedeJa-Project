@@ -1,7 +1,8 @@
 import "../css/index.css";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { extractRestaurantId, resolveUserRole } from "../utils/roles";
+import { useAuth } from "../context/AuthContext";
 
 import iconMenu from "../assets/img/menu.png";
 import iconClose from "../assets/img/close.png";
@@ -11,31 +12,10 @@ import iconPhone from "../assets/img/phone.png";
 import iconPolicy from "../assets/img/policy.png";
 import iconTerms from "../assets/img/terms.png";
 
-function readSessionUser() {
-  try {
-    const raw = localStorage.getItem("pedeja_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 function MenuGlobal() {
   const [menuAberto, setMenuAberto] = useState(false);
-  const [sessionUser, setSessionUser] = useState(() => readSessionUser());
+  const { user: sessionUser } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const syncUser = () => setSessionUser(readSessionUser());
-
-    window.addEventListener("storage", syncUser);
-    window.addEventListener("focus", syncUser);
-
-    return () => {
-      window.removeEventListener("storage", syncUser);
-      window.removeEventListener("focus", syncUser);
-    };
-  }, []);
 
   const { partnerLabel, partnerRoute, showPartnerAction } = useMemo(() => {
     const role = resolveUserRole(sessionUser);
@@ -67,7 +47,7 @@ function MenuGlobal() {
 
   return (
     <main>
-      <div id="menu-iconini" onClick={() => { setSessionUser(readSessionUser()); setMenuAberto(true); }}>
+      <div id="menu-iconini" onClick={() => setMenuAberto(true)}>
         <img src={iconMenu} className="menu-floating-icon" alt="Menu" />
       </div>
 

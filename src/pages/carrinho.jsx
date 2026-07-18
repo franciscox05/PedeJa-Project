@@ -383,6 +383,33 @@ export default function Carrinho() {
     setCouponError("");
   };
 
+  const appliedCouponCode = appliedCoupon?.code || "";
+
+  useEffect(() => {
+    if (!appliedCouponCode) return undefined;
+
+    const userId = extractUserId(user);
+    if (!userId) return undefined;
+
+    let cancelled = false;
+    const timeoutId = setTimeout(async () => {
+      try {
+        const result = await validateCoupon(userId, appliedCouponCode, subtotal);
+        if (!cancelled) setAppliedCoupon(result);
+      } catch (error) {
+        if (!cancelled) {
+          setAppliedCoupon(null);
+          setCouponError(error?.message || "O cupao deixou de ser valido para o novo valor do carrinho.");
+        }
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [subtotal, appliedCouponCode, user]);
+
   const handleAddressSelect = (e) => {
     const addressId = e.target.value;
     setCheckoutError("");
@@ -820,7 +847,7 @@ export default function Carrinho() {
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px" }}>
                     <button onClick={() => decreaseQuantity(cartLineId)} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid #ddd", background: "white", cursor: "pointer" }}>-</button>
                     <span style={{ fontWeight: "bold", minWidth: "20px", textAlign: "center", fontSize: "1.1rem" }}>{item.qtd}</span>
-                    <button onClick={() => addToCart(item)} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "none", background: "#ff3b30", color: "white", cursor: "pointer" }}>+</button>
+                    <button onClick={() => addToCart(item)} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "none", background: "#e62429", color: "white", cursor: "pointer" }}>+</button>
                   </div>
                 </div>
               </div>
@@ -843,7 +870,7 @@ export default function Carrinho() {
           {appliedCoupon ? (
             <div className="summary-row"><span>Desconto ({appliedCoupon.code})</span><span>-{couponDiscount.toFixed(2)}EUR</span></div>
           ) : null}
-          <div className="summary-row total"><span>Total a Pagar</span><span style={{ color: "#ff3b30" }}>{totalFinal.toFixed(2)}EUR</span></div>
+          <div className="summary-row total"><span>Total a Pagar</span><span style={{ color: "#e62429" }}>{totalFinal.toFixed(2)}EUR</span></div>
 
           <div style={{ marginTop: "10px", display: "grid", gap: "6px" }}>
             {appliedCoupon ? (

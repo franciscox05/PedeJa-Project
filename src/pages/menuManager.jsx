@@ -802,9 +802,6 @@ export default function MenuManager() {
     });
     return sortCategoryOptions([...map.values()]);
   }, [menuCategoryOptions, scopedPresetCategoryOptions]);
-  const formCategoryOptions = useMemo(() => storeCategoryOptions, [storeCategoryOptions]);
-  const manageableCategoryOptions = useMemo(() => storeCategoryOptions, [storeCategoryOptions]);
-
   useEffect(() => {
     if (categoryFilter !== "ALL" && !menuCategoryOptions.some((option) => option.value === categoryFilter)) {
       setCategoryFilter("ALL");
@@ -937,9 +934,9 @@ export default function MenuManager() {
                 <span className="muted">Categoria</span>
                 <select value={form.idtipomenu} onChange={(e) => setForm((prev) => ({ ...prev, idtipomenu: e.target.value }))}>
                   <option value="">Sem categoria</option>
-                  {formCategoryOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  {storeCategoryOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
-                {formCategoryOptions.length === 0 && <span className="muted menu-form-hint">Sem categorias. Cria no card "Gestao de categorias".</span>}
+                {storeCategoryOptions.length === 0 && <span className="muted menu-form-hint">Sem categorias. Cria no card "Gestao de categorias".</span>}
               </label>
             </div>
 
@@ -1080,11 +1077,11 @@ export default function MenuManager() {
                   <h4>Categorias</h4>
                   <span className="muted">Editar e eliminar categorias disponiveis para a loja</span>
                 </div>
-                {manageableCategoryOptions.length === 0 ? (
+                {storeCategoryOptions.length === 0 ? (
                   <p className="muted">Sem categorias.</p>
                 ) : (
                   <div className="menu-category-list-grid">
-                    {manageableCategoryOptions.map((option) => {
+                    {storeCategoryOptions.map((option) => {
                       const editingCategory = String(categoryEditId) === String(option.value);
                       const rowBusy = String(categoryActionId) === String(option.value);
                       return (

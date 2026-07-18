@@ -110,6 +110,9 @@ export default function DashboardBanners() {
   };
 
   const handleDelete = async (banner) => {
+    const confirmed = window.confirm(`Eliminar o banner "${banner.title || "(sem titulo)"}"? Esta acao nao pode ser desfeita.`);
+    if (!confirmed) return;
+
     setBusyId(banner.id);
     try {
       await deleteBanner(callerUserId, banner.id);
