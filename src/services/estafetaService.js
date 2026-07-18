@@ -1,0 +1,143 @@
+import { supabase } from "./supabaseClient";
+
+function toInt(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function unwrap({ data, error }, context) {
+  if (error) {
+    console.error(`estafetaService: ${context}`, { error: error?.message || String(error) });
+    throw error;
+  }
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Auto-servico do estafeta (usado pela app do estafeta, Fase 1)
+// ---------------------------------------------------------------------------
+
+export async function toggleEstafetaOnline(callerUserId, online) {
+  const response = await supabase.rpc("estafeta_toggle_online", {
+    caller_user_id: toInt(callerUserId),
+    online_input: Boolean(online),
+  });
+  return unwrap(response, "toggleEstafetaOnline");
+}
+
+export async function setEstafetaDisponivel(callerUserId, disponivel) {
+  const response = await supabase.rpc("estafeta_set_disponivel", {
+    caller_user_id: toInt(callerUserId),
+    disponivel_input: Boolean(disponivel),
+  });
+  return unwrap(response, "setEstafetaDisponivel");
+}
+
+export async function updateEstafetaLocation(callerUserId, lat, lng) {
+  const response = await supabase.rpc("estafeta_update_location", {
+    caller_user_id: toInt(callerUserId),
+    lat_input: lat,
+    lng_input: lng,
+  });
+  return unwrap(response, "updateEstafetaLocation");
+}
+
+export async function changeEstafetaPassword(callerUserId, currentPassword, newPassword) {
+  const response = await supabase.rpc("estafeta_change_password", {
+    caller_user_id: toInt(callerUserId),
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+  return unwrap(response, "changeEstafetaPassword");
+}
+
+export async function fetchMyEstafetaState(callerUserId) {
+  const response = await supabase.rpc("estafeta_get_my_state", {
+    caller_user_id: toInt(callerUserId),
+  });
+  return unwrap(response, "fetchMyEstafetaState");
+}
+
+export async function fetchMyEstafetaHistory(callerUserId, limit = 50) {
+  const response = await supabase.rpc("estafeta_get_my_history", {
+    caller_user_id: toInt(callerUserId),
+    limit_input: limit,
+  });
+  return unwrap(response, "fetchMyEstafetaHistory") || [];
+}
+
+export async function acceptOrRejectAssignment(callerUserId, assignmentId, accept, motivo = null) {
+  const response = await supabase.rpc("estafeta_accept_or_reject_assignment", {
+    caller_user_id: toInt(callerUserId),
+    assignment_id_input: toInt(assignmentId),
+    accept_input: Boolean(accept),
+    motivo_input: motivo,
+  });
+  return unwrap(response, "acceptOrRejectAssignment");
+}
+
+export async function advanceDeliveryStatus(callerUserId, assignmentId, newEstado) {
+  const response = await supabase.rpc("estafeta_advance_status", {
+    caller_user_id: toInt(callerUserId),
+    assignment_id_input: toInt(assignmentId),
+    new_estado_input: newEstado,
+  });
+  return unwrap(response, "advanceDeliveryStatus");
+}
+
+export async function cancelDeliveryAssignment(callerUserId, assignmentId, motivo = null) {
+  const response = await supabase.rpc("cancel_delivery_assignment", {
+    caller_user_id: toInt(callerUserId),
+    assignment_id_input: toInt(assignmentId),
+    motivo_input: motivo,
+  });
+  return unwrap(response, "cancelDeliveryAssignment");
+}
+
+// ---------------------------------------------------------------------------
+// Gestao/despacho (admin e staff de restaurante, Fase 2)
+// ---------------------------------------------------------------------------
+
+export async function assignDeliveryToEstafeta(callerUserId, orderId, estafetaId) {
+  const response = await supabase.rpc("assign_delivery", {
+    caller_user_id: toInt(callerUserId),
+    order_id_input: toInt(orderId),
+    estafeta_id_input: toInt(estafetaId),
+  });
+  return unwrap(response, "assignDeliveryToEstafeta");
+}
+
+export async function listEstafetasForDispatch(callerUserId) {
+  const response = await supabase.rpc("list_estafetas_for_dispatch", {
+    caller_user_id: toInt(callerUserId),
+  });
+  return unwrap(response, "listEstafetasForDispatch") || [];
+}
+
+export async function listActiveAtribuicoes(callerUserId, lojaId = null) {
+  const response = await supabase.rpc("list_active_atribuicoes", {
+    caller_user_id: toInt(callerUserId),
+    loja_id_input: lojaId === null || lojaId === undefined ? null : toInt(lojaId),
+  });
+  return unwrap(response, "listActiveAtribuicoes") || [];
+}
+
+export async function adminCreateEstafeta(callerUserId, { nome, email, telemovel, veiculo = "mota" }) {
+  const response = await supabase.rpc("admin_create_estafeta", {
+    caller_user_id: toInt(callerUserId),
+    nome_input: nome,
+    email_input: email,
+    telemovel_input: telemovel,
+    veiculo_input: veiculo,
+  });
+  return unwrap(response, "adminCreateEstafeta");
+}
+
+export async function adminSetEstafetaAtivo(callerUserId, estafetaId, ativo) {
+  const response = await supabase.rpc("admin_set_estafeta_ativo", {
+    caller_user_id: toInt(callerUserId),
+    estafeta_id_input: toInt(estafetaId),
+    ativo_input: Boolean(ativo),
+  });
+  return unwrap(response, "adminSetEstafetaAtivo");
+}

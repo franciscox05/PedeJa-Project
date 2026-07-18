@@ -614,7 +614,7 @@ serve(async (req) => {
 
     let lojaResponse = await supabase
       .from("lojas")
-      .select("idloja, nome, taxaentrega, aceitacao_automatica_pedidos, atribuicao_automatica_estafeta, configuracao_auto_assign, configuracao_entrega")
+      .select("idloja, nome, taxaentrega, aceitacao_automatica_pedidos, atribuicao_automatica_estafeta, configuracao_auto_assign, configuracao_entrega, dispatch_interno_ativo")
       .eq("idloja", lojaId)
       .maybeSingle();
 
@@ -624,6 +624,7 @@ serve(async (req) => {
         isMissingStoreColumnError(lojaResponse.error, "configuracao_entrega")
         || isMissingStoreColumnError(lojaResponse.error, "configuracao_auto_assign")
         || isMissingStoreColumnError(lojaResponse.error, "atribuicao_automatica_estafeta")
+        || isMissingStoreColumnError(lojaResponse.error, "dispatch_interno_ativo")
       )
     ) {
       lojaResponse = await supabase
@@ -729,7 +730,11 @@ serve(async (req) => {
     const globalAutoAssignConfig = await fetchGlobalAutoAssignConfig(supabase);
     const autoAcceptEnabled = Boolean(loja.aceitacao_automatica_pedidos);
     const autoAssignEnabled = resolveEffectiveAutoAssignEnabled(loja, globalAutoAssignConfig);
-    const shouldCreateShipdayImmediately = autoAcceptEnabled || autoAssignEnabled;
+    const dispatchInternoAtivo = Boolean(loja.dispatch_interno_ativo);
+    // Lojas com dispatch_interno_ativo=true usam o pool de estafetas interno
+    // (public.auto_assign_deliveries) em vez do Shipday. Ver plano de migracao
+    // em GUIA_SHIPDAY_SUPABASE.md e o comentario junto ao bloco mais abaixo.
+    const shouldCreateShipdayImmediately = !dispatchInternoAtivo && (autoAcceptEnabled || autoAssignEnabled);
     const initialStatus = autoAcceptEnabled ? "CONFIRMED" : "PENDING";
     const initialEstadoInterno = autoAcceptEnabled ? "aceite" : "pendente";
     const acceptedAt = autoAcceptEnabled ? submittedAt : null;
@@ -890,6 +895,36 @@ serve(async (req) => {
       }
     }
 
+    // Lojas migradas para o dispatch interno (estafetas proprios): em vez de
+    // criar/atribuir via Shipday, disparamos a varredura de auto-atribuicao
+    // interna (public.auto_assign_deliveries). O pg_cron tambem a corre a
+    // cada minuto, por isso uma falha aqui nao deixa o pedido preso.
+    if (dispatchInternoAtivo && shouldAttemptAutoAssignNow) {
+      try {
+        const { data: internalAssignResult, error: internalAssignError } = await supabase.rpc(
+          "auto_assign_deliveries",
+        );
+
+        if (internalAssignError) {
+          autoAssignErrorMessage = internalAssignError.message || "Falha na auto-atribuicao interna.";
+        } else {
+          autoAssignResult = { ok: true, internal: true, ...(internalAssignResult || {}) };
+        }
+      } catch (internalAssignException: any) {
+        autoAssignErrorMessage = String(
+          internalAssignException?.message || "Falha na auto-atribuicao interna.",
+        );
+      }
+
+      if (autoAssignErrorMessage) {
+        console.error("create-order dispatch interno auto-assign failed", {
+          order_id: orderId,
+          loja_id: lojaId,
+          message: autoAssignErrorMessage,
+        });
+      }
+    }
+
     if (shouldAttemptAutoAssignNow && !autoAssignResult?.ok && !autoAssignResult?.skipped && !autoAssignErrorMessage) {
       autoAssignErrorMessage = "Falha na atribuicao automatica de estafeta.";
     }
@@ -923,6 +958,7 @@ serve(async (req) => {
       auto_accept_enabled: Boolean(loja.aceitacao_automatica_pedidos),
       auto_accept_applied: autoAcceptEnabled,
       auto_assign_enabled: autoAssignEnabled,
+      dispatch_interno_ativo: dispatchInternoAtivo,
       global_auto_assign_enabled: Boolean(
         typeof globalAutoAssignConfig === "boolean"
           ? globalAutoAssignConfig

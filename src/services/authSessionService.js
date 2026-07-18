@@ -26,6 +26,7 @@ function canonicalRoleFromText(value) {
   if (normalized.includes("admin") || normalized.includes("administrador")) return "admin";
   if (normalized.includes("dev") || normalized.includes("developer") || normalized.includes("tecnico") || normalized.includes("ops")) return "dev";
   if (normalized.includes("restaur") || normalized.includes("merchant") || normalized.includes("store") || normalized.includes("loja")) return "restaurant";
+  if (normalized.includes("estafeta") || normalized.includes("driver") || normalized.includes("courier") || normalized.includes("carreteiro")) return "estafeta";
   if (normalized.includes("cliente") || normalized.includes("utilizador") || normalized.includes("customer") || normalized.includes("user")) return "customer";
 
   return "customer";
@@ -35,6 +36,7 @@ function rankRole(role) {
   if (role === "admin") return 4;
   if (role === "dev") return 3;
   if (role === "restaurant") return 2;
+  if (role === "estafeta") return 2;
   return 1;
 }
 
@@ -170,6 +172,17 @@ async function fetchRestaurantStaffLinks(candidateIds = []) {
   return data || [];
 }
 
+async function fetchEstafetaProfile(userId) {
+  if (!userId) return null;
+
+  // estafetas nao tem policy de leitura direta (tal como orders/deliveries):
+  // o acesso passa pela RPC SECURITY DEFINER estafeta_get_my_state.
+  const { data, error } = await supabase.rpc("estafeta_get_my_state", { caller_user_id: userId });
+  if (error || !data?.estafeta) return null;
+
+  return data.estafeta;
+}
+
 async function checkAdminOverride(candidateIds = []) {
   const ids = unique(candidateIds);
   if (!ids.length) return false;
@@ -212,11 +225,12 @@ export async function buildSessionFromLoginPayload(loginPayload, identifier = ""
   const userId = userRow?.idutilizador || payloadUserId;
   const candidateIds = toCandidateIds({ userId, userRow, payload, identifier });
 
-  const [permissionRows, ownedStores, staffLinks, adminOverride] = await Promise.all([
+  const [permissionRows, ownedStores, staffLinks, adminOverride, estafetaProfile] = await Promise.all([
     fetchPermissionsForUser(userId),
     fetchOwnedStores(userId),
     fetchRestaurantStaffLinks(candidateIds),
     checkAdminOverride(candidateIds),
+    fetchEstafetaProfile(userId),
   ]);
 
   const permissionNames = permissionRows.map((row) => row.permissao).filter(Boolean);
@@ -238,6 +252,8 @@ export async function buildSessionFromLoginPayload(loginPayload, identifier = ""
     resolvedRole = roleFromPermissions;
   } else if (lojaId) {
     resolvedRole = "restaurant";
+  } else if (estafetaProfile?.ativo) {
+    resolvedRole = "estafeta";
   }
 
   const lojasIds = unique([
@@ -265,6 +281,7 @@ export async function buildSessionFromLoginPayload(loginPayload, identifier = ""
     lojas_ids: lojasIds,
     restaurant_staff_role: staffLinks[0]?.role || null,
     is_admin: adminOverride || resolvedRole === "admin",
+    estafeta_id: estafetaProfile?.id || null,
   };
 }
 

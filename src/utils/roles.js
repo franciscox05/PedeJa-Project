@@ -8,6 +8,7 @@ function roleFromRawText(value) {
   if (["admin", "administrador", "owner"].includes(normalized)) return "admin";
   if (["restaurante", "restaurant", "store", "merchant", "restaurante/loja", "loja"].includes(normalized)) return "restaurant";
   if (["dev", "developer", "tecnico", "ops"].includes(normalized)) return "dev";
+  if (["estafeta", "driver", "courier", "carreteiro"].includes(normalized)) return "estafeta";
   if (["utilizador normal", "utilizador", "user", "cliente", "customer"].includes(normalized)) return "customer";
 
   return null;
@@ -45,6 +46,10 @@ export function resolveUserRole(user) {
   return "customer";
 }
 
+export function extractEstafetaId(user) {
+  return user?.estafeta_id || null;
+}
+
 export function extractRestaurantId(user) {
   return (
     user?.loja_id ||
@@ -74,5 +79,6 @@ export function getDefaultPathByRole(role) {
   if (role === "admin") return "/dashboard/admin";
   if (role === "restaurant") return "/dashboard/restaurante";
   if (role === "dev") return "/dashboard/dev";
+  if (role === "estafeta") return "/estafeta";
   return "/";
 }
