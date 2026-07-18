@@ -12,7 +12,7 @@ import { cancelShipdayOrder, createShipdayOrderForOrder, updateShipdayOrderStatu
 import { sanitizeCommissionConfig } from "./pricingService";
 import { sanitizeAutoAssignConfig } from "./autoAssignConfig";
 
-const STORE_SELECT_WITH_SETTINGS = "idloja, nome, ativo, taxaentrega, latitude, longitude, aceitacao_automatica_pedidos, atribuicao_automatica_estafeta, configuracao_auto_assign, comissao_pedeja_percent, configuracoes_comissao, configuracao_entrega, horario_funcionamento";
+const STORE_SELECT_WITH_SETTINGS = "idloja, nome, ativo, taxaentrega, latitude, longitude, aceitacao_automatica_pedidos, atribuicao_automatica_estafeta, configuracao_auto_assign, comissao_pedeja_percent, configuracoes_comissao, configuracao_entrega, horario_funcionamento, dispatch_interno_ativo";
 const STORE_SELECT_LEGACY_SETTINGS = "idloja, nome, ativo, taxaentrega, latitude, longitude, aceitacao_automatica_pedidos, comissao_pedeja_percent, horario_funcionamento";
 const STORE_SELECT_BASIC = "idloja, nome, ativo, latitude, longitude, horario_funcionamento";
 const SCHEDULED_RELEASE_WINDOW_MS = 30 * 60 * 1000;
@@ -82,6 +82,7 @@ function isMissingStoreSettingsColumnError(error) {
       || message.includes("configuracoes_comissao")
       || message.includes("configuracao_entrega")
       || message.includes("horario_funcionamento")
+      || message.includes("dispatch_interno_ativo")
     );
 }
 
@@ -115,6 +116,7 @@ function withStoreSettingsCompatibility(rows = []) {
       configuracoes_comissao: sanitizeCommissionConfig(store?.configuracoes_comissao, normalizedCommission),
       configuracao_entrega: sanitizeDeliveryPricingConfig(store?.configuracao_entrega, store?.taxaentrega),
       horario_funcionamento: store?.horario_funcionamento || null,
+      dispatch_interno_ativo: Boolean(store?.dispatch_interno_ativo),
     };
   });
 }
@@ -461,6 +463,10 @@ export async function updateRestaurantAdminSettings(lojaId, patch = {}, callerUs
 
   if (Object.prototype.hasOwnProperty.call(patch, "atribuicao_automatica_estafeta")) {
     updatePayload.atribuicao_automatica_estafeta = Boolean(patch.atribuicao_automatica_estafeta);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "dispatch_interno_ativo")) {
+    updatePayload.dispatch_interno_ativo = Boolean(patch.dispatch_interno_ativo);
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, "configuracao_auto_assign")) {

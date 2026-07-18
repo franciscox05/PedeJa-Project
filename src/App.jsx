@@ -9,6 +9,7 @@ import Carrinho from "./pages/carrinho";
 import PedidoConfirmado from "./pages/pedidoConfirmado";
 import DashboardAdmin from "./pages/dashboardAdmin";
 import DashboardGeoBoard from "./pages/dashboardGeoBoard";
+import DashboardEstafetas from "./pages/dashboardEstafetas";
 import DashboardPerformance from "./pages/dashboardPerformance";
 import DashboardRevenue from "./pages/dashboardRevenue";
 import DashboardRestaurante from "./pages/dashboardRestaurante";
@@ -180,6 +181,17 @@ export default function App() {
               <ProtectedRoute allowedRoles={["admin"]}>
                 <PageErrorBoundary pageName="Geo Board Admin" resetKey={`${location.pathname}${location.search}`}>
                   <DashboardGeoBoard />
+                </PageErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/estafetas"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <PageErrorBoundary pageName="Estafetas Admin" resetKey={`${location.pathname}${location.search}`}>
+                  <DashboardEstafetas />
                 </PageErrorBoundary>
               </ProtectedRoute>
             }
