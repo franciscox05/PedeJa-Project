@@ -492,6 +492,16 @@
   min-height: 78vh;
 }
 
+.pedido-tracking-map-wrap {
+  position: relative;
+  height: 320px;
+}
+
+.pedido-tracking-map-target {
+  width: 100%;
+  height: 100%;
+}
+
 .pedido-tracking-overlay {
   position: fixed;
   inset: 0;
@@ -568,7 +578,8 @@
   }
 
   .pedido-tracking-frame-wrap,
-  .pedido-tracking-frame {
+  .pedido-tracking-frame,
+  .pedido-tracking-map-wrap {
     min-height: 260px;
     height: 260px;
   }

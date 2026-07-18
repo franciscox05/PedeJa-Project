@@ -7,6 +7,7 @@ import CartWidget from "../components/CartWidget";
 import Voltar from "../components/Voltar";
 import MenuGlobal from "../components/MenuGlobal";
 import EmbeddedTrackingCard from "../components/order/EmbeddedTrackingCard";
+import InHouseTrackingMap from "../components/order/InHouseTrackingMap";
 import DeliveryRatingCard from "../components/order/DeliveryRatingCard";
 import { groupSelectedMenuOptionsForDisplay } from "../services/menuOptionsService";
 import { updateOrderWorkflowStatus } from "../services/opsDashboardService";
@@ -390,14 +391,21 @@ export default function PedidoConfirmado() {
                     <p><strong>Metodo pagamento:</strong> {details.payment_method_label || "-"}</p>
                   </div>
 
-                  {details.tracking_url ? (
-                    <EmbeddedTrackingCard
-                      url={details.tracking_url}
-                      title={`Tracking pedido #${orderId}`}
-                    />
-                  ) : (
-                    <p className="pedido-muted">Tracking ainda nao disponibilizado.</p>
-                  )}
+                  <InHouseTrackingMap
+                    orderId={details.order?.id}
+                    callerUserId={extractUserId(user)}
+                    isLive={details.is_live}
+                    fallback={
+                      details.tracking_url ? (
+                        <EmbeddedTrackingCard
+                          url={details.tracking_url}
+                          title={`Tracking pedido #${orderId}`}
+                        />
+                      ) : (
+                        <p className="pedido-muted">Tracking ainda nao disponibilizado.</p>
+                      )
+                    }
+                  />
 
                   {details.shipday_error ? (
                     <p className="pedido-error-inline">Erro Shipday: {details.shipday_error}</p>

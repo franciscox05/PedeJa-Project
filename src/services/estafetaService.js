@@ -204,3 +204,15 @@ export async function fetchMyDeliveryRating(callerUserId, orderId) {
   });
   return unwrap(response, "fetchMyDeliveryRating");
 }
+
+// ---------------------------------------------------------------------------
+// Tracking em tempo real do pedido (mapa in-house, Fase 4 backlog)
+// ---------------------------------------------------------------------------
+
+export async function fetchOrderTrackingInfo(callerUserId, orderId) {
+  const response = await supabase.rpc("get_order_tracking_info", {
+    caller_user_id: toInt(callerUserId),
+    order_id_input: toInt(orderId),
+  });
+  return unwrap(response, "fetchOrderTrackingInfo");
+}
