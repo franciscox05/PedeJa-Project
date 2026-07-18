@@ -14,6 +14,7 @@ import {
   advanceDeliveryStatus,
   cancelDeliveryAssignment,
   changeEstafetaPassword,
+  fetchMyEstafetaEarningsByDay,
   fetchMyEstafetaHistory,
   fetchMyEstafetaState,
   toggleEstafetaOnline,
@@ -37,8 +38,10 @@ export default function EstafetaDashboard() {
   const [activeTab, setActiveTab] = useState("inicio");
   const [state, setState] = useState(null);
   const [history, setHistory] = useState([]);
+  const [earningsByDay, setEarningsByDay] = useState([]);
   const [loadingState, setLoadingState] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingEarnings, setLoadingEarnings] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -80,11 +83,25 @@ export default function EstafetaDashboard() {
     return () => clearInterval(intervalId);
   }, [loadState]);
 
+  const loadEarnings = useCallback(async () => {
+    if (!callerUserId) return;
+    setLoadingEarnings(true);
+    try {
+      const data = await fetchMyEstafetaEarningsByDay(callerUserId, 30);
+      setEarningsByDay(data);
+    } catch (error) {
+      console.error("Estafeta dashboard: falha ao carregar ganhos", { error: error?.message });
+    } finally {
+      setLoadingEarnings(false);
+    }
+  }, [callerUserId]);
+
   useEffect(() => {
     if (activeTab === "historico") {
       loadHistory();
+      loadEarnings();
     }
-  }, [activeTab, loadHistory]);
+  }, [activeTab, loadHistory, loadEarnings]);
 
   const handleToggleOnline = async (nextOnline) => {
     setBusy(true);
@@ -212,7 +229,12 @@ export default function EstafetaDashboard() {
         />
       ) : null}
       {activeTab === "historico" ? (
-        <EstafetaHistoryTab history={history} loading={loadingHistory} />
+        <EstafetaHistoryTab
+          history={history}
+          loading={loadingHistory}
+          earningsByDay={earningsByDay}
+          loadingEarnings={loadingEarnings}
+        />
       ) : null}
       {activeTab === "perfil" ? (
         <EstafetaProfileTab

@@ -178,6 +178,65 @@
   font-size: 0.95rem;
 }
 
+.estafeta-earnings-chart {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.estafeta-earnings-chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.estafeta-earnings-chart-total {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 2px 0;
+}
+
+.estafeta-period-toggle {
+  display: inline-flex;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.estafeta-period-toggle-btn {
+  border: none;
+  background: #ffffff;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.6);
+  cursor: pointer;
+}
+
+.estafeta-period-toggle-btn.is-active {
+  background: #e62429;
+  color: #ffffff;
+}
+
+.estafeta-chart-tooltip {
+  background: #111827;
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+}
+
+.estafeta-chart-tooltip-meta {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.78rem;
+}
+
 .app-modal-backdrop {
   position: fixed;
   inset: 0;

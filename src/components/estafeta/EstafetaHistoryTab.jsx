@@ -1,3 +1,5 @@
+import EstafetaEarningsChart from "./EstafetaEarningsChart";
+
 function formatCurrency(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return "-";
@@ -18,42 +20,38 @@ function resolveHistoryStatus(item) {
   return { label: "Terminado", className: "tag warn" };
 }
 
-export default function EstafetaHistoryTab({ history, loading }) {
-  if (loading) {
-    return <div className="dashboard-tab-section"><p className="muted">A carregar histórico...</p></div>;
-  }
+export default function EstafetaHistoryTab({ history, loading, earningsByDay, loadingEarnings }) {
+  return (
+    <div className="dashboard-tab-section">
+      <EstafetaEarningsChart earningsByDay={earningsByDay} loading={loadingEarnings} />
 
-  if (!history?.length) {
-    return (
-      <div className="dashboard-tab-section">
+      {loading ? (
+        <p className="muted">A carregar histórico...</p>
+      ) : !history?.length ? (
         <div className="estafeta-empty-state">
           <p>Ainda não tens entregas no histórico.</p>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="dashboard-tab-section">
-      <div className="estafeta-history-list">
-        {history.map((item) => {
-          const status = resolveHistoryStatus(item);
-          return (
-            <div className="estafeta-history-row" key={item.id}>
-              <div className="estafeta-history-row-main">
-                <span className="estafeta-history-row-title">{item.customer_nome || "Cliente"}</span>
-                <span className="estafeta-history-row-meta">
-                  {item.customer_address} • {formatDateTime(item.criado_em)}
-                </span>
+      ) : (
+        <div className="estafeta-history-list">
+          {history.map((item) => {
+            const status = resolveHistoryStatus(item);
+            return (
+              <div className="estafeta-history-row" key={item.id}>
+                <div className="estafeta-history-row-main">
+                  <span className="estafeta-history-row-title">{item.customer_nome || "Cliente"}</span>
+                  <span className="estafeta-history-row-meta">
+                    {item.customer_address} • {formatDateTime(item.criado_em)}
+                  </span>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div className={status.className}>{status.label}</div>
+                  <div className="estafeta-history-row-meta">{formatCurrency(item.valor_estafeta)}</div>
+                </div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div className={status.className}>{status.label}</div>
-                <div className="estafeta-history-row-meta">{formatCurrency(item.valor_estafeta)}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

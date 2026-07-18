@@ -7,6 +7,7 @@ import CartWidget from "../components/CartWidget";
 import Voltar from "../components/Voltar";
 import MenuGlobal from "../components/MenuGlobal";
 import EmbeddedTrackingCard from "../components/order/EmbeddedTrackingCard";
+import DeliveryRatingCard from "../components/order/DeliveryRatingCard";
 import { groupSelectedMenuOptionsForDisplay } from "../services/menuOptionsService";
 import { updateOrderWorkflowStatus } from "../services/opsDashboardService";
 import { fetchOrderDetails, getStatusTone } from "../services/orderDetailsService";
@@ -464,6 +465,14 @@ export default function PedidoConfirmado() {
                   </div>
                 </article>
               </section>
+
+              {viewerIsCustomer && customerOrderEstadoInterno === "entregue" && details.order?.id ? (
+                <DeliveryRatingCard
+                  orderId={details.order.id}
+                  callerUserId={extractUserId(user)}
+                  driverName={details.driver?.name}
+                />
+              ) : null}
 
               <section className="pedido-panel">
                 <h3>Itens do pedido</h3>

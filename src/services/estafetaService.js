@@ -74,6 +74,14 @@ export async function fetchMyEstafetaState(callerUserId) {
   return unwrap(response, "fetchMyEstafetaState");
 }
 
+export async function fetchMyEstafetaEarningsByDay(callerUserId, days = 35) {
+  const response = await supabase.rpc("estafeta_get_earnings_by_day", {
+    caller_user_id: toInt(callerUserId),
+    days_input: days,
+  });
+  return unwrap(response, "fetchMyEstafetaEarningsByDay") || [];
+}
+
 export async function fetchMyEstafetaHistory(callerUserId, limit = 50) {
   const response = await supabase.rpc("estafeta_get_my_history", {
     caller_user_id: toInt(callerUserId),
@@ -173,4 +181,26 @@ export async function adminSetEstafetaAtivo(callerUserId, estafetaId, ativo) {
     ativo_input: Boolean(ativo),
   });
   return unwrap(response, "adminSetEstafetaAtivo");
+}
+
+// ---------------------------------------------------------------------------
+// Avaliacoes do cliente ao estafeta (Fase 4 backlog)
+// ---------------------------------------------------------------------------
+
+export async function rateDelivery(callerUserId, orderId, classificacao, comentario = null) {
+  const response = await supabase.rpc("customer_rate_delivery", {
+    caller_user_id: toInt(callerUserId),
+    order_id_input: toInt(orderId),
+    classificacao_input: toInt(classificacao),
+    comentario_input: comentario,
+  });
+  return unwrap(response, "rateDelivery");
+}
+
+export async function fetchMyDeliveryRating(callerUserId, orderId) {
+  const response = await supabase.rpc("get_my_delivery_rating", {
+    caller_user_id: toInt(callerUserId),
+    order_id_input: toInt(orderId),
+  });
+  return unwrap(response, "fetchMyDeliveryRating");
 }

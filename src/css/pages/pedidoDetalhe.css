@@ -208,6 +208,45 @@
   border-bottom: none;
 }
 
+.pedido-rating-card {
+  background: linear-gradient(135deg, #fffaf0, #fffdf7);
+  border-color: #fde6b8;
+}
+
+.pedido-rating-stars {
+  display: flex;
+  gap: 6px;
+}
+
+.pedido-rating-star {
+  background: none;
+  border: none;
+  font-size: 1.9rem;
+  line-height: 1;
+  color: #d8dde7;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pedido-rating-star.is-filled {
+  color: #f59e0b;
+}
+
+.pedido-rating-star:disabled {
+  cursor: default;
+}
+
+.pedido-rating-textarea {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  border-radius: 10px;
+  border: 1px solid #d8dde7;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
 .pedido-values span {
   color: #6b7280;
   font-size: 0.88rem;
