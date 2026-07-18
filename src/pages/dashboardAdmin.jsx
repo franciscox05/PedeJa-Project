@@ -796,6 +796,14 @@ export default function DashboardAdmin() {
     if (!orderId || autoAssignInFlightRef.current.has(orderId)) return { skipped: true, reason: "in_flight" };
 
     const store = storesById.get(String(order?.loja_id || ""));
+
+    if (store?.dispatch_interno_ativo) {
+      // Loja ja migrada para o dispatch interno: a atribuicao (imediata ou
+      // agendada) e feita no backend (assign_delivery/auto_assign_deliveries
+      // via pg_cron), nao pelo Shipday a partir daqui.
+      return { skipped: true, reason: "dispatch_interno_ativo" };
+    }
+
     const effectiveAutoAssignConfig = resolveEffectiveAutoAssignConfig(store, globalAutoAssign);
 
     if (!effectiveAutoAssignConfig.enabled) {

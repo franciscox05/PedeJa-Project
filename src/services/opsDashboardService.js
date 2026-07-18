@@ -1493,8 +1493,20 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
     throw new Error("Pedido nao encontrado para esta loja.");
   }
 
-  const shouldSyncShipday = options.syncShipday !== false;
-  let shipdaySync = { ok: false, skipped: true, reason: "shipday_sync_desativado" };
+  let dispatchInternoAtivo = false;
+  if (data?.loja_id) {
+    const { data: lojaRow } = await supabase
+      .from("lojas")
+      .select("dispatch_interno_ativo")
+      .eq("idloja", data.loja_id)
+      .maybeSingle();
+    dispatchInternoAtivo = Boolean(lojaRow?.dispatch_interno_ativo);
+  }
+
+  const shouldSyncShipday = options.syncShipday !== false && !dispatchInternoAtivo;
+  let shipdaySync = dispatchInternoAtivo
+    ? { ok: true, skipped: true, reason: "dispatch_interno_ativo" }
+    : { ok: false, skipped: true, reason: "shipday_sync_desativado" };
 
   if (shouldSyncShipday) {
     if (normalizedEstado === "aceite") {

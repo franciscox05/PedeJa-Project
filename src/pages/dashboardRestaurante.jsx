@@ -582,6 +582,14 @@ export default function DashboardRestaurante() {
     }
 
     const currentStore = (storeSettingsRows || []).find((store) => String(store?.idloja) === String(order?.loja_id || scopedStoreId || ""));
+
+    if (currentStore?.dispatch_interno_ativo) {
+      // Loja ja migrada para o dispatch interno: a atribuicao (imediata ou
+      // agendada) e feita no backend (assign_delivery/auto_assign_deliveries
+      // via pg_cron), nao pelo Shipday a partir daqui.
+      return { skipped: true, reason: "dispatch_interno_ativo" };
+    }
+
     const effectiveAutoAssignConfig = resolveEffectiveAutoAssignConfig(currentStore, globalAutoAssign);
 
     if (!effectiveAutoAssignConfig.enabled) {
