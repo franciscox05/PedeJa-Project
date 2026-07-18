@@ -13,6 +13,7 @@ import DashboardPerformance from "./pages/dashboardPerformance";
 import DashboardRevenue from "./pages/dashboardRevenue";
 import DashboardRestaurante from "./pages/dashboardRestaurante";
 import DashboardDev from "./pages/dashboardDev";
+import EstafetaDashboard from "./pages/estafeta";
 import DashboardCategorias from "./pages/dashboardCategorias";
 import DashboardBanners from "./pages/dashboardBanners";
 import DashboardCupoes from "./pages/dashboardCupoes";
@@ -216,6 +217,15 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["dev", "admin"]}>
                 <DashboardDev />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/estafeta"
+            element={
+              <ProtectedRoute allowedRoles={["estafeta", "admin"]}>
+                <EstafetaDashboard />
               </ProtectedRoute>
             }
           />
