@@ -123,6 +123,23 @@ export async function assignDeliveryToEstafeta(callerUserId, orderId, estafetaId
   return unwrap(response, "assignDeliveryToEstafeta");
 }
 
+export async function reassignDeliveryToEstafeta(callerUserId, assignmentId, newEstafetaId) {
+  const response = await supabase.rpc("admin_reassign_delivery", {
+    caller_user_id: toInt(callerUserId),
+    assignment_id_input: toInt(assignmentId),
+    new_estafeta_id_input: toInt(newEstafetaId),
+  });
+  return unwrap(response, "reassignDeliveryToEstafeta");
+}
+
+export async function forceDeliverAssignment(callerUserId, assignmentId) {
+  const response = await supabase.rpc("admin_force_deliver_assignment", {
+    caller_user_id: toInt(callerUserId),
+    assignment_id_input: toInt(assignmentId),
+  });
+  return unwrap(response, "forceDeliverAssignment");
+}
+
 export async function listEstafetasForDispatch(callerUserId) {
   const response = await supabase.rpc("list_estafetas_for_dispatch", {
     caller_user_id: toInt(callerUserId),

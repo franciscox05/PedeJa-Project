@@ -113,7 +113,7 @@ begin
 
   select coalesce(json_agg(a), '[]'::json) into v_result
   from (
-    select ae.*, o.loja_id, o.estado_interno, o.customer_nome, o.customer_address, o.total
+    select ae.*, o.loja_id, o.estado_interno, o.customer_nome, o.customer_address, o.customer_lat, o.customer_lng, o.total
     from public.atribuicoes_entrega ae
     join public.orders o on o.id = ae.order_id
     where ae.ativo = true

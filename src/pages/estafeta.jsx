@@ -4,6 +4,8 @@ import "../css/pages/dashboard.css";
 import "../css/pages/estafeta.css";
 import { useAuth } from "../context/AuthContext";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import Modal from "../components/ui/modal";
+import { Button } from "../components/ui/button";
 import EstafetaHomeTab from "../components/estafeta/EstafetaHomeTab";
 import EstafetaHistoryTab from "../components/estafeta/EstafetaHistoryTab";
 import EstafetaProfileTab from "../components/estafeta/EstafetaProfileTab";
@@ -38,6 +40,8 @@ export default function EstafetaDashboard() {
   const [loadingState, setLoadingState] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   const estafeta = state?.estafeta || null;
 
@@ -134,12 +138,14 @@ export default function EstafetaDashboard() {
     }
   };
 
-  const handleCancel = async (assignmentId) => {
-    const motivo = window.prompt("Descreve rapidamente o problema (opcional):", "");
+  const handleCancelConfirm = async () => {
+    if (!cancelTarget) return;
     setBusy(true);
     try {
-      await cancelDeliveryAssignment(callerUserId, assignmentId, motivo || null);
+      await cancelDeliveryAssignment(callerUserId, cancelTarget, cancelReason.trim() || null);
       toast("Entrega cancelada.");
+      setCancelTarget(null);
+      setCancelReason("");
       await loadState();
     } catch (error) {
       toast.error(error?.message || "Não foi possível cancelar a entrega.");
@@ -201,7 +207,7 @@ export default function EstafetaDashboard() {
           onAccept={handleAccept}
           onReject={handleReject}
           onAdvance={handleAdvance}
-          onCancel={handleCancel}
+          onCancel={(assignmentId) => setCancelTarget(assignmentId)}
           busy={busy}
         />
       ) : null}
@@ -216,6 +222,32 @@ export default function EstafetaDashboard() {
           pushSubscription={pushSubscription}
         />
       ) : null}
+
+      <Modal
+        open={Boolean(cancelTarget)}
+        title="Reportar problema / cancelar entrega"
+        onClose={() => setCancelTarget(null)}
+        actions={(
+          <>
+            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={busy}>
+              Voltar
+            </Button>
+            <Button variant="destructive" onClick={handleCancelConfirm} disabled={busy}>
+              Confirmar cancelamento
+            </Button>
+          </>
+        )}
+      >
+        <p className="estafeta-order-card-meta" style={{ marginTop: 0 }}>
+          Descreve rapidamente o que aconteceu (opcional). O pedido é cancelado e a loja/admin são avisados.
+        </p>
+        <textarea
+          rows={3}
+          placeholder="Ex: cliente não atende, morada errada..."
+          value={cancelReason}
+          onChange={(event) => setCancelReason(event.target.value)}
+        />
+      </Modal>
     </DashboardSidebarLayout>
   );
 }

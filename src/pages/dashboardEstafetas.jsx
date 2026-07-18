@@ -5,6 +5,8 @@ import "../css/pages/dashboard.css";
 import "../css/pages/estafeta.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
+import Modal from "../components/ui/modal";
+import { Button } from "../components/ui/button";
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -14,8 +16,10 @@ import {
   adminCreateEstafeta,
   adminSetEstafetaAtivo,
   assignDeliveryToEstafeta,
+  forceDeliverAssignment,
   listActiveAtribuicoes,
   listEstafetasForDispatch,
+  reassignDeliveryToEstafeta,
 } from "../services/estafetaService";
 import { fetchAdminDashboard, updateRestaurantAdminSettings } from "../services/opsDashboardService";
 
@@ -23,6 +27,25 @@ const POLL_INTERVAL_MS = 20000;
 
 function ensureArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function formatMinutesSince(value) {
+  if (!value) return null;
+  const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
+  if (!Number.isFinite(minutes) || minutes < 0) return null;
+  if (minutes < 1) return "agora mesmo";
+  return `há ${minutes} min`;
+}
+
+function buildActiveOrdersForBoard(activeAtribuicoes) {
+  return ensureArray(activeAtribuicoes).map((assignment) => ({
+    id: assignment.order_id,
+    loja_id: assignment.loja_id,
+    estado_interno: assignment.estado_interno,
+    customer_nome: assignment.customer_nome,
+    customer_lat: assignment.customer_lat,
+    customer_lng: assignment.customer_lng,
+  }));
 }
 
 function buildEstafetaBoardEntries(estafetas, activeAtribuicoes, stores) {
@@ -74,6 +97,8 @@ export default function DashboardEstafetas() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState({ nome: "", email: "", telemovel: "", veiculo: "mota" });
   const [assignSelection, setAssignSelection] = useState({});
+  const [reassignTarget, setReassignTarget] = useState(null);
+  const [reassignSelection, setReassignSelection] = useState("");
 
   const load = useCallback(async () => {
     if (!Number.isFinite(callerUserId)) return;
@@ -143,6 +168,11 @@ export default function DashboardEstafetas() {
     [estafetas, activeAtribuicoes, stores],
   );
 
+  const activeOrdersForBoard = useMemo(
+    () => buildActiveOrdersForBoard(activeAtribuicoes),
+    [activeAtribuicoes],
+  );
+
   const handleToggleDispatch = async (loja) => {
     const key = `dispatch-${loja.idloja}`;
     setBusyKey(key);
@@ -173,6 +203,41 @@ export default function DashboardEstafetas() {
       await load();
     } catch (assignError) {
       toast.error(assignError?.message || "Nao foi possivel atribuir o estafeta.");
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const handleReassignConfirm = async () => {
+    if (!reassignTarget || !reassignSelection) {
+      toast.error("Escolhe o novo estafeta.");
+      return;
+    }
+    const key = `reassign-${reassignTarget}`;
+    setBusyKey(key);
+    try {
+      await reassignDeliveryToEstafeta(callerUserId, reassignTarget, reassignSelection);
+      toast.success("Entrega reatribuída.");
+      setReassignTarget(null);
+      setReassignSelection("");
+      await load();
+    } catch (reassignError) {
+      toast.error(reassignError?.message || "Não foi possível reatribuir a entrega.");
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const handleForceDeliver = async (assignmentId) => {
+    if (!window.confirm("Marcar esta entrega como concluída sem confirmação do estafeta?")) return;
+    const key = `force-${assignmentId}`;
+    setBusyKey(key);
+    try {
+      await forceDeliverAssignment(callerUserId, assignmentId);
+      toast.success("Entrega marcada como concluída.");
+      await load();
+    } catch (forceError) {
+      toast.error(forceError?.message || "Não foi possível concluir a entrega.");
     } finally {
       setBusyKey("");
     }
@@ -292,7 +357,7 @@ export default function DashboardEstafetas() {
         </article>
       </section>
 
-      <LiveOperationsBoard mode="admin" orders={[]} carriers={liveBoardEntries} stores={stores} />
+      <LiveOperationsBoard mode="admin" orders={activeOrdersForBoard} carriers={liveBoardEntries} stores={stores} />
 
       <section className="panel-grid analytics-grid">
         <article className="panel">
@@ -377,23 +442,43 @@ export default function DashboardEstafetas() {
           <div className="table-wrap">
             <table className="ops-table">
               <thead>
-                <tr><th>Pedido</th><th>Cliente</th><th>Estado</th><th>Estafeta</th></tr>
+                <tr><th>Pedido</th><th>Cliente</th><th>Estado</th><th>Estafeta</th><th>Atribuído</th><th></th></tr>
               </thead>
               <tbody>
                 {activeAtribuicoes.map((assignment) => {
                   const estafetaNome = estafetas.find((item) => String(item.id) === String(assignment.estafeta_id))?.nome || "-";
                   const estado = resolveOrderEstadoInterno({ estado_interno: assignment.estado_interno });
+                  const waitingLabel = !assignment.aceite_em ? formatMinutesSince(assignment.atribuido_em) : null;
                   return (
                     <tr key={`active-${assignment.id}`}>
                       <td>#{assignment.order_id}</td>
                       <td>{assignment.customer_nome}</td>
                       <td><span className={getEstadoInternoTagClass(estado)}>{getEstadoInternoLabelPt(estado)}</span></td>
                       <td>{estafetaNome}</td>
+                      <td>{waitingLabel ? <span className="tag warn">{waitingLabel}, por aceitar</span> : "-"}</td>
+                      <td>
+                        <div className="table-action-row">
+                          <button
+                            className="btn-dashboard secondary"
+                            disabled={busyKey === `reassign-${assignment.id}`}
+                            onClick={() => { setReassignTarget(assignment.id); setReassignSelection(""); }}
+                          >
+                            Reatribuir
+                          </button>
+                          <button
+                            className="btn-dashboard secondary"
+                            disabled={busyKey === `force-${assignment.id}`}
+                            onClick={() => handleForceDeliver(assignment.id)}
+                          >
+                            Forçar entregue
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
                 {!loading && activeAtribuicoes.length === 0 ? (
-                  <tr><td colSpan={4}>Sem entregas em curso.</td></tr>
+                  <tr><td colSpan={6}>Sem entregas em curso.</td></tr>
                 ) : null}
               </tbody>
             </table>
@@ -437,6 +522,36 @@ export default function DashboardEstafetas() {
           </div>
         </article>
       </section>
+
+      <Modal
+        open={Boolean(reassignTarget)}
+        title="Reatribuir entrega"
+        onClose={() => setReassignTarget(null)}
+        actions={(
+          <>
+            <Button variant="outline" onClick={() => setReassignTarget(null)} disabled={busyKey.startsWith("reassign-")}>
+              Voltar
+            </Button>
+            <Button onClick={handleReassignConfirm} disabled={busyKey.startsWith("reassign-")}>
+              Confirmar
+            </Button>
+          </>
+        )}
+      >
+        <p className="estafeta-order-card-meta" style={{ marginTop: 0 }}>
+          O estafeta atual perde este pedido e volta a ficar disponível. Escolhe quem fica com a entrega:
+        </p>
+        <select value={reassignSelection} onChange={(event) => setReassignSelection(event.target.value)}>
+          <option value="">Escolher estafeta...</option>
+          {availableEstafetas
+            .filter((estafeta) => String(estafeta.id) !== String(
+              activeAtribuicoes.find((item) => item.id === reassignTarget)?.estafeta_id,
+            ))
+            .map((estafeta) => (
+              <option key={estafeta.id} value={estafeta.id}>{estafeta.nome}</option>
+            ))}
+        </select>
+      </Modal>
     </DashboardSidebarLayout>
   );
 }

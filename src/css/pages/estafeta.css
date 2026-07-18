@@ -177,3 +177,63 @@
   border: 1px solid rgba(15, 23, 42, 0.15);
   font-size: 0.95rem;
 }
+
+.app-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.app-modal-card {
+  width: min(480px, 96vw);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.28);
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.app-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.app-modal-header h3 {
+  margin: 0;
+}
+
+.app-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: rgba(15, 23, 42, 0.5);
+  padding: 4px;
+}
+
+.app-modal-body textarea,
+.app-modal-body select,
+.app-modal-body input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.app-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

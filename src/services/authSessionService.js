@@ -183,18 +183,15 @@ async function fetchEstafetaProfile(userId) {
   return data.estafeta;
 }
 
-async function checkAdminOverride(candidateIds = []) {
-  const ids = unique(candidateIds);
-  if (!ids.length) return false;
+async function checkAdminOverride(userId) {
+  if (!userId) return false;
 
-  const { data, error } = await supabase
-    .from("app_admins")
-    .select("user_id")
-    .in("user_id", ids)
-    .limit(1);
-
+  // app_admins nao tem policy de leitura direta (RLS fechada, tal como
+  // orders/estafetas): o acesso passa pela RPC SECURITY DEFINER
+  // is_caller_admin, que tambem cobre a via utilizadorespermissoes.
+  const { data, error } = await supabase.rpc("is_caller_admin", { caller_user_id: userId });
   if (error) return false;
-  return Boolean(data && data.length > 0);
+  return Boolean(data);
 }
 
 function toCandidateIds({ userId, userRow, payload, identifier }) {
@@ -229,7 +226,7 @@ export async function buildSessionFromLoginPayload(loginPayload, identifier = ""
     fetchPermissionsForUser(userId),
     fetchOwnedStores(userId),
     fetchRestaurantStaffLinks(candidateIds),
-    checkAdminOverride(candidateIds),
+    checkAdminOverride(userId),
     fetchEstafetaProfile(userId),
   ]);
 
