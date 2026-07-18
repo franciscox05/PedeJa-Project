@@ -39,6 +39,7 @@ export default function ProfileDados() {
 
     try {
       const { data, error } = await supabase.rpc("atualizar_utilizador", {
+        caller_user_id: userId,
         id_user: userId,
         novo_nome: formData.username,
         novo_email: formData.email,

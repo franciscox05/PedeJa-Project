@@ -14,7 +14,7 @@ export default function ProfileSeguranca() {
   const { updateUser } = useAuth();
   const userId = extractUserId(user);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ novaSenha: "", confirmarSenha: "" });
+  const [formData, setFormData] = useState({ senhaAtual: "", novaSenha: "", confirmarSenha: "" });
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.id]: e.target.value }));
@@ -23,8 +23,18 @@ export default function ProfileSeguranca() {
   const handleSave = async (e) => {
     e.preventDefault();
 
+    if (!formData.senhaAtual) {
+      alert("Introduz a tua password atual para confirmar a alteracao.");
+      return;
+    }
+
     if (!formData.novaSenha || !formData.confirmarSenha) {
-      alert("Preenche os dois campos de password.");
+      alert("Preenche os dois campos de nova password.");
+      return;
+    }
+
+    if (formData.novaSenha.length < 6) {
+      alert("A nova password deve ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -37,18 +47,20 @@ export default function ProfileSeguranca() {
 
     try {
       const { data, error } = await supabase.rpc("atualizar_utilizador", {
+        caller_user_id: userId,
         id_user: userId,
         novo_nome: user?.username,
         novo_email: user?.email,
         novo_telemovel: user?.telemovel,
         nova_senha: formData.novaSenha,
+        current_password: formData.senhaAtual,
       });
 
       if (error) throw error;
 
       updateUser(normalizeRpcPayload(data) || {});
       alert("Password atualizada com sucesso!");
-      setFormData({ novaSenha: "", confirmarSenha: "" });
+      setFormData({ senhaAtual: "", novaSenha: "", confirmarSenha: "" });
     } catch (error) {
       console.error("Erro ao atualizar password:", error);
       alert(`Erro ao atualizar password: ${error.message}`);
@@ -62,6 +74,17 @@ export default function ProfileSeguranca() {
       <p className="profile-note">
         Atualiza a password da conta. Os restantes dados do perfil mantem-se inalterados.
       </p>
+
+      <div className="profile-field">
+        <label htmlFor="senhaAtual">Password atual</label>
+        <input
+          type="password"
+          id="senhaAtual"
+          placeholder="Introduz a password atual"
+          value={formData.senhaAtual}
+          onChange={handleChange}
+        />
+      </div>
 
       <div className="profile-field">
         <label htmlFor="novaSenha">Nova password</label>
