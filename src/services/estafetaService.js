@@ -51,6 +51,22 @@ export async function changeEstafetaPassword(callerUserId, currentPassword, newP
   return unwrap(response, "changeEstafetaPassword");
 }
 
+export async function saveEstafetaPushSubscription(callerUserId, subscription) {
+  const response = await supabase.rpc("estafeta_save_push_subscription", {
+    caller_user_id: toInt(callerUserId),
+    subscription_input: subscription,
+  });
+  return unwrap(response, "saveEstafetaPushSubscription");
+}
+
+export async function removeEstafetaPushSubscription(callerUserId, endpoint) {
+  const response = await supabase.rpc("estafeta_remove_push_subscription", {
+    caller_user_id: toInt(callerUserId),
+    endpoint_input: endpoint,
+  });
+  return unwrap(response, "removeEstafetaPushSubscription");
+}
+
 export async function fetchMyEstafetaState(callerUserId) {
   const response = await supabase.rpc("estafeta_get_my_state", {
     caller_user_id: toInt(callerUserId),

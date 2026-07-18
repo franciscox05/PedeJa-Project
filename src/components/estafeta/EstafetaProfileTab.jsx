@@ -8,7 +8,7 @@ const VEHICLE_LABELS = {
   a_pe: "A pé",
 };
 
-export default function EstafetaProfileTab({ estafeta, onChangePassword, busy }) {
+export default function EstafetaProfileTab({ estafeta, onChangePassword, busy, pushSubscription }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -61,6 +61,28 @@ export default function EstafetaProfileTab({ estafeta, onChangePassword, busy })
           <p className="estafeta-profile-field-value">{VEHICLE_LABELS[estafeta?.veiculo] || estafeta?.veiculo || "-"}</p>
         </div>
       </div>
+
+      {pushSubscription?.supported ? (
+        <div className="estafeta-order-card" style={{ marginBottom: 24 }}>
+          <div className="estafeta-order-card-head">
+            <h3 className="estafeta-order-card-title">Notificações</h3>
+          </div>
+          <p className="estafeta-order-card-meta">
+            {pushSubscription.subscribed
+              ? "As notificações push estão ativas neste dispositivo — recebes um alerta mesmo com a app fechada."
+              : "Ativa as notificações para saberes logo quando chega um pedido novo, mesmo com a app fechada."}
+          </p>
+          <div className="estafeta-order-card-actions">
+            <Button
+              variant={pushSubscription.subscribed ? "outline" : "default"}
+              disabled={pushSubscription.busy}
+              onClick={() => (pushSubscription.subscribed ? pushSubscription.unsubscribe() : pushSubscription.subscribe())}
+            >
+              {pushSubscription.subscribed ? "Desativar notificações" : "Ativar notificações"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <h3 style={{ marginBottom: 12 }}>Alterar password</h3>
       <form className="estafeta-password-form" onSubmit={handleSubmit}>

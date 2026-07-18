@@ -18,6 +18,7 @@ import {
 } from "../services/estafetaService";
 import { useEstafetaLocationPing } from "../hooks/useEstafetaLocationPing";
 import { useEstafetaOrderAlert } from "../hooks/useEstafetaOrderAlert";
+import { useEstafetaPushSubscription } from "../hooks/useEstafetaPushSubscription";
 
 const TABS = [
   { id: "inicio", label: "Início", icon: "home" },
@@ -42,6 +43,7 @@ export default function EstafetaDashboard() {
 
   useEstafetaLocationPing(callerUserId, Boolean(estafeta?.online));
   useEstafetaOrderAlert(state?.pending_assignment?.id || null, true);
+  const pushSubscription = useEstafetaPushSubscription(callerUserId);
 
   const loadState = useCallback(async () => {
     if (!callerUserId) return;
@@ -207,7 +209,12 @@ export default function EstafetaDashboard() {
         <EstafetaHistoryTab history={history} loading={loadingHistory} />
       ) : null}
       {activeTab === "perfil" ? (
-        <EstafetaProfileTab estafeta={estafeta} onChangePassword={handleChangePassword} busy={busy} />
+        <EstafetaProfileTab
+          estafeta={estafeta}
+          onChangePassword={handleChangePassword}
+          busy={busy}
+          pushSubscription={pushSubscription}
+        />
       ) : null}
     </DashboardSidebarLayout>
   );

@@ -47,7 +47,7 @@ function buildEstafetaBoardEntries(estafetas, activeAtribuicoes, stores) {
         lat: Number(estafeta.ultima_localizacao_lat),
         lng: Number(estafeta.ultima_localizacao_lng),
         status,
-        coordsSource: "estafeta",
+        coordsSource: "carrier",
         orderId: assignment?.order_id || null,
         orderEstado,
         lojaId: assignment?.loja_id || null,
