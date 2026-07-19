@@ -21,6 +21,7 @@ import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayo
 import RestaurantManagementPanel from "../components/dashboard/RestaurantManagementPanel";
 import StoreSpecialHoursPanel from "../components/dashboard/StoreSpecialHoursPanel";
 import ShipdayTrackingModal from "../components/dashboard/ShipdayTrackingModal";
+import InHouseTrackingModal from "../components/dashboard/InHouseTrackingModal";
 import OrderDetailsModal from "../components/dashboard/OrderDetailsModal";
 import DatePickerCustom from "../components/ui/DatePickerCustom";
 import { fetchOrderDetails } from "../services/orderDetailsService";
@@ -208,6 +209,7 @@ export default function DashboardRestaurante() {
   const [adminStores, setAdminStores] = useState([]);
   const [adminStoreSearch, setAdminStoreSearch] = useState("");
   const [trackingModal, setTrackingModal] = useState({ open: false, url: "", title: "Tracking Shipday" });
+  const [inHouseTrackingModal, setInHouseTrackingModal] = useState({ open: false, orderId: null, title: "", isLive: false });
   const [orderDetailModal, setOrderDetailModal] = useState({ open: false, loading: false, error: "", data: null });
   const [commissionCatalogByStore, setCommissionCatalogByStore] = useState({});
   const [catalogLoadingByStore, setCatalogLoadingByStore] = useState({});
@@ -680,6 +682,14 @@ export default function DashboardRestaurante() {
     });
     return map;
   }, [state.deliveries]);
+  const dispatchEnabledStoreIds = useMemo(
+    () => new Set(
+      (storeSettingsRows || [])
+        .filter((store) => store?.dispatch_interno_ativo)
+        .map((store) => String(store.idloja)),
+    ),
+    [storeSettingsRows],
+  );
   const openOrders = useMemo(
     () => state.immediateOrders.filter((order) => !["entregue", "cancelado"].includes(resolveOrderEstadoInterno(order))).length,
     [state.immediateOrders],
@@ -734,6 +744,15 @@ export default function DashboardRestaurante() {
   const openTrackingModal = ({ url, title }) => {
     if (!url) return;
     setTrackingModal({ open: true, url, title: title || "Tracking Shipday" });
+  };
+
+  const closeInHouseTrackingModal = () => {
+    setInHouseTrackingModal({ open: false, orderId: null, title: "", isLive: false });
+  };
+
+  const openInHouseTrackingModal = ({ orderId, title, isLive }) => {
+    if (!orderId) return;
+    setInHouseTrackingModal({ open: true, orderId, title: title || "Tracking em tempo real", isLive: Boolean(isLive) });
   };
 
   const closeOrderDetailModal = () => {
@@ -1222,6 +1241,7 @@ export default function DashboardRestaurante() {
                     const trackingUrl = estadoInterno === "cancelado"
                       ? null
                       : (order.shipday_tracking_url || latestDelivery?.tracking_url || null);
+                    const isInHouseDispatch = dispatchEnabledStoreIds.has(String(order.loja_id || scopedStoreId || ""));
                     const driverText = estadoInterno === "cancelado"
                       ? "-"
                       : (order.driver_name
@@ -1245,7 +1265,22 @@ export default function DashboardRestaurante() {
                         </td>
                         <td>{driverText}</td>
                         <td>
-                          {trackingUrl ? (
+                          {isInHouseDispatch && estadoInterno !== "cancelado" ? (
+                            <button
+                              type="button"
+                              className="dashboard-link-button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openInHouseTrackingModal({
+                                  orderId: order.id,
+                                  title: `Tracking pedido #${order.id}`,
+                                  isLive: !["entregue", "cancelado"].includes(estadoInterno),
+                                });
+                              }}
+                            >
+                              Abrir
+                            </button>
+                          ) : trackingUrl ? (
                             <button
                               type="button"
                               className="dashboard-link-button"
@@ -1379,6 +1414,15 @@ export default function DashboardRestaurante() {
         title={trackingModal.title}
         url={trackingModal.url}
         onClose={closeTrackingModal}
+      />
+
+      <InHouseTrackingModal
+        isOpen={inHouseTrackingModal.open}
+        title={inHouseTrackingModal.title}
+        orderId={inHouseTrackingModal.orderId}
+        callerUserId={extractUserId(user)}
+        isLive={inHouseTrackingModal.isLive}
+        onClose={closeInHouseTrackingModal}
       />
 
       <OrderDetailsModal
