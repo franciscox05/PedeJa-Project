@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
+import DashboardPanel from "../components/dashboard/DashboardPanel";
+import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
+import DashboardLoadingState from "../components/dashboard/DashboardLoadingState";
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 import { fetchBanners, createBanner, updateBanner, deleteBanner } from "../services/adminBannersService";
 import { extractUserId } from "../utils/roles";
@@ -136,18 +140,15 @@ export default function DashboardBanners() {
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <div className="dashboard-tab-section">
-        <header className="dashboard-header enterprise-header">
-          <div>
-            <p className="kicker">Marketing</p>
-            <h1 className="dashboard-title">Banners</h1>
-            <p className="dashboard-subtitle">Cria e agenda banners promocionais para a home.</p>
-          </div>
-        </header>
+        <DashboardPageHeader
+          kicker="Marketing"
+          title="Banners"
+          subtitle="Cria e agenda banners promocionais para a home."
+        />
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
 
-        <article className="panel">
-          <h3>{editingId ? "Editar banner" : "Novo banner"}</h3>
+        <DashboardPanel title={editingId ? "Editar banner" : "Novo banner"}>
           <form onSubmit={handleSubmit} className="profile-form-grid">
             <label className="profile-field">
               <span>Titulo</span>
@@ -186,14 +187,13 @@ export default function DashboardBanners() {
               {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edicao</button>}
             </div>
           </form>
-        </article>
+        </DashboardPanel>
 
-        <article className="panel">
-          <h3>Banners existentes</h3>
+        <DashboardPanel title="Banners existentes">
           {loading ? (
-            <p className="muted">A carregar...</p>
+            <DashboardLoadingState />
           ) : banners.length === 0 ? (
-            <p className="muted">Sem banners registados.</p>
+            <DashboardEmptyState label="Sem banners para mostrar." />
           ) : (
             <div className="table-wrap">
               <table className="ops-table">
@@ -215,7 +215,7 @@ export default function DashboardBanners() {
                         <button type="button" className="btn-dashboard small" onClick={() => startEdit(banner)}>Editar</button>
                         <button
                           type="button"
-                          className="btn-dashboard small secondary"
+                          className="btn-dashboard small danger"
                           disabled={busyId === banner.id}
                           onClick={() => handleDelete(banner)}
                         >
@@ -228,7 +228,7 @@ export default function DashboardBanners() {
               </table>
             </div>
           )}
-        </article>
+        </DashboardPanel>
       </div>
     </DashboardSidebarLayout>
   );

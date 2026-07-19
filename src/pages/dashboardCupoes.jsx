@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
+import DashboardPanel from "../components/dashboard/DashboardPanel";
+import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
+import DashboardLoadingState from "../components/dashboard/DashboardLoadingState";
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 import { fetchCouponsAdmin, createCoupon, updateCoupon, deleteCoupon } from "../services/couponsService";
 import { extractUserId } from "../utils/roles";
@@ -154,18 +158,15 @@ export default function DashboardCupoes() {
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <div className="dashboard-tab-section">
-        <header className="dashboard-header enterprise-header">
-          <div>
-            <p className="kicker">Marketing</p>
-            <h1 className="dashboard-title">Cupoes</h1>
-            <p className="dashboard-subtitle">Cria codigos de desconto com limites de uso e validade.</p>
-          </div>
-        </header>
+        <DashboardPageHeader
+          kicker="Marketing"
+          title="Cupoes"
+          subtitle="Cria codigos de desconto com limites de uso e validade."
+        />
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
 
-        <article className="panel">
-          <h3>{editingId ? "Editar cupao" : "Novo cupao"}</h3>
+        <DashboardPanel title={editingId ? "Editar cupao" : "Novo cupao"}>
           <form onSubmit={handleSubmit} className="profile-form-grid">
             <label className="profile-field">
               <span>Codigo *</span>
@@ -215,14 +216,13 @@ export default function DashboardCupoes() {
               {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edicao</button>}
             </div>
           </form>
-        </article>
+        </DashboardPanel>
 
-        <article className="panel">
-          <h3>Cupoes existentes</h3>
+        <DashboardPanel title="Cupoes existentes">
           {loading ? (
-            <p className="muted">A carregar...</p>
+            <DashboardLoadingState />
           ) : coupons.length === 0 ? (
-            <p className="muted">Sem cupoes registados.</p>
+            <DashboardEmptyState label="Sem cupoes para mostrar." />
           ) : (
             <div className="table-wrap">
               <table className="ops-table">
@@ -246,7 +246,7 @@ export default function DashboardCupoes() {
                         <button type="button" className="btn-dashboard small" onClick={() => startEdit(coupon)}>Editar</button>
                         <button
                           type="button"
-                          className="btn-dashboard small secondary"
+                          className="btn-dashboard small danger"
                           disabled={busyId === coupon.id}
                           onClick={() => handleDelete(coupon)}
                         >
@@ -259,7 +259,7 @@ export default function DashboardCupoes() {
               </table>
             </div>
           )}
-        </article>
+        </DashboardPanel>
       </div>
     </DashboardSidebarLayout>
   );

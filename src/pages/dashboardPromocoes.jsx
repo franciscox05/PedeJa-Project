@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
+import DashboardPanel from "../components/dashboard/DashboardPanel";
+import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
+import DashboardLoadingState from "../components/dashboard/DashboardLoadingState";
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 import {
   fetchPromotionsAdmin,
@@ -163,21 +167,15 @@ export default function DashboardPromocoes() {
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <div className="dashboard-tab-section">
-        <header className="dashboard-header enterprise-header">
-          <div>
-            <p className="kicker">Marketing</p>
-            <h1 className="dashboard-title">Promocoes</h1>
-            <p className="dashboard-subtitle">
-              Conteudo de destaque mostrado na home e nas lojas. Nao aplica descontos automaticos aos pedidos —
-              para descontos com codigo, usa a pagina de Cupoes.
-            </p>
-          </div>
-        </header>
+        <DashboardPageHeader
+          kicker="Marketing"
+          title="Promocoes"
+          subtitle="Conteudo de destaque mostrado na home e nas lojas. Nao aplica descontos automaticos aos pedidos — para descontos com codigo, usa a pagina de Cupoes."
+        />
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
 
-        <article className="panel">
-          <h3>{editingId ? "Editar promocao" : "Nova promocao"}</h3>
+        <DashboardPanel title={editingId ? "Editar promocao" : "Nova promocao"}>
           <form onSubmit={handleSubmit} className="profile-form-grid">
             <label className="profile-field">
               <span>Titulo *</span>
@@ -229,14 +227,13 @@ export default function DashboardPromocoes() {
               {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edicao</button>}
             </div>
           </form>
-        </article>
+        </DashboardPanel>
 
-        <article className="panel">
-          <h3>Promocoes existentes</h3>
+        <DashboardPanel title="Promocoes existentes">
           {loading ? (
-            <p className="muted">A carregar...</p>
+            <DashboardLoadingState />
           ) : promotions.length === 0 ? (
-            <p className="muted">Sem promocoes registadas.</p>
+            <DashboardEmptyState label="Sem promocoes para mostrar." />
           ) : (
             <div className="table-wrap">
               <table className="ops-table">
@@ -258,7 +255,7 @@ export default function DashboardPromocoes() {
                         <button type="button" className="btn-dashboard small" onClick={() => startEdit(promotion)}>Editar</button>
                         <button
                           type="button"
-                          className="btn-dashboard small secondary"
+                          className="btn-dashboard small danger"
                           disabled={busyId === promotion.id}
                           onClick={() => handleDelete(promotion)}
                         >
@@ -271,7 +268,7 @@ export default function DashboardPromocoes() {
               </table>
             </div>
           )}
-        </article>
+        </DashboardPanel>
       </div>
     </DashboardSidebarLayout>
   );

@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
+import DashboardPanel from "../components/dashboard/DashboardPanel";
+import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
+import DashboardLoadingState from "../components/dashboard/DashboardLoadingState";
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 import { fetchCategories, createCategory, updateCategory, deleteCategory } from "../services/adminCategoriesService";
 import { extractUserId } from "../utils/roles";
@@ -116,21 +120,15 @@ export default function DashboardCategorias() {
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <div className="dashboard-tab-section">
-        <header className="dashboard-header enterprise-header">
-          <div>
-            <p className="kicker">Catalogo</p>
-            <h1 className="dashboard-title">Categorias</h1>
-            <p className="dashboard-subtitle">
-              Cria, edita e remove categorias de lojas. A atribuicao de categorias a lojas especificas continua a
-              ser feita na gestao de cada loja.
-            </p>
-          </div>
-        </header>
+        <DashboardPageHeader
+          kicker="Catalogo"
+          title="Categorias"
+          subtitle="Cria, edita e remove categorias de lojas. A atribuicao de categorias a lojas especificas continua a ser feita na gestao de cada loja."
+        />
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
 
-        <article className="panel">
-          <h3>Nova categoria</h3>
+        <DashboardPanel title="Nova categoria">
           <div className="dashboard-actions">
             <input
               type="text"
@@ -148,14 +146,13 @@ export default function DashboardCategorias() {
               {creating ? "A criar..." : "Criar categoria"}
             </button>
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="panel">
-          <h3>Categorias existentes</h3>
+        <DashboardPanel title="Categorias existentes">
           {loading ? (
-            <p className="muted">A carregar...</p>
+            <DashboardLoadingState />
           ) : categories.length === 0 ? (
-            <p className="muted">Sem categorias registadas.</p>
+            <DashboardEmptyState label="Sem categorias para mostrar." />
           ) : (
             <div className="table-wrap">
               <table className="ops-table">
@@ -205,7 +202,7 @@ export default function DashboardCategorias() {
                               </button>
                               <button
                                 type="button"
-                                className="btn-dashboard small secondary"
+                                className="btn-dashboard small danger"
                                 disabled={isBusy}
                                 onClick={() => handleDelete(category)}
                               >
@@ -221,7 +218,7 @@ export default function DashboardCategorias() {
               </table>
             </div>
           )}
-        </article>
+        </DashboardPanel>
       </div>
     </DashboardSidebarLayout>
   );
