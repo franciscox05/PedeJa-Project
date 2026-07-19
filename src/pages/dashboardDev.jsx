@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/pages/dashboard.css";
+import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
+import DashboardPanel from "../components/dashboard/DashboardPanel";
+import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
 import { fetchDevDashboard } from "../services/opsDashboardService";
 import { extractUserId } from "../utils/roles";
-import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
+import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 
 function parseSessionUser(raw) {
   try {
@@ -22,18 +25,9 @@ function statusClass(status) {
 
 export default function DashboardDev() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
-  const { clearCart } = useCart();
   const userRaw = localStorage.getItem("pedeja_user");
   const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
 
-  const handleLogout = () => {
-    logout();
-    clearCart();
-    // Reload (nao navigate client-side): sair de uma rota protegida deixa o
-    // ProtectedRoute reagir ao user=null antes do router assentar em "/".
-    window.location.href = "/";
-  };
   const [periodDays, setPeriodDays] = useState(7);
   const [state, setState] = useState({
     events: [],
@@ -43,37 +37,49 @@ export default function DashboardDev() {
     error: "",
   });
 
-  const load = async (days = periodDays) => {
+  const load = useCallback(async () => {
+    const callerUserId = extractUserId(user);
+    if (!callerUserId) return;
     setState((prev) => ({ ...prev, loading: true }));
-    const data = await fetchDevDashboard(days, extractUserId(user));
+    const data = await fetchDevDashboard(periodDays, callerUserId);
     setState({ ...data, loading: false, error: data.error || "" });
-  };
+  }, [periodDays, user]);
 
   useEffect(() => {
-    load(periodDays);
-    const timer = setInterval(() => load(periodDays), 20000);
+    /* eslint-disable react-hooks/set-state-in-effect -- load() polls an external API and
+       calls setState only after an await; identical pattern to dashboardEstafetas.jsx. */
+    load();
+    const timer = setInterval(load, 20000);
+    /* eslint-enable react-hooks/set-state-in-effect */
     return () => clearInterval(timer);
-  }, [periodDays]);
+  }, [load]);
 
   return (
-    <div className="dashboard-shell">
-      <header className="dashboard-header">
-        <div>
-          <h1 className="dashboard-title">Dashboard DevOps</h1>
-          <p className="dashboard-subtitle">Integracoes, webhooks e saude operacional</p>
-        </div>
-        <div className="dashboard-actions">
-          <select value={periodDays} onChange={(e) => setPeriodDays(Number(e.target.value))}>
-            <option value={7}>Ultimos 7 dias</option>
-            <option value={30}>Ultimos 30 dias</option>
-            <option value={90}>Ultimos 90 dias</option>
-          </select>
-          <button className="btn-dashboard" onClick={() => load(periodDays)}>Atualizar</button>
-          <button className="btn-dashboard" onClick={() => navigate("/")}>Website</button>
-          <button className="btn-dashboard secondary" onClick={() => navigate("/perfil")}>A minha conta</button>
-          <button className="btn-dashboard secondary" onClick={handleLogout}>Sair</button>
-        </div>
-      </header>
+    <DashboardSidebarLayout
+      tabs={ADMIN_DASHBOARD_TABS}
+      activeTab="dashboard"
+      onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
+      kicker="DevOps"
+      title="Dashboard DevOps"
+      subtitle="Integracoes, webhooks e saude operacional."
+      storageKey="dashboard-admin-sidebar-collapsed"
+    >
+      <DashboardPageHeader
+        kicker="DevOps"
+        title="Dashboard DevOps"
+        subtitle="Integracoes, webhooks e saude operacional."
+        actions={(
+          <>
+            <select value={periodDays} onChange={(e) => setPeriodDays(Number(e.target.value))}>
+              <option value={7}>Ultimos 7 dias</option>
+              <option value={30}>Ultimos 30 dias</option>
+              <option value={90}>Ultimos 90 dias</option>
+            </select>
+            <button className="btn-dashboard" onClick={load}>Atualizar</button>
+            <button className="btn-dashboard secondary" onClick={() => navigate("/dashboard/admin")}>Voltar ao dashboard</button>
+          </>
+        )}
+      />
 
       <section className="dashboard-grid">
         <article className="metric-card">
@@ -93,8 +99,7 @@ export default function DashboardDev() {
       {state.error && <p style={{ color: "#b91c1c", fontWeight: 700 }}>{state.error}</p>}
 
       <section className="panel-grid">
-        <article className="panel">
-          <h3>Eventos recentes</h3>
+        <DashboardPanel title="Eventos recentes">
           <div className="table-wrap">
             <table className="ops-table">
               <thead>
@@ -113,15 +118,14 @@ export default function DashboardDev() {
                   </tr>
                 ))}
                 {!state.loading && state.events.length === 0 && (
-                  <tr><td colSpan={3}>Sem eventos.</td></tr>
+                  <DashboardEmptyState as="tableRow" colSpan={3} label="Sem eventos para mostrar." />
                 )}
               </tbody>
             </table>
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="panel">
-          <h3>Monitor Shipday</h3>
+        <DashboardPanel title="Monitor Shipday">
           <div className="table-wrap">
             <table className="ops-table">
               <thead>
@@ -140,13 +144,13 @@ export default function DashboardDev() {
                   </tr>
                 ))}
                 {!state.loading && state.deliveries.length === 0 && (
-                  <tr><td colSpan={3}>Sem entregas monitorizadas.</td></tr>
+                  <DashboardEmptyState as="tableRow" colSpan={3} label="Sem entregas monitorizadas para mostrar." />
                 )}
               </tbody>
             </table>
           </div>
-        </article>
+        </DashboardPanel>
       </section>
-    </div>
+    </DashboardSidebarLayout>
   );
 }
