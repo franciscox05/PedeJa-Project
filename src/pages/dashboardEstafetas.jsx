@@ -279,7 +279,7 @@ export default function DashboardEstafetas() {
   return (
     <DashboardSidebarLayout
       tabs={ADMIN_DASHBOARD_TABS}
-      activeTab="dashboard"
+      activeTab="estafetas"
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Dispatch"
       title="Estafetas"

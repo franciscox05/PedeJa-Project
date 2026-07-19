@@ -93,6 +93,7 @@ export default function DashboardRevenue() {
           <p className="muted dashboard-sidebar-footer-meta">{periodDays} dias</p>
         </div>
       )}
+      storageKey="dashboard-admin-sidebar-collapsed"
     >
       <div className="dashboard-tab-section">
         <header className="dashboard-header enterprise-header">

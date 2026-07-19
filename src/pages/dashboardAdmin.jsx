@@ -255,7 +255,7 @@ function buildPerformanceSearchParams({ periodDays, rangeMode, customRange, gran
 
 export default function DashboardAdmin() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const userRaw = localStorage.getItem("pedeja_user");
   // Memoized on the raw string (not recomputed into a fresh object every render) so useCallback
   // deps that include `user` don't recreate on every render and re-trigger their effects in a loop.
@@ -1268,6 +1268,14 @@ export default function DashboardAdmin() {
           return;
         }
         setActiveTab(tabId);
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.set("tab", tabId);
+            return next;
+          },
+          { replace: true },
+        );
       }}
       storageKey="dashboard-admin-sidebar-collapsed"
       footer={selectedStore ? (
