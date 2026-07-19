@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
+import DashboardPanel from "../components/dashboard/DashboardPanel";
+import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
 import DatePickerCustom from "../components/ui/DatePickerCustom";
 import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
 import { fetchAdminDashboard } from "../services/opsDashboardService";
@@ -37,12 +40,6 @@ function buildWindowInput({ rangeMode, periodDays, customRange }) {
 
 function ensureArray(value) {
   return Array.isArray(value) ? value : [];
-}
-
-function safeFixed(value, digits = 2) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return Number(0).toFixed(digits);
-  return numeric.toFixed(digits);
 }
 
 function hasAssignedDriver(order) {
@@ -168,14 +165,12 @@ export default function DashboardGeoBoard() {
         </div>
       )}
     >
-      <header className="dashboard-header enterprise-header">
-        <div>
-          <p className="kicker">Live Geo Board</p>
-          <h1 className="dashboard-title">Painel Completo de Operacao</h1>
-          <p className="dashboard-subtitle">Controlo central de pedidos ativos, estafetas online e contexto de loja em tempo real.</p>
-        </div>
-
-        <div className="dashboard-actions">
+      <DashboardPageHeader
+        kicker="Live Geo Board"
+        title="Painel Completo de Operacao"
+        subtitle="Controlo central de pedidos ativos, estafetas online e contexto de loja em tempo real."
+        actions={(
+          <>
           <select
             value={rangeMode === "custom" ? "custom" : String(periodDays)}
             onChange={(event) => {
@@ -229,9 +224,10 @@ export default function DashboardGeoBoard() {
           ) : null}
 
           <button className="btn-dashboard" onClick={load}>Atualizar</button>
-          <button className="btn-dashboard secondary" onClick={() => navigate("/dashboard/admin")}>Voltar dashboard</button>
-        </div>
-      </header>
+          <button className="btn-dashboard secondary" onClick={() => navigate("/dashboard/admin")}>Voltar ao dashboard</button>
+          </>
+        )}
+      />
 
       {state.error ? <p className="shipday-inline-error">{state.error}</p> : null}
 
@@ -267,8 +263,7 @@ export default function DashboardGeoBoard() {
         />
 
         <section className="panel-grid analytics-grid">
-          <article className="panel">
-            <h3>Estafetas online</h3>
+          <DashboardPanel title="Estafetas online">
             <div className="table-wrap">
               <table className="ops-table">
                 <thead>
@@ -291,15 +286,14 @@ export default function DashboardGeoBoard() {
                     </tr>
                   ))}
                   {!state.loading && liveCarrierEntries.length === 0 ? (
-                    <tr><td colSpan={5}>Sem estafetas com coordenadas validas nesta janela.</td></tr>
+                    <DashboardEmptyState as="tableRow" colSpan={5} label="Sem estafetas com coordenadas validas para mostrar." />
                   ) : null}
                 </tbody>
               </table>
             </div>
-          </article>
+          </DashboardPanel>
 
-          <article className="panel">
-            <h3>Pedidos ativos no mapa</h3>
+          <DashboardPanel title="Pedidos ativos no mapa">
             <div className="table-wrap">
               <table className="ops-table">
                 <thead>
@@ -325,12 +319,12 @@ export default function DashboardGeoBoard() {
                     );
                   })}
                   {!state.loading && activeOrders.length === 0 ? (
-                    <tr><td colSpan={5}>Sem pedidos ativos para monitorizar.</td></tr>
+                    <DashboardEmptyState as="tableRow" colSpan={5} label="Sem pedidos ativos para mostrar." />
                   ) : null}
                 </tbody>
               </table>
             </div>
-          </article>
+          </DashboardPanel>
         </section>
       </div>
     </DashboardSidebarLayout>
