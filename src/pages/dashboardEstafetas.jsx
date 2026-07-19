@@ -4,6 +4,9 @@ import toast from "react-hot-toast";
 import "../css/pages/dashboard.css";
 import "../css/pages/estafeta.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
+import DashboardPanel from "../components/dashboard/DashboardPanel";
+import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
 import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
 import Modal from "../components/ui/modal";
 import { Button } from "../components/ui/button";
@@ -286,20 +289,20 @@ export default function DashboardEstafetas() {
       subtitle="Gestao do dispatch interno de entregas (substituto do Shipday)."
       storageKey="dashboard-admin-sidebar-collapsed"
     >
-      <header className="dashboard-header enterprise-header">
-        <div>
-          <p className="kicker">Dispatch interno</p>
-          <h1 className="dashboard-title">Estafetas &amp; Entregas</h1>
-          <p className="dashboard-subtitle">Ativa o dispatch interno por loja, gere estafetas e atribui pedidos manualmente.</p>
-        </div>
-        <div className="dashboard-actions">
-          <button className="btn-dashboard" onClick={load}>Atualizar</button>
-          <button className="btn-dashboard secondary" onClick={() => setShowCreateForm((prev) => !prev)}>
-            {showCreateForm ? "Cancelar" : "Novo estafeta"}
-          </button>
-          <button className="btn-dashboard secondary" onClick={() => navigate("/dashboard/admin")}>Voltar dashboard</button>
-        </div>
-      </header>
+      <DashboardPageHeader
+        kicker="Dispatch interno"
+        title="Estafetas & Entregas"
+        subtitle="Ativa o dispatch interno por loja, gere estafetas e atribui pedidos manualmente."
+        actions={(
+          <>
+            <button className="btn-dashboard" onClick={load}>Atualizar</button>
+            <button className="btn-dashboard secondary" onClick={() => setShowCreateForm((prev) => !prev)}>
+              {showCreateForm ? "Cancelar" : "Novo estafeta"}
+            </button>
+            <button className="btn-dashboard secondary" onClick={() => navigate("/dashboard/admin")}>Voltar ao dashboard</button>
+          </>
+        )}
+      />
 
       {error ? <p className="shipday-inline-error">{error}</p> : null}
 
@@ -360,8 +363,7 @@ export default function DashboardEstafetas() {
       <LiveOperationsBoard mode="admin" orders={activeOrdersForBoard} carriers={liveBoardEntries} stores={stores} />
 
       <section className="panel-grid analytics-grid">
-        <article className="panel">
-          <h3>Lojas — dispatch interno</h3>
+        <DashboardPanel title="Lojas — dispatch interno">
           <div className="table-wrap">
             <table className="ops-table">
               <thead>
@@ -390,10 +392,9 @@ export default function DashboardEstafetas() {
               </tbody>
             </table>
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="panel">
-          <h3>Pedidos por atribuir</h3>
+        <DashboardPanel title="Pedidos por atribuir">
           <div className="table-wrap">
             <table className="ops-table">
               <thead>
@@ -428,17 +429,16 @@ export default function DashboardEstafetas() {
                   </tr>
                 ))}
                 {!loading && unassignedOrders.length === 0 ? (
-                  <tr><td colSpan={5}>Sem pedidos por atribuir.</td></tr>
+                  <DashboardEmptyState as="tableRow" colSpan={5} label="Sem pedidos por atribuir para mostrar." />
                 ) : null}
               </tbody>
             </table>
           </div>
-        </article>
+        </DashboardPanel>
       </section>
 
       <section className="panel-grid analytics-grid">
-        <article className="panel">
-          <h3>Entregas em curso</h3>
+        <DashboardPanel title="Entregas em curso">
           <div className="table-wrap">
             <table className="ops-table">
               <thead>
@@ -478,15 +478,14 @@ export default function DashboardEstafetas() {
                   );
                 })}
                 {!loading && activeAtribuicoes.length === 0 ? (
-                  <tr><td colSpan={6}>Sem entregas em curso.</td></tr>
+                  <DashboardEmptyState as="tableRow" colSpan={6} label="Sem entregas em curso para mostrar." />
                 ) : null}
               </tbody>
             </table>
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="panel">
-          <h3>Estafetas</h3>
+        <DashboardPanel title="Estafetas">
           <div className="table-wrap">
             <table className="ops-table">
               <thead>
@@ -515,12 +514,12 @@ export default function DashboardEstafetas() {
                   </tr>
                 ))}
                 {!loading && estafetas.length === 0 ? (
-                  <tr><td colSpan={5}>Sem estafetas registados.</td></tr>
+                  <DashboardEmptyState as="tableRow" colSpan={5} label="Sem estafetas para mostrar." />
                 ) : null}
               </tbody>
             </table>
           </div>
-        </article>
+        </DashboardPanel>
       </section>
 
       <Modal

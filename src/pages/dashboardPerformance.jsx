@@ -13,6 +13,9 @@ import {
   YAxis,
 } from "recharts";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
+import DashboardPanel from "../components/dashboard/DashboardPanel";
+import DashboardLoadingState from "../components/dashboard/DashboardLoadingState";
 import DatePickerCustom from "../components/ui/DatePickerCustom";
 import "../css/pages/dashboard.css";
 import { fetchAdminPerformanceData } from "../services/adminPerformanceService";
@@ -177,16 +180,12 @@ export default function DashboardPerformance() {
       )}
       storageKey="dashboard-admin-sidebar-collapsed"
     >
-      <header className="dashboard-header enterprise-header">
-        <div>
-          <p className="kicker">Performance</p>
-          <h1 className="dashboard-title">Dashboard de Performance</h1>
-          <p className="dashboard-subtitle">
-            Faturacao, taxas de entrega, top produtos e tempo medio entre atribuicao e entrega final.
-          </p>
-        </div>
-
-        <div className="dashboard-actions">
+      <DashboardPageHeader
+        kicker="Performance"
+        title="Dashboard de Performance"
+        subtitle="Faturacao, taxas de entrega, top produtos e tempo medio entre atribuicao e entrega final."
+        actions={(
+          <>
           <select
             value={rangeMode === "custom" ? "custom" : String(periodDays)}
             onChange={(event) => {
@@ -250,15 +249,16 @@ export default function DashboardPerformance() {
           </select>
           <button className="btn-dashboard" onClick={() => load({ periodDays, granularity, rangeMode, customRange })}>Atualizar</button>
           <button className="btn-dashboard secondary" onClick={() => navigate("/dashboard/admin")}>Voltar ao dashboard</button>
-        </div>
-      </header>
+          </>
+        )}
+      />
 
       {state.error ? <p className="shipday-inline-error">{state.error}</p> : null}
 
       {state.loading ? (
-        <article className="panel">
-          <p className="muted">A carregar metricas de performance...</p>
-        </article>
+        <DashboardPanel title="Performance">
+          <DashboardLoadingState label="A carregar metricas de performance..." />
+        </DashboardPanel>
       ) : state.data ? (
         <div className="dashboard-stack">
           <section className="dashboard-grid premium-grid">
@@ -285,13 +285,11 @@ export default function DashboardPerformance() {
           </section>
 
           <section className="panel-grid analytics-grid">
-            <article className="panel chart-panel">
-              <div className="panel-header-inline">
-                <div>
-                  <h3>Faturacao vs. taxas de entrega</h3>
-                  <p className="muted">Comparacao por {granularity === "week" ? "semana" : "dia"}.</p>
-                </div>
-              </div>
+            <DashboardPanel
+              className="chart-panel"
+              title="Faturacao vs. taxas de entrega"
+              description={`Comparacao por ${granularity === "week" ? "semana" : "dia"}.`}
+            >
               <div className="chart-shell">
                 <ResponsiveContainer width="100%" height={320}>
                   <LineChart data={revenueSeries}>
@@ -305,15 +303,13 @@ export default function DashboardPerformance() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </article>
+            </DashboardPanel>
 
-            <article className="panel chart-panel">
-              <div className="panel-header-inline">
-                <div>
-                  <h3>Top 5 produtos</h3>
-                  <p className="muted">Mais vendidos por quantidade. Lider atual: {bestProductLabel}.</p>
-                </div>
-              </div>
+            <DashboardPanel
+              className="chart-panel"
+              title="Top 5 produtos"
+              description={`Mais vendidos por quantidade. Lider atual: ${bestProductLabel}.`}
+            >
               <div className="chart-shell">
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={topProducts} layout="vertical" margin={{ left: 20, right: 10 }}>
@@ -326,16 +322,14 @@ export default function DashboardPerformance() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </article>
+            </DashboardPanel>
           </section>
 
-          <article className="panel chart-panel">
-            <div className="panel-header-inline">
-              <div>
-                <h3>Tempo medio entre atribuicao e entrega</h3>
-                <p className="muted">Serie media por {granularity === "week" ? "semana" : "dia"} com base nas entregas concluidas.</p>
-              </div>
-            </div>
+          <DashboardPanel
+            className="chart-panel"
+            title="Tempo medio entre atribuicao e entrega"
+            description={`Serie media por ${granularity === "week" ? "semana" : "dia"} com base nas entregas concluidas.`}
+          >
             <div className="chart-shell">
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={deliveryPerformanceSeries}>
@@ -348,7 +342,7 @@ export default function DashboardPerformance() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </article>
+          </DashboardPanel>
         </div>
       ) : null}
     </DashboardSidebarLayout>
