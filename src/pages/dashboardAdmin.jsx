@@ -955,6 +955,16 @@ export default function DashboardAdmin() {
     }
   };
 
+  const handleCancelOrderFromModal = async (order) => {
+    await handleAdminOrderAction(order, "cancelado");
+    closeOrderDetailModal();
+  };
+
+  const handleAssignCarrierFromModal = (order) => {
+    closeOrderDetailModal();
+    openCarrierModal(order);
+  };
+
   return (
     <DashboardSidebarLayout
       kicker="PedeJa Control Center"
@@ -1599,6 +1609,9 @@ export default function DashboardAdmin() {
       {activeTab === "restaurants" ? (
         <div className="dashboard-stack">
           <nav className="restaurants-jump-nav" aria-label="Saltar para seccao">
+            <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToSection("restaurant-picker-panel")}>
+              Loja em foco
+            </button>
             <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToSection("restaurant-commission-panel")}>
               Comissao
             </button>
@@ -1611,9 +1624,15 @@ export default function DashboardAdmin() {
             <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToSection("restaurant-approvals-panel")}>
               Aprovacoes
             </button>
+            <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToSection("restaurant-performance-panel")}>
+              Performance
+            </button>
+            <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToSection("restaurant-association-panel")}>
+              Associar Utilizador
+            </button>
           </nav>
 
-          <section className="panel store-access-panel">
+          <section id="restaurant-picker-panel" className="panel store-access-panel">
             <div className="store-access-header">
               <div>
                 <h3>Loja em foco</h3>
@@ -1707,8 +1726,8 @@ export default function DashboardAdmin() {
             />
           </section>
 
-          <section className="panel-grid analytics-grid">
-            <DashboardPanel title="Top lojas (performance)">
+          <section id="restaurant-performance-panel">
+            <DashboardPanel title="Top lojas (performance)" description="Ranking de lojas por volume e receita nesta janela.">
               <div className="table-wrap">
                 <table className="ops-table">
                   <thead>
@@ -1746,7 +1765,9 @@ export default function DashboardAdmin() {
                 </table>
               </div>
             </DashboardPanel>
+          </section>
 
+          <section id="restaurant-association-panel">
             <AdminRestaurantAssociation stores={state.stores} onLinked={() => load()} />
           </section>
 
@@ -1857,6 +1878,9 @@ export default function DashboardAdmin() {
         error={orderDetailModal.error}
         data={orderDetailModal.data}
         onClose={closeOrderDetailModal}
+        onAssignCarrier={handleAssignCarrierFromModal}
+        onCancelOrder={handleCancelOrderFromModal}
+        isUpdating={updatingOrderId === String(orderDetailModal.data?.order?.id || "")}
       />
 
       {carrierModal.open ? (

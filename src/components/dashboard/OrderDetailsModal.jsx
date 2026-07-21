@@ -18,6 +18,9 @@ export default function OrderDetailsModal({
   error = "",
   data = null,
   onClose,
+  onAssignCarrier,
+  onCancelOrder,
+  isUpdating = false,
 }) {
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -48,6 +51,10 @@ export default function OrderDetailsModal({
     ? `${order.customer_address_label} · ${order.customer_address || "-"}`
     : (order?.customer_address || "-");
 
+  const estadoInterno = order?.estado_interno || "";
+  const canCancelOrder = Boolean(order) && !["entregue", "cancelado"].includes(estadoInterno);
+  const canAssignCarrier = Boolean(order) && estadoInterno === "aceite" && !driver?.name;
+
   return createPortal(
     <div className="shipday-modal-backdrop" onClick={onClose}>
       <div className="shipday-modal-card order-details-modal" onClick={(event) => event.stopPropagation()}>
@@ -57,9 +64,30 @@ export default function OrderDetailsModal({
             <h3>{order ? `Detalhes do pedido #${order.id}` : "Detalhes do pedido"}</h3>
             <p className="muted">Consulta rapida de itens, observacoes, morada e contacto do cliente.</p>
           </div>
-          <button type="button" className="btn-dashboard small secondary" onClick={onClose}>
-            Fechar
-          </button>
+          <div className="order-details-modal-actions">
+            {canAssignCarrier && onAssignCarrier ? (
+              <button
+                type="button"
+                className="btn-dashboard small"
+                onClick={() => onAssignCarrier(order)}
+              >
+                Atribuir Estafeta
+              </button>
+            ) : null}
+            {canCancelOrder && onCancelOrder ? (
+              <button
+                type="button"
+                className="btn-dashboard small danger"
+                disabled={isUpdating}
+                onClick={() => onCancelOrder(order)}
+              >
+                {isUpdating ? "..." : "Cancelar Pedido"}
+              </button>
+            ) : null}
+            <button type="button" className="btn-dashboard small secondary" onClick={onClose}>
+              Fechar
+            </button>
+          </div>
         </div>
 
         {loading ? <p className="muted">A carregar detalhes do pedido...</p> : null}

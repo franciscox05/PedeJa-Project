@@ -138,6 +138,10 @@ export default function RestaurantManagementPanel({
   const [feedback, setFeedback] = useState({ tone: "", message: "" });
   const commissionUiEnabled = Boolean(isAdmin && showCommissions && showCommissionSettings);
   const operationalUiEnabled = Boolean(showOperationalSettings);
+
+  const scrollToStoreSection = (rowKey, section) => {
+    document.getElementById(`restaurant-store-${rowKey}-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const allTabs = [
     { id: "global", label: "Global" },
     { id: "category", label: "Por Categoria" },
@@ -350,9 +354,10 @@ export default function RestaurantManagementPanel({
       ) : null}
 
       {isAdmin && typeof onToggleGlobalAutoAssign === "function" ? (
-        <section className="restaurant-settings-card">
+        <section className="restaurant-settings-card restaurant-settings-card--global">
           <div className="restaurant-settings-card-top">
             <div>
+              <p className="kicker">Configuracao da plataforma · afeta todas as lojas</p>
               <h4>Atribuicao automatica geral</h4>
               <p className="muted">
                 Quando ligada, todas as lojas passam a atribuir estafeta automaticamente.
@@ -475,8 +480,28 @@ export default function RestaurantManagementPanel({
                 </div>
               </div>
 
+              {operationalUiEnabled || commissionUiEnabled ? (
+                <nav className="restaurant-card-jump-nav" aria-label={`Saltar para seccao da loja ${store.nome || store.idloja}`}>
+                  {operationalUiEnabled ? (
+                    <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToStoreSection(rowKey, "operacional")}>
+                      Operacional
+                    </button>
+                  ) : null}
+                  {isAdmin && operationalUiEnabled && typeof onSaveAutoAssignConfig === "function" ? (
+                    <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToStoreSection(rowKey, "auto-assign")}>
+                      Auto-atribuicao
+                    </button>
+                  ) : null}
+                  {commissionUiEnabled ? (
+                    <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToStoreSection(rowKey, "comissao")}>
+                      Comissao
+                    </button>
+                  ) : null}
+                </nav>
+              ) : null}
+
               {operationalUiEnabled ? (
-                <div className="restaurant-settings-controls">
+                <div id={`restaurant-store-${rowKey}-operacional`} className="restaurant-settings-controls">
                   <div className="restaurant-setting-field">
                     <span className="restaurant-setting-label">Aceitacao automatica</span>
                     <label className={`dashboard-switch${!canEdit ? " is-disabled" : ""}`}>
@@ -562,7 +587,7 @@ export default function RestaurantManagementPanel({
               )}
 
               {isAdmin && operationalUiEnabled && typeof onSaveAutoAssignConfig === "function" ? (
-                <div className="commission-editor-card">
+                <div id={`restaurant-store-${rowKey}-auto-assign`} className="commission-editor-card">
                   <div className="commission-editor-header">
                     <h5>Criterios por loja</h5>
                     <p className="muted">
@@ -615,7 +640,7 @@ export default function RestaurantManagementPanel({
 
               {commissionUiEnabled ? (
                 <Fragment>
-                  <div className="commission-mode-tabs" role="tablist" aria-label={`Modo de comissao da loja ${store.nome || store.idloja}`}>
+                  <div id={`restaurant-store-${rowKey}-comissao`} className="commission-mode-tabs" role="tablist" aria-label={`Modo de comissao da loja ${store.nome || store.idloja}`}>
                     {availableTabs.map((mode) => (
                       <button
                         key={mode.id}
