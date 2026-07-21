@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase, buildSupabaseFunctionHeaders, getSupabaseFunctionUrl } from "./supabaseClient";
 import {
   buildMenuOptionGroupFromLibraryRecord,
   mergeMenuOptionConfigurations,
@@ -56,8 +56,28 @@ function normalizeDependencyOptionIds(values = []) {
   )];
 }
 
-function sanitizeFileName(name = "image") {
-  return name.replace(/[^a-zA-Z0-9._-]/g, "-");
+async function requestSignedImageUpload({ bucket, filename, contentType, callerUserId, lojaId }) {
+  const headers = await buildSupabaseFunctionHeaders();
+
+  const response = await fetch(getSupabaseFunctionUrl("request-image-upload"), {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      bucket,
+      filename,
+      content_type: contentType,
+      caller_user_id: callerUserId,
+      loja_id: lojaId,
+    }),
+  });
+
+  const parsed = await response.json().catch(() => null);
+
+  if (!response.ok || !parsed?.ok) {
+    throw new Error(parsed?.error || "Falha ao preparar o upload da imagem.");
+  }
+
+  return parsed;
 }
 
 function toTrimmedText(value) {
@@ -996,17 +1016,18 @@ export async function deleteMenuOptionLibraryGroup(lojaId, groupId, callerUserId
   if (error) ensureLibraryTablesAvailable(error);
 }
 
-export async function uploadMenuImage(file, lojaId) {
+export async function uploadMenuImage(file, lojaId, callerUserId) {
   if (!file) return null;
 
-  const safeName = sanitizeFileName(file.name);
-  const path = `${lojaId}/${Date.now()}-${safeName}`;
-
-  const { error } = await supabase.storage.from("menu-images").upload(path, file, {
+  const { path, token } = await requestSignedImageUpload({
+    bucket: "menu-images",
+    filename: file.name,
     contentType: file.type,
-    upsert: true,
+    callerUserId,
+    lojaId,
   });
 
+  const { error } = await supabase.storage.from("menu-images").uploadToSignedUrl(path, token, file);
   if (error) throw error;
 
   const { data } = supabase.storage.from("menu-images").getPublicUrl(path);

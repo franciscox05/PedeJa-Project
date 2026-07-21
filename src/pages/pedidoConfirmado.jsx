@@ -6,7 +6,6 @@ import Login from "../components/LoginButton";
 import CartWidget from "../components/CartWidget";
 import Voltar from "../components/Voltar";
 import MenuGlobal from "../components/MenuGlobal";
-import EmbeddedTrackingCard from "../components/order/EmbeddedTrackingCard";
 import InHouseTrackingMap from "../components/order/InHouseTrackingMap";
 import DeliveryRatingCard from "../components/order/DeliveryRatingCard";
 import { groupSelectedMenuOptionsForDisplay } from "../services/menuOptionsService";
@@ -116,7 +115,6 @@ export default function PedidoConfirmado() {
   const [cancelTick, setCancelTick] = useState(() => Date.now());
 
   const allowGuestState = Boolean(location.state?.allow_guest_access);
-  const fallbackTrackingUrl = location.state?.tracking_url || null;
   const fromCheckout = Boolean(location.state?.from_checkout);
 
   useEffect(() => {
@@ -149,7 +147,6 @@ export default function PedidoConfirmado() {
       const data = await fetchOrderDetails(orderId, {
         user,
         allowGuestState,
-        fallbackTrackingUrl,
       });
       setDetails(data);
       setError("");
@@ -160,7 +157,7 @@ export default function PedidoConfirmado() {
       if (!silent) setLoading(false);
       if (silent) setRefreshing(false);
     }
-  }, [allowGuestState, fallbackTrackingUrl, orderId, user]);
+  }, [allowGuestState, orderId, user]);
 
   useEffect(() => {
     loadOrder({ silent: false });
@@ -229,18 +226,14 @@ export default function PedidoConfirmado() {
     setCancelling(true);
 
     try {
-      const result = await updateOrderWorkflowStatus(
+      await updateOrderWorkflowStatus(
         details.order.id,
         "cancelado",
         details.order.loja_id ?? null,
-        { syncShipday: true, callerUserId: extractUserId(user) },
+        { callerUserId: extractUserId(user) },
       );
 
-      if (result?.shipdaySync && !result.shipdaySync.ok && !result.shipdaySync.skipped) {
-        toast.error("Pedido cancelado no PedeJa, mas a sincronizacao com o Shipday falhou.");
-      } else {
-        toast.success("Pedido cancelado com sucesso.");
-      }
+      toast.success("Pedido cancelado com sucesso.");
 
       await loadOrder({ silent: false });
     } catch (cancelError) {
@@ -312,12 +305,6 @@ export default function PedidoConfirmado() {
                   Estado pedido: {details.order.status_label}
                 </span>
 
-                {details.latest_delivery ? (
-                  <span className={`pedido-status-pill ${toneClass(details.latest_delivery.status_tone)}`}>
-                    Entrega: {details.latest_delivery.status_label}
-                  </span>
-                ) : null}
-
                 {details.is_live ? <span className="pedido-live-dot">Em curso</span> : <span className="pedido-live-dot done">Finalizado</span>}
               </div>
 
@@ -377,9 +364,6 @@ export default function PedidoConfirmado() {
                 <article className="pedido-panel">
                   <h3>Entrega e tracking</h3>
                   <div className="pedido-delivery-meta">
-                    {details.shipday_delivery_id ? (
-                      <p><strong>ID de entrega (Shipday):</strong> {details.shipday_delivery_id}</p>
-                    ) : null}
                     <p>
                       <strong>Previsao:</strong>
                       {" "}
@@ -397,21 +381,8 @@ export default function PedidoConfirmado() {
                     orderId={details.order?.id}
                     callerUserId={extractUserId(user)}
                     isLive={details.is_live}
-                    fallback={
-                      details.tracking_url ? (
-                        <EmbeddedTrackingCard
-                          url={details.tracking_url}
-                          title={`Tracking pedido #${orderId}`}
-                        />
-                      ) : (
-                        <p className="pedido-muted">Tracking ainda nao disponibilizado.</p>
-                      )
-                    }
+                    fallback={<p className="pedido-muted">Tracking ainda nao disponibilizado.</p>}
                   />
-
-                  {details.shipday_error ? (
-                    <p className="pedido-error-inline">Erro Shipday: {details.shipday_error}</p>
-                  ) : null}
                 </article>
               </section>
 

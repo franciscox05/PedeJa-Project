@@ -35,31 +35,6 @@ export const LEGACY_TO_ESTADO_INTERNO = {
   REJECTED: "cancelado",
 };
 
-export const SHIPDAY_TO_ESTADO_INTERNO = {
-  ACCEPTED: "estafeta_aceitou",
-  ASSIGNED: "estafeta_aceitou",
-  ACTIVE: "estafeta_aceitou",
-  STARTED: "iniciado",
-  DISPATCHED: "a_caminho",
-  OUT_FOR_DELIVERY: "a_caminho",
-  ALREADY_DELIVERING: "a_caminho",
-  REJECTED: "aceite",
-  NOT_ACCEPTED: "aceite",
-  UNASSIGNED: "aceite",
-  DELETED: "aceite",
-  READY: "pronto_recolha",
-  READY_FOR_PICKUP: "pronto_recolha",
-  PICKED_UP: "recolhido",
-  READY_TO_DELIVER: "a_caminho",
-  ON_THE_WAY: "a_caminho",
-  DELIVERED: "entregue",
-  SUCCESSFUL: "entregue",
-  COMPLETED: "entregue",
-  ALREADY_DELIVERED: "entregue",
-  FAILED: "cancelado",
-  CANCELLED: "cancelado",
-};
-
 export const ESTADO_INTERNO_TO_LEGACY_STATUS = {
   pendente: "PENDING",
   aceite: "CONFIRMED",
@@ -73,21 +48,6 @@ export const ESTADO_INTERNO_TO_LEGACY_STATUS = {
   a_caminho: "OUT_FOR_DELIVERY",
   entregue: "DELIVERED",
   cancelado: "CANCELLED",
-};
-
-export const ESTADO_INTERNO_TO_SHIPDAY = {
-  pendente: null,
-  aceite: null,
-  atribuindo_estafeta: null,
-  estafeta_aceitou: null,
-  em_preparacao: "ASSIGNED",
-  pronto_recolha: "READY_FOR_PICKUP",
-  iniciado: "STARTED",
-  recolhido: "PICKED_UP",
-  pronto_entregar: "READY_TO_DELIVER",
-  a_caminho: "ON_THE_WAY",
-  entregue: "DELIVERED",
-  cancelado: "FAILED",
 };
 
 export const ESTADO_INTERNO_LABEL_PT = {
@@ -105,7 +65,7 @@ export const ESTADO_INTERNO_LABEL_PT = {
   cancelado: "Cancelado",
 };
 
-export function normalizeShipdayState(value) {
+export function normalizeStatusToken(value) {
   return String(value || "")
     .trim()
     .toUpperCase()
@@ -117,25 +77,14 @@ export function normalizeEstadoInterno(value) {
   return ESTADO_INTERNO_SEQUENCE.includes(normalized) ? normalized : null;
 }
 
-export function mapShipdayToEstadoInterno(shipdayState) {
-  const key = normalizeShipdayState(shipdayState);
-  return SHIPDAY_TO_ESTADO_INTERNO[key] || null;
-}
-
 export function mapLegacyStatusToEstadoInterno(legacyStatus) {
-  const key = normalizeShipdayState(legacyStatus);
+  const key = normalizeStatusToken(legacyStatus);
   return LEGACY_TO_ESTADO_INTERNO[key] || null;
 }
 
 export function mapEstadoInternoToLegacyStatus(estadoInterno) {
   const key = normalizeEstadoInterno(estadoInterno);
   return key ? ESTADO_INTERNO_TO_LEGACY_STATUS[key] || null : null;
-}
-
-export function mapEstadoInternoToShipdayState(estadoInterno) {
-  const key = normalizeEstadoInterno(estadoInterno);
-  if (!key) return null;
-  return ESTADO_INTERNO_TO_SHIPDAY[key] || null;
 }
 
 export function resolveOrderEstadoInterno(order) {
@@ -197,29 +146,4 @@ export function getRestaurantActionsForEstado(estadoInterno) {
   }
 
   return [];
-}
-
-export function resolveNextEstadoInterno(currentEstadoInterno, shipdayState) {
-  const current = normalizeEstadoInterno(currentEstadoInterno);
-  const normalizedShipdayState = normalizeShipdayState(shipdayState);
-
-  if (current === "atribuindo_estafeta") {
-    if (["ASSIGNED", "ACTIVE", "ACCEPTED"].includes(normalizedShipdayState)) {
-      return "estafeta_aceitou";
-    }
-
-    if (normalizedShipdayState === "STARTED") {
-      return "iniciado";
-    }
-
-    if (["REJECTED", "DELETED"].includes(normalizedShipdayState)) {
-      return "aceite";
-    }
-
-    return "atribuindo_estafeta";
-  }
-
-  const mapped = mapShipdayToEstadoInterno(normalizedShipdayState);
-  if (!mapped) return current || "pendente";
-  return mapped;
 }

@@ -2,8 +2,6 @@ import { supabase } from "./supabaseClient";
 import { extractRestaurantId, extractUserId, resolveUserRole } from "../utils/roles";
 import { getEstadoInternoLabelPt, getEstadoInternoTone, resolveOrderEstadoInterno } from "./orderStatusMapper";
 
-export interface ShipdayPayload extends Record<string, unknown> {}
-
 export interface DriverInfo {
   name: string | null;
   phone: string | null;
@@ -29,8 +27,6 @@ export interface OrderDetailsOrder {
   estado_interno: string;
   status_label: string;
   status_tone: string;
-  shipday_order_id?: string | null;
-  shipday_tracking_url?: string | null;
   previsao_entrega?: string | null;
   veiculo_estafeta?: string | null;
   driver_name?: string | null;
@@ -68,9 +64,6 @@ export interface OrderDetailsResult {
     morada: string | null;
     icon: string | null;
   };
-  deliveries: Array<Record<string, unknown>>;
-  latest_delivery: Record<string, unknown> | null;
-  events: Array<Record<string, unknown>>;
   timeline: Array<Record<string, unknown>>;
   workflow: {
     estado_interno: string;
@@ -85,9 +78,6 @@ export interface OrderDetailsResult {
       is_pending: boolean;
     }>;
   };
-  tracking_url: string | null;
-  shipday_delivery_id: string | null;
-  shipday_error: string | null;
   driver: DriverInfo;
   estimated_delivery: string | null;
   payment_method_label: string | null;
@@ -95,7 +85,6 @@ export interface OrderDetailsResult {
 }
 
 const TERMINAL_ESTADO_INTERNO = new Set<string>(["entregue", "cancelado"]);
-const TERMINAL_DELIVERY_STATUS = new Set<string>(["DELIVERED", "FAILED", "CANCELLED"]);
 
 const WORKFLOW_STEPS = [
   "pendente",
@@ -198,32 +187,6 @@ function buildWorkflowProgress(estadoInterno: string | null | undefined) {
     })),
   };
 }
-function byLatest(a: Record<string, unknown>, b: Record<string, unknown>) {
-  const aDate = new Date(a?.updated_at || a?.created_at || 0).getTime();
-  const bDate = new Date(b?.updated_at || b?.created_at || 0).getTime();
-  return bDate - aDate;
-}
-
-function parsePayload(value: unknown): ShipdayPayload | null {
-  if (!value) return null;
-  if (typeof value === "object") return value;
-  if (typeof value !== "string") return null;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
-
-function getByPath(obj: ShipdayPayload | null, path: string[] = []) {
-  let current: unknown = obj;
-  for (const segment of path) {
-    if (!current || typeof current !== "object") return null;
-    current = (current as Record<string, unknown>)[segment];
-  }
-  return current;
-}
-
 function parseSelectedOptions(value: unknown) {
   if (Array.isArray(value)) return value;
   if (typeof value !== "string") return [];
@@ -233,32 +196,6 @@ function parseSelectedOptions(value: unknown) {
   } catch {
     return [];
   }
-}
-
-function pickFirstFromPaths(payloads: Array<ShipdayPayload | null>, paths: string[][]) {
-  for (const payload of payloads) {
-    for (const path of paths) {
-      const value = toText(getByPath(payload, path));
-      if (value) return value;
-    }
-  }
-  return null;
-}
-
-function uniqueNonEmptyParts(parts: Array<unknown> = []) {
-  const seen = new Set();
-  const result = [];
-
-  parts.forEach((part) => {
-    const normalized = toText(part);
-    if (!normalized) return;
-    const key = normalized.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    result.push(normalized);
-  });
-
-  return result;
 }
 
 function normalizeVehicleSegment(value: unknown) {
@@ -274,346 +211,27 @@ function normalizeVehicleSegment(value: unknown) {
     .trim();
 }
 
-function _buildVehicleSummary(...parts: unknown[]) {
-  const normalizedParts = uniqueNonEmptyParts(parts.map((part) => normalizeVehicleSegment(part)));
-  return normalizedParts.length ? normalizedParts.join(" • ") : null;
-}
-
-function normalizeVehiclePlate(value: unknown) {
-  const text = toText(value);
-  if (!text) return null;
-  return text.replace(/\s+/g, "").toUpperCase();
-}
-
-function isVehiclePlateLike(value: unknown) {
-  const text = normalizeVehiclePlate(value);
-  if (!text) return false;
-  return /^[A-Z0-9]{2}-?[A-Z0-9]{2}-?[A-Z0-9]{2}$/.test(text);
-}
-
-function composeVehicleSummary({ description, type, make, model, plate }: {
-  description?: unknown;
-  type?: unknown;
-  make?: unknown;
-  model?: unknown;
-  plate?: unknown;
-} = {}) {
-  const normalizedDescription = normalizeVehicleSegment(description);
-  const normalizedType = normalizeVehicleSegment(type);
-  const normalizedMake = normalizeVehicleSegment(make);
-  const normalizedModel = normalizeVehicleSegment(model);
-  const normalizedPlate = normalizeVehiclePlate(plate);
-
-  const baseParts = uniqueNonEmptyParts([normalizedType, normalizedMake, normalizedModel]);
-  const baseSummary = baseParts.join(" ").trim();
-  const descriptionLooksLikePlate = isVehiclePlateLike(normalizedDescription);
-  const descriptionWithoutPlate = normalizedDescription
-    && !descriptionLooksLikePlate
-    && normalizeVehiclePlate(normalizedDescription) !== normalizedPlate
-    ? normalizedDescription
-    : null;
-
-  if (baseSummary && normalizedPlate) return `${baseSummary} (${normalizedPlate})`;
-  if (baseSummary) return baseSummary;
-
-  if (descriptionWithoutPlate && normalizedPlate) {
-    return descriptionWithoutPlate.includes(normalizedPlate)
-      ? descriptionWithoutPlate
-      : `${descriptionWithoutPlate} (${normalizedPlate})`;
-  }
-
-  if (descriptionWithoutPlate) return descriptionWithoutPlate;
-  if (normalizedPlate) return normalizedPlate;
-  return normalizedDescription || null;
-}
-
-function scoreVehicleSummary(value: unknown) {
-  const text = normalizeVehicleSegment(value);
-  if (!text) return -1;
-
-  let score = text.length;
-  if (/\([A-Z0-9-]+\)/.test(text)) score += 40;
-  if (/\b(Mota|Bicicleta|Carro)\b/i.test(text)) score += 25;
-  if (text.split(/\s+/).length >= 2) score += 20;
-  if (isVehiclePlateLike(text)) score -= 30;
-
-  return score;
-}
-
-function formatVehicleDisplayValue(value: unknown) {
-  const text = normalizeVehicleSegment(value);
-  if (!text) return null;
-
-  if (isVehiclePlateLike(text)) {
-    const plate = normalizeVehiclePlate(text);
-    return plate ? `(Matricula: ${plate})` : null;
-  }
-
-  return text;
-}
-
-function pickBestVehicleSummary(...values: Array<unknown>) {
-  let best = null;
-  let bestScore = Number.NEGATIVE_INFINITY;
-
-  values.forEach((value) => {
-    const text = normalizeVehicleSegment(value);
-    if (!text) return;
-    let score = scoreVehicleSummary(text);
-    if (isVehiclePlateLike(text)) {
-      score = Math.max(score, 1);
-    }
-    if (score > bestScore) {
-      best = text;
-      bestScore = score;
-    }
-  });
-
-  return formatVehicleDisplayValue(best);
-}
-
-function resolveDriverInfo(payloads: Array<ShipdayPayload | null>): DriverInfo {
-  const name = pickFirstFromPaths(payloads, [
-    ["driverName"],
-    ["driver", "name"],
-    ["driver", "fullName"],
-    ["driver_info", "name"],
-    ["assignedDriverName"],
-    ["assignedDriver", "name"],
-    ["assignedCarrier", "name"],
-    ["assignedCarrier", "fullName"],
-    ["courierName"],
-    ["riderName"],
-  ]);
-
-  const phone = pickFirstFromPaths(payloads, [
-    ["driverPhoneNumber"],
-    ["driver", "phone"],
-    ["driver", "phoneNumber"],
-    ["driver_info", "phone"],
-    ["assignedDriverPhoneNumber"],
-    ["assignedDriver", "phone"],
-    ["assignedCarrier", "phone"],
-    ["assignedCarrier", "phoneNumber"],
-    ["courierPhone"],
-    ["riderPhone"],
-  ]);
-
-  const vehicleDescription = pickFirstFromPaths(payloads, [
-    ["carrier", "vehicle_description"],
-    ["carrier", "vehicleDescription"],
-    ["carrier", "vehicle"],
-    ["carrier", "vehicleType"],
-    ["carrier", "vehicle_type"],
-    ["delivery_details", "vehicle_description"],
-    ["delivery_details", "vehicleDescription"],
-    ["delivery_details", "vehicle"],
-    ["delivery_details", "carrier", "vehicle_description"],
-    ["delivery_details", "carrier", "vehicleDescription"],
-    ["delivery_details", "carrier", "vehicle"],
-    ["deliveryDetails", "vehicle_description"],
-    ["deliveryDetails", "vehicleDescription"],
-    ["deliveryDetails", "vehicle"],
-    ["deliveryDetails", "carrier", "vehicle_description"],
-    ["deliveryDetails", "carrier", "vehicleDescription"],
-    ["deliveryDetails", "carrier", "vehicle"],
-    ["driverVehicle"],
-    ["driver", "vehicle"],
-    ["driver", "vehicle_description"],
-    ["driver", "vehicleDescription"],
-    ["driver", "vehicleType"],
-    ["driver", "vehicle_type"],
-    ["driverVehicleNumber"],
-    ["vehicleNumber"],
-    ["vehicleType"],
-    ["assignedDriver", "vehicle_description"],
-    ["assignedDriver", "vehicleDescription"],
-    ["assignedDriver", "vehicle"],
-    ["assignedCarrier", "vehicle_description"],
-    ["assignedCarrier", "vehicleDescription"],
-    ["assignedCarrier", "vehicle"],
-  ]);
-  const vehicleType = pickFirstFromPaths(payloads, [
-    ["carrier", "vehicle_type"],
-    ["carrier", "vehicleType"],
-    ["carrier", "type"],
-    ["delivery_details", "vehicle_type"],
-    ["delivery_details", "vehicleType"],
-    ["delivery_details", "type"],
-    ["delivery_details", "carrier", "vehicle_type"],
-    ["delivery_details", "carrier", "vehicleType"],
-    ["delivery_details", "carrier", "type"],
-    ["deliveryDetails", "vehicle_type"],
-    ["deliveryDetails", "vehicleType"],
-    ["deliveryDetails", "type"],
-    ["deliveryDetails", "carrier", "vehicle_type"],
-    ["deliveryDetails", "carrier", "vehicleType"],
-    ["deliveryDetails", "carrier", "type"],
-    ["driver", "vehicle_type"],
-    ["driver", "vehicleType"],
-    ["driver", "type"],
-    ["assignedDriver", "vehicle_type"],
-    ["assignedDriver", "vehicleType"],
-    ["assignedDriver", "type"],
-    ["assignedCarrier", "vehicle_type"],
-    ["assignedCarrier", "vehicleType"],
-    ["assignedCarrier", "type"],
-  ]);
-  const vehicleMake = pickFirstFromPaths(payloads, [
-    ["carrier", "vehicle_make"],
-    ["carrier", "vehicleMake"],
-    ["carrier", "make"],
-    ["delivery_details", "vehicle_make"],
-    ["delivery_details", "vehicleMake"],
-    ["delivery_details", "make"],
-    ["delivery_details", "carrier", "vehicle_make"],
-    ["delivery_details", "carrier", "vehicleMake"],
-    ["delivery_details", "carrier", "make"],
-    ["deliveryDetails", "vehicle_make"],
-    ["deliveryDetails", "vehicleMake"],
-    ["deliveryDetails", "make"],
-    ["deliveryDetails", "carrier", "vehicle_make"],
-    ["deliveryDetails", "carrier", "vehicleMake"],
-    ["deliveryDetails", "carrier", "make"],
-    ["driver", "vehicle_make"],
-    ["driver", "vehicleMake"],
-    ["driver", "make"],
-    ["assignedDriver", "vehicle_make"],
-    ["assignedDriver", "vehicleMake"],
-    ["assignedDriver", "make"],
-    ["assignedCarrier", "vehicle_make"],
-    ["assignedCarrier", "vehicleMake"],
-    ["assignedCarrier", "make"],
-  ]);
-  const vehicleModel = pickFirstFromPaths(payloads, [
-    ["carrier", "vehicle_model"],
-    ["carrier", "vehicleModel"],
-    ["carrier", "model"],
-    ["delivery_details", "vehicle_model"],
-    ["delivery_details", "vehicleModel"],
-    ["delivery_details", "model"],
-    ["delivery_details", "carrier", "vehicle_model"],
-    ["delivery_details", "carrier", "vehicleModel"],
-    ["delivery_details", "carrier", "model"],
-    ["deliveryDetails", "vehicle_model"],
-    ["deliveryDetails", "vehicleModel"],
-    ["deliveryDetails", "model"],
-    ["deliveryDetails", "carrier", "vehicle_model"],
-    ["deliveryDetails", "carrier", "vehicleModel"],
-    ["deliveryDetails", "carrier", "model"],
-    ["driver", "vehicle_model"],
-    ["driver", "vehicleModel"],
-    ["driver", "model"],
-    ["assignedDriver", "vehicle_model"],
-    ["assignedDriver", "vehicleModel"],
-    ["assignedDriver", "model"],
-    ["assignedCarrier", "vehicle_model"],
-    ["assignedCarrier", "vehicleModel"],
-    ["assignedCarrier", "model"],
-  ]);
-  const vehiclePlate = pickFirstFromPaths(payloads, [
-    ["carrier", "license_plate"],
-    ["carrier", "licensePlate"],
-    ["carrier", "plate_number"],
-    ["carrier", "plateNumber"],
-    ["carrier", "plate"],
-    ["carrier", "registration"],
-    ["delivery_details", "license_plate"],
-    ["delivery_details", "licensePlate"],
-    ["delivery_details", "plate_number"],
-    ["delivery_details", "plateNumber"],
-    ["delivery_details", "plate"],
-    ["delivery_details", "registration"],
-    ["delivery_details", "carrier", "license_plate"],
-    ["delivery_details", "carrier", "licensePlate"],
-    ["delivery_details", "carrier", "plate_number"],
-    ["delivery_details", "carrier", "plateNumber"],
-    ["delivery_details", "carrier", "plate"],
-    ["delivery_details", "carrier", "registration"],
-    ["deliveryDetails", "license_plate"],
-    ["deliveryDetails", "licensePlate"],
-    ["deliveryDetails", "plate_number"],
-    ["deliveryDetails", "plateNumber"],
-    ["deliveryDetails", "plate"],
-    ["deliveryDetails", "registration"],
-    ["deliveryDetails", "carrier", "license_plate"],
-    ["deliveryDetails", "carrier", "licensePlate"],
-    ["deliveryDetails", "carrier", "plate_number"],
-    ["deliveryDetails", "carrier", "plateNumber"],
-    ["deliveryDetails", "carrier", "plate"],
-    ["deliveryDetails", "carrier", "registration"],
-    ["driver", "license_plate"],
-    ["driver", "licensePlate"],
-    ["driver", "plate_number"],
-    ["driver", "plateNumber"],
-    ["driver", "plate"],
-    ["driver", "registration"],
-    ["assignedDriver", "license_plate"],
-    ["assignedDriver", "licensePlate"],
-    ["assignedDriver", "plate_number"],
-    ["assignedDriver", "plateNumber"],
-    ["assignedDriver", "plate"],
-    ["assignedDriver", "registration"],
-    ["assignedCarrier", "license_plate"],
-    ["assignedCarrier", "licensePlate"],
-    ["assignedCarrier", "plate_number"],
-    ["assignedCarrier", "plateNumber"],
-    ["assignedCarrier", "plate"],
-    ["assignedCarrier", "registration"],
-  ]);
-  const vehicle = composeVehicleSummary({
-    description: vehicleDescription,
-    type: vehicleType,
-    make: vehicleMake,
-    model: vehicleModel,
-    plate: vehiclePlate,
-  });
-
+function resolveDriverInfo(order: Record<string, unknown>): DriverInfo {
   return {
-    name,
-    phone,
-    vehicle,
+    name: toText(order?.driver_name),
+    phone: toText(order?.driver_phone),
+    vehicle: normalizeVehicleSegment(order?.veiculo_estafeta),
   };
 }
 
-function resolveTrackingUrl(
-  deliveries: Array<Record<string, unknown>> = [],
-  payloads: Array<ShipdayPayload | null> = [],
-  fallbackTrackingUrl: string | null = null,
-) {
-  const direct = deliveries.find((item) => toText(item?.tracking_url))?.tracking_url;
-  if (toText(direct)) return direct;
+function resolvePaymentMethod(order: Record<string, unknown>) {
+  const value = String(
+    toText(order?.payment_label) || toText(order?.payment_method) || "",
+  )
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
 
-  const fromPayload = pickFirstFromPaths(payloads, [
-    ["trackingUrl"],
-    ["tracking_url"],
-    ["trackingURL"],
-    ["trackingLink"],
-    ["publicTrackingLink"],
-    ["tracking", "url"],
-    ["tracking", "trackingUrl"],
-  ]);
-
-  return fromPayload || toText(fallbackTrackingUrl) || null;
-}
-
-function resolveEstimatedDelivery(payloads: Array<ShipdayPayload | null> = []) {
-  const date = pickFirstFromPaths(payloads, [
-    ["expectedDeliveryDate"],
-    ["deliveryDate"],
-    ["etaDate"],
-  ]);
-  const time = pickFirstFromPaths(payloads, [
-    ["eta"],
-    ["expected_delivery_time"],
-    ["expectedDeliveryTime"],
-    ["expectedDeliveryTime"],
-    ["deliveryTime"],
-    ["etaTime"],
-  ]);
-
-  if (date && time) return `${date} ${time}`;
-  return date || time || null;
+  if (!value) return null;
+  if (value === "CASH" || value === "DINHEIRO") return "Dinheiro";
+  if (value === "MBWAY") return "MB WAY";
+  if (value === "CREDIT_CARD") return "Cartao";
+  return value;
 }
 
 function formatEstimatedDelivery(value: unknown) {
@@ -636,30 +254,6 @@ function formatEstimatedDelivery(value: unknown) {
     minute: "2-digit",
     hour12: false,
   }).format(new Date(parsed))}`;
-}
-
-function resolvePaymentMethod(order: Record<string, unknown>, payloads: Array<ShipdayPayload | null> = []) {
-  const direct = toText(order?.payment_label)
-    || toText(order?.paymentLabel)
-    || toText(order?.payment_method)
-    || toText(order?.paymentMethod);
-  const fromPayload = pickFirstFromPaths(payloads, [
-    ["paymentLabel"],
-    ["payment_label"],
-    ["paymentMethod"],
-    ["payment_method"],
-    ["payment", "method"],
-  ]);
-  const value = String(direct || fromPayload || "")
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, "_");
-
-  if (!value) return null;
-  if (value === "CASH" || value === "DINHEIRO") return "Dinheiro";
-  if (value === "MBWAY") return "MB WAY";
-  if (value === "CREDIT_CARD") return "Cartao";
-  return value;
 }
 
 function canUserAccessOrder(
@@ -694,12 +288,8 @@ function canUserAccessOrder(
 
 function buildTimeline({
   order,
-  deliveries = [],
-  events = [],
 }: {
   order: Record<string, unknown>;
-  deliveries?: Array<Record<string, unknown>>;
-  events?: Array<Record<string, unknown>>;
 }) {
   const timeline: Array<Record<string, unknown>> = [];
   const dedupe = new Set<string>();
@@ -817,26 +407,6 @@ function buildTimeline({
     });
   }
 
-  deliveries.forEach((delivery) => {
-    pushUnique({
-      type: "DELIVERY_STATUS",
-      label: `Entrega: ${statusLabelPt(delivery.status)}`,
-      status: normalizeStatus(delivery.status),
-      created_at: delivery.updated_at || delivery.created_at,
-      payload: parsePayload(delivery.provider_payload),
-    });
-  });
-
-  events.forEach((event) => {
-    pushUnique({
-      type: "SHIPDAY_EVENT",
-      label: `Shipday: ${statusLabelPt(event.event_type)}`,
-      status: normalizeStatus(event.event_type),
-      created_at: event.created_at,
-      payload: parsePayload(event.payload),
-    });
-  });
-
   return timeline.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 }
 
@@ -844,51 +414,14 @@ async function fetchOrderRecordWithCompatibility(normalizedOrderId: number) {
   return supabase.rpc("get_order_by_id", { order_id_input: normalizedOrderId });
 }
 
-async function fetchDeliveryEvents(deliveryIds: Array<number | string> = []) {
-  if (!deliveryIds.length) return [];
-
-  const baseSelect = "id, delivery_id, event_type, event_id, created_at";
-
-  const withRawPayload = await supabase
-    .from("delivery_events")
-    .select(`${baseSelect}, raw_payload`)
-    .in("delivery_id", deliveryIds)
-    .order("created_at", { ascending: false });
-
-  if (!withRawPayload.error) {
-    return (withRawPayload.data || []).map((event) => ({
-      ...event,
-      payload: event.raw_payload || null,
-    }));
-  }
-
-  const withPayloadJson = await supabase
-    .from("delivery_events")
-    .select(`${baseSelect}, payload_json`)
-    .in("delivery_id", deliveryIds)
-    .order("created_at", { ascending: false });
-
-  if (!withPayloadJson.error) {
-    return (withPayloadJson.data || []).map((event) => ({
-      ...event,
-      payload: event.payload_json || null,
-    }));
-  }
-
-  console.error("Erro ao buscar eventos da entrega:", withRawPayload.error || withPayloadJson.error);
-  return [];
-}
-
 export async function fetchOrderDetails(
   orderId: number | string,
   {
     user = null,
     allowGuestState = false,
-    fallbackTrackingUrl = null,
   }: {
     user?: Record<string, unknown> | null;
     allowGuestState?: boolean;
-    fallbackTrackingUrl?: string | null;
   } = {},
 ): Promise<OrderDetailsResult> {
   const normalizedOrderId = Number(orderId);
@@ -905,58 +438,26 @@ export async function fetchOrderDetails(
     throw new Error("Sem permissao para ver este pedido.");
   }
 
-  const [itemsRes, lojaRes, deliveriesRes] = await Promise.all([
+  const [itemsRes, lojaRes] = await Promise.all([
     supabase.rpc("get_order_items_by_order_id", { order_id_input: normalizedOrderId }),
     supabase
       .from("lojas")
       .select("idloja, nome, contacto, morada_completa, icon")
       .eq("idloja", Number(order.loja_id))
       .maybeSingle(),
-    supabase.rpc("get_deliveries_by_order_id", { order_id_input: normalizedOrderId }),
   ]);
 
   if (itemsRes.error) throw itemsRes.error;
   const itemsData = itemsRes.data || [];
   if (lojaRes.error) throw lojaRes.error;
-  if (deliveriesRes.error) throw deliveriesRes.error;
 
-  const deliveries = (deliveriesRes.data || []).sort(byLatest);
-  const latestDelivery = deliveries[0] || null;
-
-  const deliveryIds = deliveries.map((item) => item.id).filter(Boolean);
-  const events = await fetchDeliveryEvents(deliveryIds);
-
-  const payloads = [
-    ...deliveries.map((item) => parsePayload(item.provider_payload)).filter(Boolean),
-    ...events.map((event) => parsePayload(event.payload)).filter(Boolean),
-  ];
-
-  const trackingUrl = resolveTrackingUrl(
-    deliveries,
-    payloads,
-    toText(order.shipday_tracking_url) || fallbackTrackingUrl,
-  );
-  const payloadDriver = resolveDriverInfo(payloads);
-  const driver = {
-    name: toText(order.driver_name) || payloadDriver.name,
-    phone: toText(order.driver_phone) || payloadDriver.phone,
-    vehicle: pickBestVehicleSummary(payloadDriver.vehicle, toText(order.veiculo_estafeta)),
-  };
-  const estimatedDelivery = formatEstimatedDelivery(toText(order.previsao_entrega) || resolveEstimatedDelivery(payloads));
-  const paymentMethodLabel = resolvePaymentMethod(order, payloads);
+  const driver = resolveDriverInfo(order);
+  const estimatedDelivery = formatEstimatedDelivery(toText(order.previsao_entrega));
+  const paymentMethodLabel = resolvePaymentMethod(order);
 
   const orderStatus = normalizeStatus(order.status);
   const orderEstadoInterno = resolveOrderEstadoInterno(order);
   const orderEstadoTone = mapEstadoToneToUi(getEstadoInternoTone(orderEstadoInterno));
-  const deliveryStatus = normalizeStatus(latestDelivery?.status || "");
-  const forcedDelivered = orderEstadoInterno === "entregue";
-  const forcedCanceled = orderEstadoInterno === "cancelado";
-  const deliveryStatusLabel = forcedDelivered
-    ? "Concluida"
-    : (forcedCanceled ? "Cancelada" : statusLabelPt(deliveryStatus));
-  const deliveryStatusTone = forcedDelivered
-    ? "success"
-    : (forcedCanceled ? "danger" : statusTone(deliveryStatus));
 
   return {
     order: {
@@ -999,26 +500,12 @@ export async function fetchOrderDetails(
         morada: null,
         icon: null,
       },
-    deliveries,
-    latest_delivery: latestDelivery
-      ? {
-        ...latestDelivery,
-        status: deliveryStatus,
-        status_label: deliveryStatusLabel,
-        status_tone: deliveryStatusTone,
-      }
-      : null,
-    events,
-    timeline: buildTimeline({ order, deliveries, events }),
+    timeline: buildTimeline({ order }),
     workflow: buildWorkflowProgress(orderEstadoInterno),
-    tracking_url: trackingUrl,
-    shipday_delivery_id: toText(latestDelivery?.external_delivery_id)
-      || pickFirstFromPaths(payloads, [["deliveryId"], ["orderId"]]),
-    shipday_error: toText(latestDelivery?.shipday_error),
     driver,
     estimated_delivery: estimatedDelivery,
     payment_method_label: paymentMethodLabel,
-    is_live: !TERMINAL_ESTADO_INTERNO.has(orderEstadoInterno) && (!deliveryStatus || !TERMINAL_DELIVERY_STATUS.has(deliveryStatus)),
+    is_live: !TERMINAL_ESTADO_INTERNO.has(orderEstadoInterno),
   };
 }
 

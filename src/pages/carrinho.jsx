@@ -783,8 +783,6 @@ export default function Carrinho() {
       setCouponInput("");
       navigate(`/pedido/${resultado.order_id}`, {
         state: {
-          tracking_url: resultado.tracking_url || null,
-          shipday_delivery_id: resultado.shipday_delivery_id || null,
           from_checkout: true,
           allow_guest_access: !userId,
         },

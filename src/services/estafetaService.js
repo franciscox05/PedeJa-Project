@@ -216,3 +216,58 @@ export async function fetchOrderTrackingInfo(callerUserId, orderId) {
   });
   return unwrap(response, "fetchOrderTrackingInfo");
 }
+
+// ---------------------------------------------------------------------------
+// Helpers partilhados para os boards ao vivo (LiveOperationsBoard) do dispatch
+// interno -- usados por dashboardEstafetas, dashboardAdmin, dashboardGeoBoard
+// e dashboardRestaurante.
+// ---------------------------------------------------------------------------
+
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+export function buildActiveOrdersForBoard(activeAtribuicoes) {
+  return ensureArray(activeAtribuicoes).map((assignment) => ({
+    id: assignment.order_id,
+    loja_id: assignment.loja_id,
+    estado_interno: assignment.estado_interno,
+    customer_nome: assignment.customer_nome,
+    customer_lat: assignment.customer_lat,
+    customer_lng: assignment.customer_lng,
+  }));
+}
+
+export function buildEstafetaBoardEntries(estafetas, activeAtribuicoes, stores) {
+  const storesById = new Map(ensureArray(stores).map((store) => [String(store?.idloja || ""), store]));
+  const assignmentByEstafetaId = new Map(
+    ensureArray(activeAtribuicoes).map((assignment) => [String(assignment.estafeta_id), assignment]),
+  );
+
+  return ensureArray(estafetas)
+    .filter((estafeta) => Number.isFinite(Number(estafeta.ultima_localizacao_lat)) && Number.isFinite(Number(estafeta.ultima_localizacao_lng)))
+    .map((estafeta) => {
+      const assignment = assignmentByEstafetaId.get(String(estafeta.id));
+      const orderEstado = assignment?.estado_interno || null;
+      const status = orderEstado
+        ? (["recolhido", "a_caminho", "entregue"].includes(orderEstado) ? "delivery" : "pickup")
+        : "available";
+
+      return {
+        id: String(estafeta.id),
+        name: estafeta.nome,
+        phone: estafeta.telefone,
+        lat: Number(estafeta.ultima_localizacao_lat),
+        lng: Number(estafeta.ultima_localizacao_lng),
+        status,
+        coordsSource: "carrier",
+        orderId: assignment?.order_id || null,
+        orderEstado,
+        lojaId: assignment?.loja_id || null,
+        lojaNome: assignment?.loja_id
+          ? (storesById.get(String(assignment.loja_id))?.nome || `Loja ${assignment.loja_id}`)
+          : null,
+        raw: estafeta,
+      };
+    });
+}

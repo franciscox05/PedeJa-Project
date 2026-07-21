@@ -3,7 +3,6 @@ import { extractUserId } from "../utils/roles";
 import {
   getEstadoInternoLabelPt,
   getEstadoInternoTone,
-  mapLegacyStatusToEstadoInterno,
   resolveOrderEstadoInterno,
 } from "./orderStatusMapper";
 
@@ -19,35 +18,6 @@ const EMPTY_SUMMARY = {
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function normalizeStatus(rawStatus) {
-  const status = String(rawStatus || "PENDING").toUpperCase();
-
-  if (status.includes("CANCEL") || status.includes("REJECT") || status.includes("FAILED")) {
-    return { label: "Cancelado", tone: "danger", group: "CANCELED", raw: status };
-  }
-
-  if (
-    status.includes("DELIVER")
-    || status.includes("COMPLETE")
-    || status.includes("DONE")
-    || status.includes("SUCCESS")
-  ) {
-    return { label: "Concluido", tone: "success", group: "COMPLETED", raw: status };
-  }
-
-  return { label: "Em curso", tone: "warning", group: "OPEN", raw: status };
-}
-
-function isCanceledDeliveryStatus(status) {
-  const key = String(status || "").toUpperCase();
-  return key.includes("CANCEL") || key.includes("REJECT") || key.includes("FAILED");
-}
-
-function isDeliveredDeliveryStatus(status) {
-  const key = String(status || "").toUpperCase();
-  return key.includes("DELIVER") || key.includes("COMPLETE") || key.includes("DONE") || key.includes("SUCCESS");
 }
 
 function mapEstadoToneToUi(tone) {
@@ -88,58 +58,17 @@ function uniqueOrderRows(rows = []) {
   return Array.from(map.values()).sort(byNewest);
 }
 
-function pickLatestDeliveries(deliveryRows = []) {
-  const map = new Map();
-  deliveryRows.forEach((row) => {
-    const key = String(row.order_id || "");
-    if (!key) return;
-
-    const existing = map.get(key);
-    if (!existing) {
-      map.set(key, row);
-      return;
-    }
-
-    const existingDate = new Date(existing.updated_at || existing.created_at || 0).getTime();
-    const nextDate = new Date(row.updated_at || row.created_at || 0).getTime();
-
-    if (nextDate >= existingDate) {
-      map.set(key, row);
-    }
-  });
-
-  return map;
-}
-
-function normalizeOrderRow(order, lojaNameMap, latestDeliveryMap) {
-  const resolvedEstadoInterno = resolveOrderEstadoInterno(order);
-  const delivery = latestDeliveryMap.get(String(order?.id || ""));
-  const deliveryRawStatus = String(delivery?.status || "").toUpperCase();
-  const deliveryEstadoInterno = mapLegacyStatusToEstadoInterno(deliveryRawStatus);
-
-  const isCanceled = resolvedEstadoInterno === "cancelado"
-    || deliveryEstadoInterno === "cancelado"
-    || isCanceledDeliveryStatus(deliveryRawStatus);
-  const isDelivered = !isCanceled && (
-    resolvedEstadoInterno === "entregue"
-    || deliveryEstadoInterno === "entregue"
-    || isDeliveredDeliveryStatus(deliveryRawStatus)
-  );
-
-  const estadoInterno = isCanceled ? "cancelado" : (isDelivered ? "entregue" : resolvedEstadoInterno);
+function normalizeOrderRow(order, lojaNameMap) {
+  const estadoInterno = resolveOrderEstadoInterno(order);
   const estadoTone = getEstadoInternoTone(estadoInterno);
+  const isCanceled = estadoInterno === "cancelado";
+  const isDelivered = estadoInterno === "entregue";
   const statusInfo = {
     raw: String(order?.status || "").toUpperCase(),
     label: getEstadoInternoLabelPt(estadoInterno),
     tone: mapEstadoToneToUi(estadoTone),
     group: isDelivered ? "COMPLETED" : (isCanceled ? "CANCELED" : "OPEN"),
   };
-  const fallbackDeliveryStatusInfo = normalizeStatus(delivery?.status);
-  const deliveryStatusInfo = statusInfo.group === "COMPLETED"
-    ? { raw: "DELIVERED", label: "Concluida", tone: "success", group: "COMPLETED" }
-    : (statusInfo.group === "CANCELED"
-      ? { raw: "CANCELLED", label: "Cancelada", tone: "danger", group: "CANCELED" }
-      : fallbackDeliveryStatusInfo);
 
   return {
     id: order.id,
@@ -157,11 +86,6 @@ function normalizeOrderRow(order, lojaNameMap, latestDeliveryMap) {
     status_label: statusInfo.label,
     status_tone: statusInfo.tone,
     status_group: statusInfo.group,
-    delivery_status_raw: delivery ? deliveryStatusInfo.raw : null,
-    delivery_status_label: delivery ? deliveryStatusInfo.label : null,
-    delivery_status_tone: delivery ? deliveryStatusInfo.tone : null,
-    tracking_url: delivery?.tracking_url || null,
-    shipday_error: delivery?.shipday_error || null,
   };
 }
 
@@ -194,33 +118,21 @@ export async function fetchProfileOrders(user, { limit = 100 } = {}) {
     return { summary: EMPTY_SUMMARY, orders: [] };
   }
 
-  const orderIds = orderRows.map((order) => order.id).filter((id) => id !== null && id !== undefined);
   const lojaIds = [...new Set(orderRows.map((order) => order.loja_id).filter(Boolean))];
 
-  const [lojasResponse, deliveriesResponse] = await Promise.all([
-    lojaIds.length
-      ? supabase.from("lojas").select("idloja, nome").in("idloja", lojaIds)
-      : Promise.resolve({ data: [], error: null }),
-    orderIds.length
-      ? supabase.rpc("list_deliveries_for_orders", { caller_user_id: callerUserId, order_ids: orderIds })
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  const lojasResponse = lojaIds.length
+    ? await supabase.from("lojas").select("idloja, nome").in("idloja", lojaIds)
+    : { data: [], error: null };
 
   if (lojasResponse?.error) {
     console.error("Erro ao buscar nomes das lojas:", lojasResponse.error);
-  }
-
-  if (deliveriesResponse?.error) {
-    console.error("Erro ao buscar estado de entrega:", deliveriesResponse.error);
   }
 
   const lojaNameMap = new Map(
     (lojasResponse?.data || []).map((loja) => [String(loja.idloja), loja.nome || `Loja ${loja.idloja}`]),
   );
 
-  const latestDeliveryMap = pickLatestDeliveries(deliveriesResponse?.data || []);
-
-  const orders = orderRows.map((order) => normalizeOrderRow(order, lojaNameMap, latestDeliveryMap));
+  const orders = orderRows.map((order) => normalizeOrderRow(order, lojaNameMap));
   const summary = buildSummary(orders);
 
   return { summary, orders };

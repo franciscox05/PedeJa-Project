@@ -508,7 +508,7 @@ export default function MenuManager() {
     setError("");
     try {
       let imageUrl = form.imagem;
-      if (imageFile) imageUrl = await uploadMenuImage(imageFile, scopedLoja);
+      if (imageFile) imageUrl = await uploadMenuImage(imageFile, scopedLoja, extractUserId(user));
 
       const resolvedTipoId = await resolveFormCategoryToTipoId(form.idtipomenu);
       const payload = {

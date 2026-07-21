@@ -19,12 +19,14 @@ import {
   adminCreateEstafeta,
   adminSetEstafetaAtivo,
   assignDeliveryToEstafeta,
+  buildActiveOrdersForBoard,
+  buildEstafetaBoardEntries,
   forceDeliverAssignment,
   listActiveAtribuicoes,
   listEstafetasForDispatch,
   reassignDeliveryToEstafeta,
 } from "../services/estafetaService";
-import { fetchAdminDashboard, updateRestaurantAdminSettings } from "../services/opsDashboardService";
+import { fetchAdminDashboard } from "../services/opsDashboardService";
 
 const POLL_INTERVAL_MS = 20000;
 
@@ -38,51 +40,6 @@ function formatMinutesSince(value) {
   if (!Number.isFinite(minutes) || minutes < 0) return null;
   if (minutes < 1) return "agora mesmo";
   return `há ${minutes} min`;
-}
-
-function buildActiveOrdersForBoard(activeAtribuicoes) {
-  return ensureArray(activeAtribuicoes).map((assignment) => ({
-    id: assignment.order_id,
-    loja_id: assignment.loja_id,
-    estado_interno: assignment.estado_interno,
-    customer_nome: assignment.customer_nome,
-    customer_lat: assignment.customer_lat,
-    customer_lng: assignment.customer_lng,
-  }));
-}
-
-function buildEstafetaBoardEntries(estafetas, activeAtribuicoes, stores) {
-  const storesById = new Map(ensureArray(stores).map((store) => [String(store?.idloja || ""), store]));
-  const assignmentByEstafetaId = new Map(
-    ensureArray(activeAtribuicoes).map((assignment) => [String(assignment.estafeta_id), assignment]),
-  );
-
-  return ensureArray(estafetas)
-    .filter((estafeta) => Number.isFinite(Number(estafeta.ultima_localizacao_lat)) && Number.isFinite(Number(estafeta.ultima_localizacao_lng)))
-    .map((estafeta) => {
-      const assignment = assignmentByEstafetaId.get(String(estafeta.id));
-      const orderEstado = assignment?.estado_interno || null;
-      const status = orderEstado
-        ? (["recolhido", "a_caminho", "entregue"].includes(orderEstado) ? "delivery" : "pickup")
-        : "available";
-
-      return {
-        id: String(estafeta.id),
-        name: estafeta.nome,
-        phone: estafeta.telefone,
-        lat: Number(estafeta.ultima_localizacao_lat),
-        lng: Number(estafeta.ultima_localizacao_lng),
-        status,
-        coordsSource: "carrier",
-        orderId: assignment?.order_id || null,
-        orderEstado,
-        lojaId: assignment?.loja_id || null,
-        lojaNome: assignment?.loja_id
-          ? (storesById.get(String(assignment.loja_id))?.nome || `Loja ${assignment.loja_id}`)
-          : null,
-        raw: estafeta,
-      };
-    });
 }
 
 export default function DashboardEstafetas() {
@@ -175,22 +132,6 @@ export default function DashboardEstafetas() {
     () => buildActiveOrdersForBoard(activeAtribuicoes),
     [activeAtribuicoes],
   );
-
-  const handleToggleDispatch = async (loja) => {
-    const key = `dispatch-${loja.idloja}`;
-    setBusyKey(key);
-    try {
-      await updateRestaurantAdminSettings(loja.idloja, { dispatch_interno_ativo: !loja.dispatch_interno_ativo }, callerUserId);
-      toast.success(!loja.dispatch_interno_ativo
-        ? `Dispatch interno ligado para ${loja.nome}.`
-        : `Dispatch interno desligado para ${loja.nome}.`);
-      await load();
-    } catch (toggleError) {
-      toast.error(toggleError?.message || "Nao foi possivel atualizar a loja.");
-    } finally {
-      setBusyKey("");
-    }
-  };
 
   const handleAssign = async (orderId) => {
     const estafetaId = assignSelection[orderId];
@@ -286,7 +227,7 @@ export default function DashboardEstafetas() {
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Dispatch"
       title="Estafetas"
-      subtitle="Gestao do dispatch interno de entregas (substituto do Shipday)."
+      subtitle="Gestao do dispatch interno de entregas."
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <DashboardPageHeader
@@ -363,37 +304,6 @@ export default function DashboardEstafetas() {
       <LiveOperationsBoard mode="admin" orders={activeOrdersForBoard} carriers={liveBoardEntries} stores={stores} />
 
       <section className="panel-grid analytics-grid">
-        <DashboardPanel title="Lojas — dispatch interno">
-          <div className="table-wrap">
-            <table className="ops-table">
-              <thead>
-                <tr><th>Loja</th><th>Estado</th><th></th></tr>
-              </thead>
-              <tbody>
-                {stores.map((loja) => (
-                  <tr key={`loja-${loja.idloja}`}>
-                    <td>{loja.nome}</td>
-                    <td>
-                      <span className={loja.dispatch_interno_ativo ? "tag ok" : "tag warn"}>
-                        {loja.dispatch_interno_ativo ? "Interno" : "Shipday"}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className="btn-dashboard secondary"
-                        disabled={busyKey === `dispatch-${loja.idloja}`}
-                        onClick={() => handleToggleDispatch(loja)}
-                      >
-                        {loja.dispatch_interno_ativo ? "Desligar" : "Ligar"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </DashboardPanel>
-
         <DashboardPanel title="Pedidos por atribuir">
           <div className="table-wrap">
             <table className="ops-table">

@@ -115,7 +115,17 @@ export default function DashboardSidebarLayout({
                   </span>
                   {!collapsed ? (
                     <span className="dashboard-sidebar-tab-text">
-                      <span className="dashboard-sidebar-tab-label">{tab.label}</span>
+                      <span className="dashboard-sidebar-tab-label-row">
+                        <span className="dashboard-sidebar-tab-label">
+                          {tab.label}
+                          {tab.route ? (
+                            <span className="dashboard-sidebar-tab-route-indicator" aria-hidden="true" title="Abre noutra pagina">↗</span>
+                          ) : null}
+                        </span>
+                        {typeof tab.badge === "number" && tab.badge > 0 ? (
+                          <span className="dashboard-sidebar-tab-badge">{tab.badge}</span>
+                        ) : null}
+                      </span>
                       {tab.description ? (
                         <span className="dashboard-sidebar-tab-description">{tab.description}</span>
                       ) : null}

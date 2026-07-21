@@ -19,7 +19,7 @@ A plataforma adapta a sua interface e permissões consoante o papel do utilizado
 ## ✨ Funcionalidades Chave
 
 * **Gestão de Moradas Avançada:** Perfis com *labels* (Casa/Trabalho/Outro), autocompletar e seleção automática no carrinho.
-* **Checkout & Logística:** Despacho automático de pedidos via integração com **Shipday**.
+* **Checkout & Logística:** Despacho automático de pedidos com estafetas próprios (in-house).
 * **Onboarding de Parceiros:** Sistema de registo com pedido de perfil de Restaurante (sujeito a aprovação do Admin).
 * **Operação em Tempo Real:** Atualizações dinâmicas na fila operacional e alertas de SLA para evitar atrasos.
 
@@ -27,7 +27,7 @@ A plataforma adapta a sua interface e permissões consoante o papel do utilizado
 
 * **Frontend:** React + Vite
 * **Backend & Base de Dados:** Supabase (Database + Edge Functions)
-* **Logística:** Integração com a API do Shipday Drive
+* **Logística:** Dispatch interno de estafetas próprios (sem dependências externas)
 
 ---
 
@@ -35,7 +35,7 @@ A plataforma adapta a sua interface e permissões consoante o papel do utilizado
 
 ### Pré-requisitos
 * Node.js instalado
-* Conta Supabase e Shipday configuradas (para as variáveis de ambiente)
+* Conta Supabase configurada (para as variáveis de ambiente)
 
 ### 1. Instalação
 ```bash

@@ -175,28 +175,7 @@ export default function ProfilePedidos() {
                   >
                     Ver detalhes
                   </button>
-                  {order.delivery_status_label ? (
-                    <span className={`profile-status-pill thin ${statusClassName(order.delivery_status_tone)}`}>
-                      Entrega: {order.delivery_status_label}
-                    </span>
-                  ) : null}
-
-                  {order.tracking_url ? (
-                    <a
-                      href={order.tracking_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="profile-order-link"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Ver tracking
-                    </a>
-                  ) : null}
                 </div>
-
-                {order.shipday_error ? (
-                  <p className="profile-order-error">Erro entrega: {order.shipday_error}</p>
-                ) : null}
               </article>
             ))}
           </div>

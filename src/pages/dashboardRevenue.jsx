@@ -104,7 +104,7 @@ export default function DashboardRevenue() {
         <DashboardPageHeader
           kicker="Receita"
           title="Origem da receita"
-          subtitle="Visao geral por tipo de loja, loja individual, comissao estimada e dados recebidos do Shipday."
+          subtitle="Visao geral por tipo de loja, loja individual e comissao estimada."
           actions={(
             <>
               <select value={periodDays} onChange={(event) => setSearchParams({ days: String(Number(event.target.value)) })}>
@@ -162,7 +162,6 @@ export default function DashboardRevenue() {
                 <div className="insight-pills">
                   <span className="tag ok">Restaurantes: {formatMoney(revenueData.overview.restaurantGrossRevenue)}</span>
                   <span className="tag warn">Outras lojas: {formatMoney(revenueData.overview.otherGrossRevenue)}</span>
-                  <span className="tag neutral">Shipday reportado: {formatMoney(revenueData.overview.driverReportedEarnings)}</span>
                 </div>
               </DashboardPanel>
 
@@ -271,8 +270,8 @@ export default function DashboardRevenue() {
             </DashboardPanel>
 
             <DashboardPanel
-              title="Estafetas e Shipday"
-              description="O quadro abaixo mostra o valor de pedidos e taxas de entrega movimentadas por estafeta. Quando o Shipday devolve um valor de ganho/payout no payload, ele aparece na coluna de ganho reportado."
+              title="Estafetas"
+              description="Valor de pedidos e taxas de entrega movimentadas por estafeta nesta janela."
             >
               <div className="table-wrap">
                 <table className="ops-table">
@@ -283,7 +282,6 @@ export default function DashboardRevenue() {
                       <th>Entregas</th>
                       <th>Pedidos movimentados</th>
                       <th>Taxas entrega</th>
-                      <th>Ganho reportado Shipday</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -294,11 +292,10 @@ export default function DashboardRevenue() {
                         <td>{entry.deliveries}</td>
                         <td>{formatMoney(entry.ordersValue)}</td>
                         <td>{formatMoney(entry.deliveryFees)}</td>
-                        <td>{entry.reportedEarningsCount > 0 ? formatMoney(entry.shipdayReportedEarnings) : "-"}</td>
                       </tr>
                     ))}
                     {revenueData.byDriver.length === 0 ? (
-                      <DashboardEmptyState as="tableRow" colSpan={6} label="Sem dados de estafetas para mostrar." />
+                      <DashboardEmptyState as="tableRow" colSpan={5} label="Sem dados de estafetas para mostrar." />
                     ) : null}
                   </tbody>
                 </table>

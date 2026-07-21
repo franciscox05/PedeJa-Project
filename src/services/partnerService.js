@@ -1,13 +1,34 @@
-﻿import { supabase } from "./supabaseClient";
+﻿import { supabase, buildSupabaseFunctionHeaders, getSupabaseFunctionUrl } from "./supabaseClient";
 import { isStoreOpenNow } from "../utils/storeHours";
-
-function sanitizeFileName(name = "image") {
-  return String(name).replace(/[^a-zA-Z0-9._-]/g, "-");
-}
 
 function normalizeId(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function requestSignedImageUpload({ bucket, scope, filename, contentType, callerUserId = null, lojaId = null }) {
+  const headers = await buildSupabaseFunctionHeaders();
+
+  const response = await fetch(getSupabaseFunctionUrl("request-image-upload"), {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      bucket,
+      scope,
+      filename,
+      content_type: contentType,
+      caller_user_id: callerUserId,
+      loja_id: lojaId,
+    }),
+  });
+
+  const parsed = await response.json().catch(() => null);
+
+  if (!response.ok || !parsed?.ok) {
+    throw new Error(parsed?.error || "Falha ao preparar o upload da imagem.");
+  }
+
+  return parsed;
 }
 
 function normalizeImageUrl(value) {
@@ -38,22 +59,25 @@ export async function fetchStoreTypes() {
   return data || [];
 }
 
-export async function uploadStoreImage(file, scope = "requests") {
+export async function uploadStoreImage(file, scope, { lojaId = null, callerUserId = null } = {}) {
   if (!file) return null;
 
-  const safeName = sanitizeFileName(file.name);
-  const path = `${scope}/${Date.now()}-${safeName}`;
-
-  const { error } = await supabase.storage.from("store-images").upload(path, file, {
+  const { path, token } = await requestSignedImageUpload({
+    bucket: "store-images",
+    scope,
+    filename: file.name,
     contentType: file.type,
-    upsert: true,
+    callerUserId,
+    lojaId,
   });
+
+  const { error } = await supabase.storage.from("store-images").uploadToSignedUrl(path, token, file);
 
   if (error) {
     throw new Error(`Falha no upload da imagem (${file.name}).`);
   }
 
-  return path; 
+  return path;
 }
 
 async function resolveLojaIdFromStaff(userTextId) {

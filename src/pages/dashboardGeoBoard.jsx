@@ -8,9 +8,15 @@ import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
 import DatePickerCustom from "../components/ui/DatePickerCustom";
 import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
 import { fetchAdminDashboard } from "../services/opsDashboardService";
-import { buildLiveCarrierBoardEntries, retrieveShipdayCarriers } from "../services/shipdayService";
+import {
+  buildEstafetaBoardEntries,
+  listActiveAtribuicoes,
+  listEstafetasForDispatch,
+} from "../services/estafetaService";
 import { getEstadoInternoLabelPt, getEstadoInternoTagClass, resolveOrderEstadoInterno } from "../services/orderStatusMapper";
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
+import { useAuth } from "../context/AuthContext";
+import { extractUserId } from "../utils/roles";
 
 function normalizeSearchWindow(searchParams) {
   const mode = String(searchParams.get("mode") || "preset");
@@ -43,11 +49,13 @@ function ensureArray(value) {
 }
 
 function hasAssignedDriver(order) {
-  return Boolean(String(order?.driver_name || order?.shipday_driver_name || "").trim());
+  return Boolean(String(order?.driver_name || "").trim());
 }
 
 export default function DashboardGeoBoard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const callerUserId = Number(extractUserId(user));
   const [searchParams, setSearchParams] = useSearchParams();
   const initialFilters = useMemo(() => normalizeSearchWindow(searchParams), [searchParams]);
 
@@ -62,7 +70,8 @@ export default function DashboardGeoBoard() {
     deliveries: [],
     metrics: { totalOrders: 0, activeDeliveries: 0 },
   });
-  const [liveCarriers, setLiveCarriers] = useState([]);
+  const [estafetas, setEstafetas] = useState([]);
+  const [activeAtribuicoes, setActiveAtribuicoes] = useState([]);
 
   const dashboardInput = useMemo(
     () => buildWindowInput({ rangeMode, periodDays, customRange }),
@@ -88,11 +97,13 @@ export default function DashboardGeoBoard() {
   }, [customRange.from, customRange.to, periodDays, setSearchParams]);
 
   const load = useCallback(async () => {
+    if (!Number.isFinite(callerUserId)) return;
     setState((prev) => ({ ...prev, loading: true, error: "" }));
     try {
-      const [dashboardData, carriersData] = await Promise.all([
+      const [dashboardData, estafetasData, activeData] = await Promise.all([
         fetchAdminDashboard(dashboardInput),
-        retrieveShipdayCarriers(),
+        listEstafetasForDispatch(callerUserId),
+        listActiveAtribuicoes(callerUserId),
       ]);
 
       setState({
@@ -106,7 +117,8 @@ export default function DashboardGeoBoard() {
           activeDeliveries: Number(dashboardData?.metrics?.activeDeliveries || 0),
         },
       });
-      setLiveCarriers(ensureArray(carriersData));
+      setEstafetas(ensureArray(estafetasData));
+      setActiveAtribuicoes(ensureArray(activeData));
     } catch (error) {
       setState((prev) => ({
         ...prev,
@@ -114,7 +126,7 @@ export default function DashboardGeoBoard() {
         error: error?.message || "Nao foi possivel carregar o painel completo de geolocalizacao.",
       }));
     }
-  }, [dashboardInput]);
+  }, [callerUserId, dashboardInput]);
 
   useEffect(() => {
     load();
@@ -128,14 +140,8 @@ export default function DashboardGeoBoard() {
   );
 
   const liveCarrierEntries = useMemo(
-    () => buildLiveCarrierBoardEntries({
-      carriers: liveCarriers || [],
-      orders: state.immediateOrders || [],
-      stores: state.stores || [],
-      deliveries: state.deliveries || [],
-      mode: "admin",
-    }),
-    [liveCarriers, state.deliveries, state.immediateOrders, state.stores],
+    () => buildEstafetaBoardEntries(estafetas, activeAtribuicoes, state.stores || []),
+    [estafetas, activeAtribuicoes, state.stores],
   );
 
   const activeOrders = useMemo(
@@ -314,7 +320,7 @@ export default function DashboardGeoBoard() {
                         <td>{storeNameById.get(String(order?.loja_id || "")) || `Loja ${order?.loja_id || "-"}`}</td>
                         <td>{order?.customer_nome || "-"}</td>
                         <td><span className={getEstadoInternoTagClass(estado)}>{getEstadoInternoLabelPt(estado)}</span></td>
-                        <td>{hasAssignedDriver(order) ? (order?.driver_name || order?.shipday_driver_name || "-") : "-"}</td>
+                        <td>{hasAssignedDriver(order) ? (order?.driver_name || "-") : "-"}</td>
                       </tr>
                     );
                   })}

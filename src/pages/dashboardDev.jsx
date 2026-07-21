@@ -125,7 +125,7 @@ export default function DashboardDev() {
           </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Monitor Shipday">
+        <DashboardPanel title="Monitor de entregas">
           <div className="table-wrap">
             <table className="ops-table">
               <thead>

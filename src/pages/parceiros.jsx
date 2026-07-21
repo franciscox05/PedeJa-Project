@@ -456,9 +456,7 @@ const handleSubmit = async (e) => {
       }
 
       const userId = extractUserId(user);
-      const uploadScope = isEditMode
-        ? `loja-${storeProfile.idloja}`
-        : `request-${userId || Date.now()}`;
+      const uploadContext = isEditMode ? { lojaId: storeProfile.idloja, callerUserId: userId } : {};
 
       let backgroundUrl = imageState.backgroundUrl;
       let iconUrl = imageState.iconUrl;
@@ -466,12 +464,12 @@ const handleSubmit = async (e) => {
         // Se o utilizador selecionou um ficheiro novo, fazemos o upload para a pasta correta
       if (imageState.backgroundFile) {
         // Agora usamos o scope fixo para bater certo com a estrutura da DB
-        backgroundUrl = await uploadStoreImage(imageState.backgroundFile, "restaurantes/background");
+        backgroundUrl = await uploadStoreImage(imageState.backgroundFile, "restaurantes/background", uploadContext);
       }
 
       if (imageState.iconFile) {
         // Agora usamos o scope fixo para bater certo com a estrutura da DB
-        iconUrl = await uploadStoreImage(imageState.iconFile, "restaurantes/icon");
+        iconUrl = await uploadStoreImage(imageState.iconFile, "restaurantes/icon", uploadContext);
       }
 
       const payload = {
@@ -518,7 +516,7 @@ const handleSubmit = async (e) => {
 
   const heroLead = isEditMode
     ? "Mantém horários, imagens e dados fiscais sempre atualizados para melhorar a conversão no marketplace."
-    : "Chega a novos clientes, gere o teu menu em minutos e recebe pedidos integrados com Shipday.";
+    : "Chega a novos clientes, gere o teu menu em minutos e recebe pedidos com entrega integrada.";
 
   return (
     <main className="partners-page">
@@ -566,7 +564,7 @@ const handleSubmit = async (e) => {
           <article>
             <span className="benefit-icon">🚀</span>
             <h3>Logística integrada</h3>
-            <p>Envios sincronizados com Shipday para entregas consistentes.</p>
+            <p>Estafetas próprios com atribuição automática para entregas consistentes.</p>
           </article>
         </div>
       </section>

@@ -52,16 +52,11 @@ function formatDistanceLabel(distanceKm) {
 }
 
 function hasAssignedDriver(order) {
-  return Boolean(
-    String(order?.driver_name || order?.driver_phone || order?.shipday_driver_name || order?.shipday_driver_phone || "").trim(),
-  );
+  return Boolean(String(order?.driver_name || order?.driver_phone || "").trim());
 }
 
 function shouldExposeFallbackCarrier(order) {
   const estado = resolveOrderEstadoInterno(order);
-  const legacyStatus = String(order?.status || "").trim().toUpperCase();
-  const hasTracking = String(order?.shipday_tracking_url || "").trim().length > 0;
-  const hasShipdayId = String(order?.shipday_order_id || "").trim().length > 0;
   const hasAssignmentState = [
     "atribuindo_estafeta",
     "estafeta_aceitou",
@@ -71,17 +66,8 @@ function shouldExposeFallbackCarrier(order) {
     "recolhido",
     "a_caminho",
   ].includes(estado);
-  const hasLegacyAssignmentState = [
-    "ASSIGNED",
-    "STARTED",
-    "PICKED_UP",
-    "READY_FOR_PICKUP",
-    "READY_TO_DELIVER",
-    "OUT_FOR_DELIVERY",
-    "ON_THE_WAY",
-  ].includes(legacyStatus);
 
-  return hasAssignedDriver(order) || hasTracking || hasShipdayId || hasAssignmentState || hasLegacyAssignmentState;
+  return hasAssignedDriver(order) || hasAssignmentState;
 }
 
 function resolveBoardOrderEstado(order) {
@@ -132,8 +118,8 @@ function resolveOperationalCoords(lat, lng) {
 }
 
 function buildDriverSignature(source = {}) {
-  const name = String(source?.driver_name || source?.shipday_driver_name || source?.name || "").trim().toLowerCase();
-  const phone = String(source?.driver_phone || source?.shipday_driver_phone || source?.phone || "").replace(/\D+/g, "");
+  const name = String(source?.driver_name || source?.name || "").trim().toLowerCase();
+  const phone = String(source?.driver_phone || source?.phone || "").replace(/\D+/g, "");
   if (!name && !phone) return "";
   return `${name}|${phone}`;
 }
@@ -147,35 +133,8 @@ function collectCarrierOrderRefs(source = {}) {
 
   pushRef(source?.orderId);
   pushRef(source?.order_id);
-  pushRef(source?.orderShipdayId);
-  pushRef(source?.order_shipday_id);
-  pushRef(source?.orderNumber);
-  pushRef(source?.order_number);
-  pushRef(source?.currentOrderId);
-  pushRef(source?.current_order_id);
-  pushRef(source?.currentOrderNumber);
-  pushRef(source?.current_order_number);
-  pushRef(source?.assignedOrderId);
-  pushRef(source?.assigned_order_id);
   pushRef(source?.raw?.orderId);
   pushRef(source?.raw?.order_id);
-  pushRef(source?.raw?.orderNumber);
-  pushRef(source?.raw?.order_number);
-  pushRef(source?.raw?.currentOrderId);
-  pushRef(source?.raw?.current_order_id);
-  pushRef(source?.raw?.currentOrderNumber);
-  pushRef(source?.raw?.current_order_number);
-  pushRef(source?.raw?.assignedOrderId);
-  pushRef(source?.raw?.assigned_order_id);
-  pushRef(source?.raw?.order?.id);
-  pushRef(source?.raw?.order?.orderId);
-  pushRef(source?.raw?.order?.order_id);
-  pushRef(source?.raw?.order?.orderNumber);
-  pushRef(source?.raw?.order?.order_number);
-  pushRef(source?.raw?.currentTask?.orderId);
-  pushRef(source?.raw?.currentTask?.order_id);
-  pushRef(source?.raw?.currentTask?.orderNumber);
-  pushRef(source?.raw?.currentTask?.order_number);
 
   return Array.from(refs);
 }
@@ -290,7 +249,7 @@ function buildPointTitle(point) {
       resolveCarrierStatus(point.payload?.status, point.payload?.orderEstado),
     );
     const orderRefs = collectCarrierOrderRefs(point?.payload || {});
-    const orderRef = orderRefs[0] || point.payload?.orderId || point.payload?.orderShipdayId;
+    const orderRef = orderRefs[0] || point.payload?.orderId;
     return `${point.payload?.name || `Estafeta ${point.id}`} | ${meta.label} | Pedido ${formatOrderId(orderRef)}`;
   }
   if (point.type === "store") {
@@ -319,6 +278,7 @@ export default function LiveOperationsBoard({
   storeId = null,
   onOpenDetails = null,
   openDetailsLabel = "Abrir detalhe",
+  hideOrdersTable = false,
 }) {
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safeCarriers = Array.isArray(carriers) ? carriers : [];
@@ -408,10 +368,7 @@ export default function LiveOperationsBoard({
     () => new Set(
       (scopedOrders || [])
         .filter((order) => !["entregue", "cancelado"].includes(resolveOrderEstadoInterno(order)))
-        .flatMap((order) => ([
-          normalizeOrderReference(order?.id),
-          normalizeOrderReference(order?.shipday_order_id),
-        ]))
+        .map((order) => normalizeOrderReference(order?.id))
         .filter(Boolean),
     ),
     [scopedOrders],
@@ -419,12 +376,8 @@ export default function LiveOperationsBoard({
   const ordersByReference = useMemo(() => {
     const map = new Map();
     (scopedOrders || []).forEach((order) => {
-      [
-        normalizeOrderReference(order?.id),
-        normalizeOrderReference(order?.shipday_order_id),
-      ]
-        .filter(Boolean)
-        .forEach((ref) => map.set(ref, order));
+      const ref = normalizeOrderReference(order?.id);
+      if (ref) map.set(ref, order);
     });
     return map;
   }, [scopedOrders]);
@@ -472,10 +425,7 @@ export default function LiveOperationsBoard({
 
     const linkedOrderRefs = new Set(
       (carrierPoints || [])
-        .flatMap((carrierPoint) => ([
-          normalizeOrderReference(carrierPoint?.payload?.orderId),
-          normalizeOrderReference(carrierPoint?.payload?.orderShipdayId),
-        ]))
+        .map((carrierPoint) => normalizeOrderReference(carrierPoint?.payload?.orderId))
         .filter(Boolean),
     );
     const linkedCarrierSignatures = new Set(
@@ -490,11 +440,8 @@ export default function LiveOperationsBoard({
       .filter((order) => !["entregue", "cancelado"].includes(resolveBoardOrderEstado(order)))
       .filter((order) => shouldExposeFallbackCarrier(order))
       .filter((order) => {
-        const refs = [
-          normalizeOrderReference(order?.id),
-          normalizeOrderReference(order?.shipday_order_id),
-        ].filter(Boolean);
-        const alreadyLinkedByRef = refs.some((ref) => linkedOrderRefs.has(ref));
+        const ref = normalizeOrderReference(order?.id);
+        const alreadyLinkedByRef = ref && linkedOrderRefs.has(ref);
         const orderSignature = buildDriverSignature(order);
         const alreadyLinkedByDriver = orderSignature && linkedCarrierSignatures.has(orderSignature);
         return !alreadyLinkedByRef && !alreadyLinkedByDriver;
@@ -515,12 +462,11 @@ export default function LiveOperationsBoard({
             lng: Number(shifted.lng),
             payload: {
               id: `fallback-${order.id}`,
-            name: String(order?.driver_name || order?.shipday_driver_name || "Estafeta atribuido"),
-            phone: String(order?.driver_phone || order?.shipday_driver_phone || ""),
+            name: String(order?.driver_name || "Estafeta atribuido"),
+            phone: String(order?.driver_phone || ""),
             status: resolveCarrierBoardStatusFromOrder(order),
             coordsSource: "store_fallback",
             orderId: order?.id || null,
-            orderShipdayId: order?.shipday_order_id || null,
             orderEstado: resolveBoardOrderEstado(order),
             lojaId: order?.loja_id || effectiveRestaurantStoreId || null,
             },
@@ -561,6 +507,21 @@ export default function LiveOperationsBoard({
     [mapPoints, selectedPointKey],
   );
 
+  // mapPoints ganha uma identidade de array nova a cada poll de fundo (15-30s) mesmo
+  // quando nenhum ponto mudou de posicao -- usar uma assinatura estavel como dependencia
+  // do efeito de marcadores evita destruir/reconstruir todos os marcadores do mapa
+  // sempre que o conteudo e identico.
+  const mapPointsRef = useRef(mapPoints);
+  useEffect(() => {
+    mapPointsRef.current = mapPoints;
+  }, [mapPoints]);
+  const mapPointsSignature = useMemo(
+    () => mapPoints
+      .map((point) => `${point.key}:${point.type}:${Number(point.lat).toFixed(6)}:${Number(point.lng).toFixed(6)}`)
+      .join("|"),
+    [mapPoints],
+  );
+
   useEffect(() => {
     if (!mapPoints.length) {
       setSelectedPointKey("");
@@ -575,7 +536,8 @@ export default function LiveOperationsBoard({
   }, [mapPoints, selectedPointKey]);
 
   useEffect(() => {
-    if (!mapPoints.length || !mapElementRef.current) return;
+    const currentMapPoints = mapPointsRef.current;
+    if (!currentMapPoints.length || !mapElementRef.current) return;
 
     let cancelled = false;
     setMapLoading(true);
@@ -609,9 +571,9 @@ export default function LiveOperationsBoard({
         markersRef.current = [];
 
         const bounds = new window.google.maps.LatLngBounds();
-        const activeKey = selectedPointKey || mapPoints[0]?.key || "";
+        const activeKey = selectedPointKey || currentMapPoints[0]?.key || "";
 
-        mapPoints.forEach((point) => {
+        currentMapPoints.forEach((point) => {
           const baseZIndex = point.type === "carrier" ? 220 : point.type === "order" ? 160 : 120;
           const isSelected = point.key === activeKey;
           const marker = new window.google.maps.Marker({
@@ -636,8 +598,8 @@ export default function LiveOperationsBoard({
           bounds.extend(marker.getPosition());
         });
 
-        if (mapPoints.length === 1) {
-          map.setCenter({ lat: Number(mapPoints[0].lat), lng: Number(mapPoints[0].lng) });
+        if (currentMapPoints.length === 1) {
+          map.setCenter({ lat: Number(currentMapPoints[0].lat), lng: Number(currentMapPoints[0].lng) });
           map.setZoom(14);
         } else {
           map.fitBounds(bounds, 48);
@@ -659,7 +621,7 @@ export default function LiveOperationsBoard({
     return () => {
       cancelled = true;
     };
-  }, [mapPoints, selectedPointKey]);
+  }, [mapPointsSignature, selectedPointKey]);
 
   useEffect(() => {
     if (!markersRef.current.length || !mapRef.current || !selectedPointKey) return;
@@ -803,8 +765,7 @@ export default function LiveOperationsBoard({
                 <p>
                   Pedido em curso: {formatOrderId(
                     selectedCarrierOrder?.id
-                    || selectedPoint.payload?.orderId
-                    || selectedPoint.payload?.orderShipdayId,
+                    || selectedPoint.payload?.orderId,
                   )}
                 </p>
                 <p>
@@ -851,34 +812,36 @@ export default function LiveOperationsBoard({
         <span><i className="dot delivery" /> Estafeta em entrega</span>
       </div>
 
-      <div className="table-wrap" style={{ marginTop: "10px" }}>
-        <table className="ops-table">
-          <thead>
-            <tr>
-              <th>Pedido</th>
-              <th>Loja</th>
-              <th>Cliente</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ordersTable.map((order) => {
-              const estado = order?.estadoBoard || resolveBoardOrderEstado(order);
-              return (
-                <tr key={`r-${order.id}`}>
-                  <td>{String(order.id).slice(0, 8)}</td>
-                  <td>{order.lojaNome}</td>
-                  <td>{order.customer_nome}</td>
-                  <td><span className={getEstadoInternoTagClass(estado)}>{getEstadoInternoLabelPt(estado)}</span></td>
-                </tr>
-              );
-            })}
-            {ordersTable.length === 0 ? (
-              <tr><td colSpan={4}>Sem pedidos ativos para monitorizar.</td></tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      {!hideOrdersTable ? (
+        <div className="table-wrap" style={{ marginTop: "10px" }}>
+          <table className="ops-table">
+            <thead>
+              <tr>
+                <th>Pedido</th>
+                <th>Loja</th>
+                <th>Cliente</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ordersTable.map((order) => {
+                const estado = order?.estadoBoard || resolveBoardOrderEstado(order);
+                return (
+                  <tr key={`r-${order.id}`}>
+                    <td>{String(order.id).slice(0, 8)}</td>
+                    <td>{order.lojaNome}</td>
+                    <td>{order.customer_nome}</td>
+                    <td><span className={getEstadoInternoTagClass(estado)}>{getEstadoInternoLabelPt(estado)}</span></td>
+                  </tr>
+                );
+              })}
+              {ordersTable.length === 0 ? (
+                <tr><td colSpan={4}>Sem pedidos ativos para monitorizar.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
     </div>
   );
 }

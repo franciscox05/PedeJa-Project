@@ -2,13 +2,8 @@
 [functions.create-order]
 verify_jwt = false
 
-# Dashboard Shipday helpers are called from the frontend without sessao Supabase.
-[functions.shipday-api]
-verify_jwt = false
-
-[functions.update-shipday-status]
-verify_jwt = false
-
-# External Shipday callbacks cannot provide Supabase user JWTs.
-[functions.shipday-webhook]
+# Signed upload URLs for store/menu images -- public because guest partner signups
+# upload images before any account/session exists (ownership is validated inside
+# the function for the authenticated edit paths).
+[functions.request-image-upload]
 verify_jwt = false

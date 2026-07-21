@@ -1,4 +1,5 @@
 export default function DashboardPanel({
+  id,
   title,
   description = "",
   actions = null,
@@ -6,7 +7,7 @@ export default function DashboardPanel({
   children,
 }) {
   return (
-    <article className={`panel${className ? ` ${className}` : ""}`}>
+    <article id={id} className={`panel${className ? ` ${className}` : ""}`}>
       <div className="panel-header-inline">
         <div>
           <h3>{title}</h3>

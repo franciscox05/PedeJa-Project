@@ -8,7 +8,6 @@ import { extractRestaurantId, extractUserId } from "../utils/roles";
 import { DEFAULT_PER_KM_DELIVERY_CONFIG, sanitizeDeliveryPricingConfig } from "./deliveryZoneService";
 import { isStoreOpenNow, sanitizeScheduleWithExceptions } from "../utils/storeHours";
 import { mapEstadoInternoToLegacyStatus, mapLegacyStatusToEstadoInterno, resolveOrderEstadoInterno } from "./orderStatusMapper";
-import { cancelShipdayOrder, createShipdayOrderForOrder, updateShipdayOrderStatus } from "./shipdayService";
 import { sanitizeCommissionConfig } from "./pricingService";
 import { sanitizeAutoAssignConfig } from "./autoAssignConfig";
 
@@ -37,8 +36,8 @@ function withOrderCompatibility(rows = []) {
   return (rows || []).map((order) => ({
     ...order,
     ...(() => {
-      const driverName = order?.driver_name || order?.shipday_driver_name || null;
-      const driverPhone = order?.driver_phone || order?.shipday_driver_phone || null;
+      const driverName = order?.driver_name || null;
+      const driverPhone = order?.driver_phone || null;
       const hasDriver = Boolean(String(driverName || driverPhone || "").trim());
       const baseEstado = order?.estado_interno || mapLegacyStatusToEstadoInterno(order?.status) || "pendente";
       const normalizedBaseEstado = resolveOrderEstadoInterno({ estado_interno: baseEstado, status: order?.status });
@@ -52,12 +51,8 @@ function withOrderCompatibility(rows = []) {
         subtotal: Number.isFinite(Number(order?.subtotal)) ? Number(order.subtotal) : null,
         taxa_entrega: Number.isFinite(Number(order?.taxa_entrega)) ? Number(order.taxa_entrega) : 0,
         estado_interno: estadoInterno,
-        shipday_order_id: order?.shipday_order_id || null,
-        shipday_tracking_url: order?.shipday_tracking_url || null,
         driver_name: driverName,
         driver_phone: driverPhone,
-        shipday_driver_name: order?.shipday_driver_name || order?.driver_name || null,
-        shipday_driver_phone: order?.shipday_driver_phone || order?.driver_phone || null,
         veiculo_estafeta: order?.veiculo_estafeta || null,
         submitted_at: order?.submitted_at || null,
         order_timing_mode: order?.order_timing_mode || "ASAP",
@@ -267,10 +262,6 @@ function getOrderActivityTimestamp(order) {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
-function hasShipdayOrderId(order) {
-  return String(order?.shipday_order_id || "").trim().length > 0;
-}
-
 function getScheduledTargetTimestamp(order) {
   if (!isScheduledOrder(order)) return null;
   const timestamp = new Date(order?.scheduled_for || order?.created_at || 0).getTime();
@@ -302,25 +293,6 @@ function shouldOrderBeImmediate(order, now = Date.now()) {
   if (!Number.isFinite(targetTimestamp)) return true;
 
   return (targetTimestamp - now) <= SCHEDULED_RELEASE_WINDOW_MS;
-}
-
-export function needsScheduledShipdayBootstrap(order, now = Date.now()) {
-  const estadoInterno = getOrderWorkflowStatus(order);
-
-  if (!isScheduledOrder(order)) return false;
-  if (hasShipdayOrderId(order)) return false;
-  if (!shouldOrderBeImmediate(order, now)) return false;
-  if (isTerminalOrder(order)) return false;
-
-  return [
-    "aceite",
-    "atribuindo_estafeta",
-    "estafeta_aceitou",
-    "em_preparacao",
-    "pronto_recolha",
-    "recolhido",
-    "a_caminho",
-  ].includes(estadoInterno);
 }
 
 function classifyDashboardOrders(orders = [], now = Date.now()) {
@@ -1458,7 +1430,6 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
     patch.driver_name = null;
     patch.driver_phone = null;
     patch.veiculo_estafeta = null;
-    patch.shipday_tracking_url = null;
   }
 
   const { data, error } = await supabase.rpc("orders_apply_authorized_patch", {
@@ -1486,85 +1457,14 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
     throw new Error("Pedido nao encontrado para esta loja.");
   }
 
-  let dispatchInternoAtivo = false;
-  if (data?.loja_id) {
-    const { data: lojaRow } = await supabase
-      .from("lojas")
-      .select("dispatch_interno_ativo")
-      .eq("idloja", data.loja_id)
-      .maybeSingle();
-    dispatchInternoAtivo = Boolean(lojaRow?.dispatch_interno_ativo);
-  }
-
-  const shouldSyncShipday = options.syncShipday !== false && !dispatchInternoAtivo;
-  let shipdaySync = dispatchInternoAtivo
-    ? { ok: true, skipped: true, reason: "dispatch_interno_ativo" }
-    : { ok: false, skipped: true, reason: "shipday_sync_desativado" };
-
-  if (shouldSyncShipday) {
-    if (normalizedEstado === "aceite") {
-      if (needsScheduledShipdayBootstrap(data) || !isScheduledOrder(data)) {
-        try {
-          shipdaySync = await createShipdayOrderForOrder({ orderId: data.id });
-        } catch (shipdayCreateError) {
-          const rollbackEstado = resolveOrderEstadoInterno(currentOrder);
-          const rollbackPatch = {
-            estado_interno: rollbackEstado,
-            updated_at: new Date().toISOString(),
-          };
-          const rollbackLegacyStatus = mapEstadoInternoToLegacyStatus(rollbackEstado);
-          if (rollbackLegacyStatus) rollbackPatch.status = rollbackLegacyStatus;
-
-          await supabase.rpc("orders_apply_authorized_patch", {
-            caller_user_id: callerUserId,
-            order_id_input: data.id,
-            patch: rollbackPatch,
-          });
-
-          throw shipdayCreateError;
-        }
-      } else {
-        shipdaySync = {
-          ok: false,
-          skipped: true,
-          reason: "scheduled_order_fora_da_janela_operacional",
-        };
-      }
-    } else if (normalizedEstado === "pronto_recolha" || normalizedEstado === "em_preparacao") {
-      shipdaySync = await updateShipdayOrderStatus({
-        shipdayOrderId: data.shipday_order_id,
-        newStatus: normalizedEstado,
-        orderId: data.id,
-        lojaId: data.loja_id,
-      });
-    } else if (data.shipday_order_id && normalizedEstado === "cancelado") {
-      shipdaySync = await cancelShipdayOrder({
-        orderId: data.id,
-        lojaId: data.loja_id,
-        shipdayOrderId: data.shipday_order_id,
-      });
-    } else {
-      shipdaySync = { ok: false, skipped: true, reason: "estado_sem_sync_direto" };
-    }
-  }
-
-  if (normalizedEstado === "cancelado" && shipdaySync && !shipdaySync.ok && !shipdaySync.skipped) {
-    console.error("Pedido cancelado localmente, mas Shipday nao confirmou o cancelamento remoto", {
-      orderId: data.id,
-      lojaId: data.loja_id,
-      shipdayOrderId: data.shipday_order_id || null,
-      response: shipdaySync,
-    });
-  }
-
-  return { order: data, shipdaySync };
+  return { order: data };
 }
 
 export async function updateOrderStatus(orderId, status, lojaId = null, callerUserId = null) {
   const mappedEstado = mapLegacyStatusToEstadoInterno(status);
 
   if (mappedEstado) {
-    return updateOrderWorkflowStatus(orderId, mappedEstado, lojaId, { syncShipday: false, callerUserId });
+    return updateOrderWorkflowStatus(orderId, mappedEstado, lojaId, { callerUserId });
   }
 
   const normalizedCallerUserId = Number(callerUserId);
@@ -1583,7 +1483,7 @@ export async function updateOrderStatus(orderId, status, lojaId = null, callerUs
     throw new Error("Pedido nao encontrado para esta loja.");
   }
 
-  return { order: { id: orderId, status }, shipdaySync: { ok: false, skipped: true, reason: "legacy_update" } };
+  return { order: { id: orderId, status } };
 }
 
 export async function fetchDevDashboard(periodDays = 7, callerUserId = null) {

@@ -13,53 +13,6 @@ function daysToIso(days) {
   return date.toISOString();
 }
 
-function parsePayload(value) {
-  if (!value) return null;
-  if (typeof value === "object") return value;
-  if (typeof value !== "string") return null;
-
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
-
-function readPath(payload, path = []) {
-  let current = payload;
-
-  for (const segment of path) {
-    if (!current || typeof current !== "object") return null;
-    current = current[segment];
-  }
-
-  return current;
-}
-
-function pickText(payloads, paths) {
-  for (const payload of payloads) {
-    for (const path of paths) {
-      const value = readPath(payload, path);
-      if (value === null || value === undefined) continue;
-      const text = String(value).trim();
-      if (text) return text;
-    }
-  }
-
-  return "";
-}
-
-function pickNumber(payloads, paths) {
-  for (const payload of payloads) {
-    for (const path of paths) {
-      const parsed = Number(readPath(payload, path));
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-
-  return null;
-}
-
 function resolveMenuCategory(menu) {
   const relation = Array.isArray(menu?.tiposmenu) ? menu.tiposmenu[0] : menu?.tiposmenu;
   return String(menu?.categoria_menu || relation?.tipomenu || "Geral").trim() || "Geral";
@@ -77,59 +30,6 @@ function isRestaurantType(label) {
   return /restaur/i.test(String(label || ""));
 }
 
-function buildLatestDeliveryByOrder(deliveries = []) {
-  const map = new Map();
-
-  (deliveries || []).forEach((delivery) => {
-    const key = String(delivery?.order_id || "");
-    if (!key) return;
-
-    const current = map.get(key);
-    const currentTime = new Date(current?.updated_at || current?.created_at || 0).getTime();
-    const nextTime = new Date(delivery?.updated_at || delivery?.created_at || 0).getTime();
-
-    if (!current || nextTime >= currentTime) {
-      map.set(key, delivery);
-    }
-  });
-
-  return map;
-}
-
-async function fetchDeliveryEvents(deliveryIds = []) {
-  if (!deliveryIds.length) return [];
-
-  const baseSelect = "id, delivery_id, created_at";
-
-  const withRawPayload = await supabase
-    .from("delivery_events")
-    .select(`${baseSelect}, raw_payload`)
-    .in("delivery_id", deliveryIds)
-    .order("created_at", { ascending: false });
-
-  if (!withRawPayload.error) {
-    return (withRawPayload.data || []).map((event) => ({
-      ...event,
-      payload: event.raw_payload || null,
-    }));
-  }
-
-  const withPayloadJson = await supabase
-    .from("delivery_events")
-    .select(`${baseSelect}, payload_json`)
-    .in("delivery_id", deliveryIds)
-    .order("created_at", { ascending: false });
-
-  if (!withPayloadJson.error) {
-    return (withPayloadJson.data || []).map((event) => ({
-      ...event,
-      payload: event.payload_json || null,
-    }));
-  }
-
-  return [];
-}
-
 function createEmptyRevenueData(periodDays) {
   return {
     periodDays,
@@ -140,7 +40,6 @@ function createEmptyRevenueData(periodDays) {
       totalDeliveryFees: 0,
       restaurantGrossRevenue: 0,
       otherGrossRevenue: 0,
-      driverReportedEarnings: 0,
     },
     commissionCoverage: {
       exactItems: 0,
@@ -204,33 +103,9 @@ function inferOrderItemFinancials(orderItem, menuRecord, storeRecord) {
   };
 }
 
-function buildDriverIdentity(order, payloads) {
-  const name = String(
-    order?.driver_name
-      || pickText(payloads, [
-        ["driverName"],
-        ["driver", "name"],
-        ["assignedDriverName"],
-        ["assignedDriver", "name"],
-        ["carrier", "name"],
-        ["courierName"],
-      ])
-      || "",
-  ).trim();
-
-  const phone = String(
-    order?.driver_phone
-      || pickText(payloads, [
-        ["driverPhone"],
-        ["driverPhoneNumber"],
-        ["driver", "phone"],
-        ["assignedDriverPhoneNumber"],
-        ["assignedDriver", "phone"],
-        ["carrier", "phone"],
-        ["courierPhone"],
-      ])
-      || "",
-  ).trim();
+function buildDriverIdentity(order) {
+  const name = String(order?.driver_name || "").trim();
+  const phone = String(order?.driver_phone || "").trim();
 
   const key = name || phone || "Sem estafeta";
   return {
@@ -238,27 +113,6 @@ function buildDriverIdentity(order, payloads) {
     name: name || "Sem estafeta",
     phone: phone || "",
   };
-}
-
-function extractDriverReportedEarnings(payloads) {
-  return pickNumber(payloads, [
-    ["driverPayout"],
-    ["driver_payout"],
-    ["driverFee"],
-    ["driver_fee"],
-    ["driver", "earning"],
-    ["driver", "earnings"],
-    ["driver", "payout"],
-    ["carrier", "earning"],
-    ["carrier", "earnings"],
-    ["carrier", "payout"],
-    ["payment", "driverPayout"],
-    ["payment", "driverFee"],
-    ["earnings", "driver"],
-    ["earnings", "total"],
-    ["financials", "driverPayout"],
-    ["financials", "driverFee"],
-  ]);
 }
 
 export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = null) {
@@ -288,7 +142,7 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
   const orderIds = orders.map((order) => order.id);
   const storeIds = [...new Set(orders.map((order) => order.loja_id).filter(Boolean))];
 
-  const [orderItemsRes, storesRes, storeTypesRes, deliveriesRes] = await Promise.all([
+  const [orderItemsRes, storesRes, storeTypesRes] = await Promise.all([
     supabase.rpc("list_order_items_for_orders", { caller_user_id: normalizedCallerUserId, order_ids: orderIds }),
     supabase
       .from("lojas")
@@ -304,33 +158,27 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
     supabase
       .from("tiposloja")
       .select("idtipoloja, descricao, tipoloja"),
-    supabase.rpc("list_deliveries_for_orders", { caller_user_id: normalizedCallerUserId, order_ids: orderIds }),
   ]);
 
   if (orderItemsRes.error) throw orderItemsRes.error;
   if (storesRes.error) throw storesRes.error;
   if (storeTypesRes.error) throw storeTypesRes.error;
-  if (deliveriesRes.error) throw deliveriesRes.error;
 
   const menuIds = [...new Set((orderItemsRes.data || []).map((item) => item.menu_id).filter(Boolean))];
-  const deliveryIds = (deliveriesRes.data || []).map((delivery) => delivery.id).filter(Boolean);
 
-  const [menusRes, deliveryEvents] = await Promise.all([
-    menuIds.length
-      ? supabase
-        .from("menus")
-        .select(`
-          idmenu,
-          idloja,
-          nome,
-          preco,
-          idtipomenu,
-          tiposmenu (tipomenu)
-        `)
-        .in("idmenu", menuIds)
-      : Promise.resolve({ data: [], error: null }),
-    fetchDeliveryEvents(deliveryIds),
-  ]);
+  const menusRes = menuIds.length
+    ? await supabase
+      .from("menus")
+      .select(`
+        idmenu,
+        idloja,
+        nome,
+        preco,
+        idtipomenu,
+        tiposmenu (tipomenu)
+      `)
+      .in("idmenu", menuIds)
+    : { data: [], error: null };
 
   if (menusRes.error) throw menusRes.error;
 
@@ -351,21 +199,12 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
       },
     ]),
   );
-  const latestDeliveryByOrder = buildLatestDeliveryByOrder(deliveriesRes.data || []);
-  const eventsByDeliveryId = new Map();
 
   (orderItemsRes.data || []).forEach((item) => {
     const key = String(item.order_id || "");
     if (!key) return;
     if (!itemsByOrderId.has(key)) itemsByOrderId.set(key, []);
     itemsByOrderId.get(key).push(item);
-  });
-
-  (deliveryEvents || []).forEach((event) => {
-    const key = String(event.delivery_id || "");
-    if (!key) return;
-    if (!eventsByDeliveryId.has(key)) eventsByDeliveryId.set(key, []);
-    eventsByDeliveryId.get(key).push(event);
   });
 
   const overview = createEmptyRevenueData(periodDays).overview;
@@ -379,11 +218,6 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
     const storeLabel = store?.nome || `Loja ${order.loja_id}`;
     const storeTypeLabel = resolveStoreTypeLabel(store, storeTypesMap);
     const orderItems = itemsByOrderId.get(String(order.id || "")) || [];
-    const latestDelivery = latestDeliveryByOrder.get(String(order.id || "")) || null;
-    const payloads = [
-      parsePayload(latestDelivery?.provider_payload),
-      ...(eventsByDeliveryId.get(String(latestDelivery?.id || "")) || []).map((event) => parsePayload(event.payload)),
-    ].filter(Boolean);
 
     let orderBaseValue = 0;
     let orderCommissionProfit = 0;
@@ -444,7 +278,7 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
     storeEntry.commissionProfit += orderCommissionProfit;
     storeEntry.deliveryFees += orderDeliveryFees;
 
-    const driver = buildDriverIdentity(order, payloads);
+    const driver = buildDriverIdentity(order);
     if (!byDriverMap.has(driver.key)) {
       byDriverMap.set(driver.key, {
         key: driver.key,
@@ -453,8 +287,6 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
         deliveries: 0,
         ordersValue: 0,
         deliveryFees: 0,
-        shipdayReportedEarnings: 0,
-        reportedEarningsCount: 0,
       });
     }
 
@@ -462,13 +294,6 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
     driverEntry.deliveries += 1;
     driverEntry.ordersValue += orderGrossRevenue;
     driverEntry.deliveryFees += orderDeliveryFees;
-
-    const reportedEarnings = extractDriverReportedEarnings(payloads);
-    if (Number.isFinite(reportedEarnings)) {
-      driverEntry.shipdayReportedEarnings += reportedEarnings;
-      driverEntry.reportedEarningsCount += 1;
-      overview.driverReportedEarnings += reportedEarnings;
-    }
   });
 
   const collectiveByType = Array.from(collectiveByTypeMap.values())
@@ -498,7 +323,6 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
       ...entry,
       ordersValue: Number(entry.ordersValue.toFixed(2)),
       deliveryFees: Number(entry.deliveryFees.toFixed(2)),
-      shipdayReportedEarnings: Number(entry.shipdayReportedEarnings.toFixed(2)),
     }))
     .sort((a, b) => b.ordersValue - a.ordersValue);
 
@@ -512,7 +336,6 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
       totalDeliveryFees: Number(overview.totalDeliveryFees.toFixed(2)),
       restaurantGrossRevenue: Number(overview.restaurantGrossRevenue.toFixed(2)),
       otherGrossRevenue: Number(overview.otherGrossRevenue.toFixed(2)),
-      driverReportedEarnings: Number(overview.driverReportedEarnings.toFixed(2)),
     },
     commissionCoverage,
     collectiveByType,
