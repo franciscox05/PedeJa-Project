@@ -428,13 +428,31 @@ export default function DashboardAdmin() {
     () => safeDeliveries.filter((delivery) => String(delivery?.status || "").toUpperCase() === "FAILED"),
     [safeDeliveries],
   );
+  const dispatchInternoLojaIds = useMemo(
+    () => new Set(
+      ensureObjectArray(state?.stores)
+        .filter((store) => store?.dispatch_interno_ativo)
+        .map((store) => String(store?.idloja || ""))
+        .filter(Boolean),
+    ),
+    [state.stores],
+  );
+  const unassignedOrders = useMemo(
+    () => safeImmediateOrders.filter(
+      (order) => dispatchInternoLojaIds.has(String(order?.loja_id))
+        && ["pendente", "aceite"].includes(resolveOrderEstadoInterno(order))
+        && !hasAssignedDriver(order),
+    ),
+    [safeImmediateOrders, dispatchInternoLojaIds],
+  );
   const tabsWithBadges = useMemo(
     () => ADMIN_DASHBOARD_TABS.map((tab) => {
       if (tab.id === "dashboard") return { ...tab, badge: safeSlaAlerts.length || undefined };
       if (tab.id === "restaurants") return { ...tab, badge: safeRequests.length || undefined };
+      if (tab.id === "estafetas") return { ...tab, badge: unassignedOrders.length || undefined };
       return tab;
     }),
-    [safeSlaAlerts, safeRequests],
+    [safeSlaAlerts, safeRequests, unassignedOrders],
   );
 
   useEffect(() => {
