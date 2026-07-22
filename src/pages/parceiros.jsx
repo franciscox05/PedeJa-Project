@@ -117,6 +117,7 @@ export default function Parceiros() {
   });
 
   const isRestaurantRole = role === "restaurant";
+  const isAdminRole = role === "admin";
   const editRequested = searchParams.get("edit") === "1";
   const queryLojaId = searchParams.get("loja") || "";
   const isEditMode = isRestaurantRole && !!storeProfile;
@@ -151,8 +152,17 @@ export default function Parceiros() {
       setLoadingProfile(true);
 
       try {
+        // Restaurante so pode carregar o proprio perfil -- so o admin pode
+        // usar o parametro ?loja= para inspecionar/editar outra loja.
+        // Evita mostrar dados de outra loja no formulario de edicao mesmo
+        // que a escrita ja esteja protegida no servidor (stores_apply_
+        // authorized_patch).
+        const effectiveLojaId = isAdminRole
+          ? (queryLojaId || extractRestaurantId(user))
+          : extractRestaurantId(user);
+
         const profile = await fetchRestaurantProfileByUser({
-          lojaId: queryLojaId || extractRestaurantId(user),
+          lojaId: effectiveLojaId,
           userId: extractUserId(user),
           email: user?.email,
         });
@@ -201,7 +211,7 @@ export default function Parceiros() {
     return () => {
       cancelled = true;
     };
-  }, [editRequested, isRestaurantRole, queryLojaId, user]);
+  }, [editRequested, isAdminRole, isRestaurantRole, queryLojaId, user]);
 
   useEffect(() => {
     if (!addressQuery || addressQuery.length < 3) {
@@ -540,8 +550,8 @@ const handleSubmit = async (e) => {
             {isEditMode ? "Editar dados" : "Tornar-me parceiro"}
           </button>
           {isEditMode && (
-            <button className="btn-secondary" onClick={() => navigate("/")}>
-              Voltar ao website
+            <button className="btn-secondary" onClick={() => navigate(-1)}>
+              Voltar
             </button>
           )}
           <button className="btn-secondary" onMouseDown={(e) => e.preventDefault()} onClick={() => window.open("https://pedeja.pt/contatos.html", "_blank")}>Falar com a equipa</button>

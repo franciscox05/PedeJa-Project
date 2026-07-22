@@ -48,6 +48,10 @@ function LoginButton() {
       navigate("/dashboard/dev");
       return;
     }
+    if (role === "estafeta") {
+      navigate("/estafeta");
+      return;
+    }
 
     navigate("/carrinho");
   };

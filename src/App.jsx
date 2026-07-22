@@ -19,6 +19,7 @@ import DashboardCategorias from "./pages/dashboardCategorias";
 import DashboardBanners from "./pages/dashboardBanners";
 import DashboardCupoes from "./pages/dashboardCupoes";
 import DashboardPromocoes from "./pages/dashboardPromocoes";
+import NaoEncontrado from "./pages/naoEncontrado";
 import MenuManager from "./pages/menuManager";
 import Parceiros from "./pages/parceiros";
 import ProfileLayout, { ProfileIndexRedirect } from "./pages/perfil/ProfileLayout";
@@ -286,6 +287,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="*" element={<NaoEncontrado />} />
         </Routes>
       </main>
       </CartProvider>
