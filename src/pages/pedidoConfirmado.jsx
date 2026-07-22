@@ -12,6 +12,7 @@ import { groupSelectedMenuOptionsForDisplay } from "../services/menuOptionsServi
 import { updateOrderWorkflowStatus } from "../services/opsDashboardService";
 import { fetchOrderDetails, getStatusTone } from "../services/orderDetailsService";
 import { extractUserId, resolveUserRole } from "../utils/roles";
+import { useCustomerPushSubscription } from "../hooks/useCustomerPushSubscription";
 import "../css/pages/pedidoDetalhe.css";
 
 const CUSTOMER_CANCEL_WINDOW_MS = 5 * 60 * 1000;
@@ -134,6 +135,7 @@ export default function PedidoConfirmado() {
     [user?.email, user?.id, user?.idutilizador, user?.user_id],
   );
   const viewerIsCustomer = useMemo(() => Boolean(user) && resolveUserRole(user) === "customer", [user]);
+  const pushSubscription = useCustomerPushSubscription(extractUserId(user));
 
   const loadOrder = useCallback(async ({ silent = false } = {}) => {
     if (!silent) {
@@ -376,6 +378,19 @@ export default function PedidoConfirmado() {
                     </p>
                     <p><strong>Metodo pagamento:</strong> {details.payment_method_label || "-"}</p>
                   </div>
+
+                  {viewerIsCustomer && details.is_live && pushSubscription.supported ? (
+                    <button
+                      type="button"
+                      className="pedido-btn ghost"
+                      disabled={pushSubscription.busy}
+                      onClick={() => (pushSubscription.subscribed ? pushSubscription.unsubscribe() : pushSubscription.subscribe())}
+                    >
+                      {pushSubscription.subscribed
+                        ? "Notificacoes ativadas ✓"
+                        : (pushSubscription.busy ? "A ativar..." : "🔔 Avisar quando o estafeta sair")}
+                    </button>
+                  ) : null}
 
                   <InHouseTrackingMap
                     orderId={details.order?.id}

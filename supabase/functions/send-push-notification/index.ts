@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ALLOWED_SUBSCRIPTION_TABLES = new Set(["estafeta_push_subscriptions", "customer_push_subscriptions"]);
+
 function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -41,6 +43,9 @@ Deno.serve(async (req) => {
     const title = String(payload?.title || "PedeJa");
     const body = String(payload?.body || "");
     const url = String(payload?.url || "/");
+    const table = ALLOWED_SUBSCRIPTION_TABLES.has(String(payload?.table || ""))
+      ? String(payload.table)
+      : "estafeta_push_subscriptions";
 
     if (!Number.isFinite(idutilizador)) {
       return json({ error: "idutilizador em falta ou invalido" }, 400);
@@ -48,7 +53,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
     const { data: subscriptions, error: subsError } = await supabase
-      .from("estafeta_push_subscriptions")
+      .from(table)
       .select("id, endpoint, subscription")
       .eq("idutilizador", idutilizador)
       .eq("ativo", true);
@@ -83,7 +88,7 @@ Deno.serve(async (req) => {
     });
 
     if (staleIds.length > 0) {
-      await supabase.from("estafeta_push_subscriptions").update({ ativo: false }).in("id", staleIds);
+      await supabase.from(table).update({ ativo: false }).in("id", staleIds);
     }
 
     return json({ ok: true, sent, total: subscriptions.length, deactivated: staleIds.length });
