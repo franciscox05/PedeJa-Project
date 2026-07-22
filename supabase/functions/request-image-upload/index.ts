@@ -33,7 +33,7 @@ async function isAuthorizedForLoja(
   const [ownerRes, staffRes, adminRes] = await Promise.all([
     supabase.from("lojas").select("idloja").eq("idloja", lojaId).eq("idutilizador", callerUserId).maybeSingle(),
     supabase.from("restaurant_staff_access").select("loja_id").eq("loja_id", lojaId).eq("user_id", String(callerUserId)).maybeSingle(),
-    supabase.from("app_admins").select("user_id").eq("user_id", String(callerUserId)).maybeSingle(),
+    supabase.rpc("is_caller_admin", { caller_user_id: callerUserId }),
   ]);
 
   if (ownerRes.error) throw ownerRes.error;

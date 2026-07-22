@@ -183,12 +183,12 @@ async function fetchEstafetaProfile(userId) {
   return data.estafeta;
 }
 
-async function checkAdminOverride(userId) {
+async function checkIsAdmin(userId) {
   if (!userId) return false;
 
-  // app_admins nao tem policy de leitura direta (RLS fechada, tal como
-  // orders/estafetas): o acesso passa pela RPC SECURITY DEFINER
-  // is_caller_admin, que tambem cobre a via utilizadorespermissoes.
+  // Fonte de verdade unica para "e admin?": utilizadorespermissoes
+  // (permissao = 'admin'), verificada server-side via RPC SECURITY DEFINER
+  // is_caller_admin (a tabela nao tem policy de leitura direta).
   const { data, error } = await supabase.rpc("is_caller_admin", { caller_user_id: userId });
   if (error) return false;
   return Boolean(data);
@@ -222,11 +222,11 @@ export async function buildSessionFromLoginPayload(loginPayload, identifier = ""
   const userId = userRow?.idutilizador || payloadUserId;
   const candidateIds = toCandidateIds({ userId, userRow, payload, identifier });
 
-  const [permissionRows, ownedStores, staffLinks, adminOverride, estafetaProfile] = await Promise.all([
+  const [permissionRows, ownedStores, staffLinks, isAdmin, estafetaProfile] = await Promise.all([
     fetchPermissionsForUser(userId),
     fetchOwnedStores(userId),
     fetchRestaurantStaffLinks(candidateIds),
-    checkAdminOverride(userId),
+    checkIsAdmin(userId),
     fetchEstafetaProfile(userId),
   ]);
 
@@ -241,7 +241,7 @@ export async function buildSessionFromLoginPayload(loginPayload, identifier = ""
   const lojaId = payloadStoreId || staffStoreId || ownerStoreId || null;
 
   let resolvedRole = "customer";
-  if (adminOverride) {
+  if (isAdmin) {
     resolvedRole = "admin";
   } else if (roleFromPayload && roleFromPayload !== "customer") {
     resolvedRole = roleFromPayload;
@@ -277,7 +277,7 @@ export async function buildSessionFromLoginPayload(loginPayload, identifier = ""
     idloja: lojaId,
     lojas_ids: lojasIds,
     restaurant_staff_role: staffLinks[0]?.role || null,
-    is_admin: adminOverride || resolvedRole === "admin",
+    is_admin: isAdmin || resolvedRole === "admin",
     estafeta_id: estafetaProfile?.id || null,
   };
 }

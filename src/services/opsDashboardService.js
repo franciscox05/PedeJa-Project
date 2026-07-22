@@ -1116,7 +1116,6 @@ export async function fetchAdminCustomerInsights(input = 30, callerUserId = null
       usersRes,
       ordersRes,
       storesRes,
-      adminsRes,
       staffAccessRes,
       permissionsRes,
     ] = await Promise.all([
@@ -1133,9 +1132,6 @@ export async function fetchAdminCustomerInsights(input = 30, callerUserId = null
         .from("lojas")
         .select("idloja, nome"),
       supabase
-        .from("app_admins")
-        .select("user_id"),
-      supabase
         .from("restaurant_staff_access")
         .select("user_id"),
       supabase
@@ -1146,7 +1142,6 @@ export async function fetchAdminCustomerInsights(input = 30, callerUserId = null
     if (usersRes.error) throw usersRes.error;
     if (ordersRes.error) throw ordersRes.error;
     if (storesRes.error) throw storesRes.error;
-    if (adminsRes.error) throw adminsRes.error;
     if (staffAccessRes.error) throw staffAccessRes.error;
     if (permissionsRes.error) throw permissionsRes.error;
 
@@ -1155,10 +1150,9 @@ export async function fetchAdminCustomerInsights(input = 30, callerUserId = null
 
     const storeNameById = new Map((storesRes.data || []).map((store) => [String(store.idloja), store.nome || `Loja ${store.idloja}`]));
 
-    const excludedUserIds = new Set([
-      ...(adminsRes.data || []).map((row) => String(row.user_id || "").trim()).filter(Boolean),
-      ...(staffAccessRes.data || []).map((row) => String(row.user_id || "").trim()).filter(Boolean),
-    ]);
+    const excludedUserIds = new Set(
+      (staffAccessRes.data || []).map((row) => String(row.user_id || "").trim()).filter(Boolean),
+    );
 
     (permissionsRes.data || []).forEach((row) => {
       const permissionName = Array.isArray(row.permissoes)
