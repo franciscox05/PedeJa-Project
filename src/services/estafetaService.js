@@ -183,6 +183,14 @@ export async function adminSetEstafetaAtivo(callerUserId, estafetaId, ativo) {
   return unwrap(response, "adminSetEstafetaAtivo");
 }
 
+export async function adminResetEstafetaPassword(callerUserId, estafetaId) {
+  const response = await supabase.rpc("admin_reset_estafeta_password", {
+    caller_user_id: toInt(callerUserId),
+    estafeta_id_input: toInt(estafetaId),
+  });
+  return unwrap(response, "adminResetEstafetaPassword");
+}
+
 // ---------------------------------------------------------------------------
 // Avaliacoes do cliente ao estafeta (Fase 4 backlog)
 // ---------------------------------------------------------------------------

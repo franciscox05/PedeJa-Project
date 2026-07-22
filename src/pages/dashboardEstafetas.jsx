@@ -18,6 +18,7 @@ import { getEstadoInternoLabelPt, getEstadoInternoTagClass, resolveOrderEstadoIn
 import {
   adminCreateEstafeta,
   adminSetEstafetaAtivo,
+  adminResetEstafetaPassword,
   assignDeliveryToEstafeta,
   buildActiveOrdersForBoard,
   buildEstafetaBoardEntries,
@@ -196,6 +197,23 @@ export default function DashboardEstafetas() {
       await load();
     } catch (toggleError) {
       toast.error(toggleError?.message || "Nao foi possivel atualizar o estafeta.");
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const handleResetPassword = async (estafeta) => {
+    const key = `reset-password-${estafeta.id}`;
+    setBusyKey(key);
+    try {
+      const result = await adminResetEstafetaPassword(callerUserId, estafeta.id);
+      toast.success(
+        `Password reposta para ${estafeta.nome || "estafeta"}! Nova password temporaria: ${result?.password_temporaria}`,
+        { duration: 15000 },
+      );
+      await load();
+    } catch (resetError) {
+      toast.error(resetError?.message || "Nao foi possivel repor a password.");
     } finally {
       setBusyKey("");
     }
@@ -413,13 +431,22 @@ export default function DashboardEstafetas() {
                     </td>
                     <td>{estafeta.total_entregas}</td>
                     <td>
-                      <button
-                        className="btn-dashboard secondary"
-                        disabled={busyKey === `ativo-${estafeta.id}`}
-                        onClick={() => handleToggleAtivo(estafeta)}
-                      >
-                        {estafeta.ativo ? "Desativar" : "Ativar"}
-                      </button>
+                      <div className="table-action-stack">
+                        <button
+                          className="btn-dashboard secondary"
+                          disabled={busyKey === `ativo-${estafeta.id}`}
+                          onClick={() => handleToggleAtivo(estafeta)}
+                        >
+                          {estafeta.ativo ? "Desativar" : "Ativar"}
+                        </button>
+                        <button
+                          className="btn-dashboard small secondary"
+                          disabled={busyKey === `reset-password-${estafeta.id}`}
+                          onClick={() => handleResetPassword(estafeta)}
+                        >
+                          {busyKey === `reset-password-${estafeta.id}` ? "..." : "Repor password"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
