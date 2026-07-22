@@ -74,6 +74,17 @@ export function AuthProvider({ children }) {
     return refreshed;
   }, []);
 
+  useEffect(() => {
+    // Revalida o papel/permissoes no servidor ao abrir a app -- sem isto,
+    // uma mudanca de permissao (ex: remover admin a alguem) so se refletia
+    // depois de um logout/login manual, porque o resto da app confia so no
+    // que ficou guardado no localStorage no momento do login.
+    if (readStoredUser()) {
+      refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const role = resolveUserRole(user);
 
   const value = {

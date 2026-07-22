@@ -243,7 +243,12 @@ export async function buildSessionFromLoginPayload(loginPayload, identifier = ""
   let resolvedRole = "customer";
   if (isAdmin) {
     resolvedRole = "admin";
-  } else if (roleFromPayload && roleFromPayload !== "customer") {
+  } else if (roleFromPayload && roleFromPayload !== "customer" && roleFromPayload !== "admin") {
+    // "admin" nunca e aceite a partir do payload -- so a verificacao fresca
+    // (isAdmin, acima) pode conceder esse papel. Sem isto, refreshSessionFromStoredUser
+    // (que reutiliza o objeto de sessao antigo como "payload") reintroduzia
+    // o proprio is_admin/role="admin" que estavamos a tentar revalidar,
+    // criando um ciclo em que o admin removido nunca deixava de parecer admin.
     resolvedRole = roleFromPayload;
   } else if (roleFromPermissions && roleFromPermissions !== "customer") {
     resolvedRole = roleFromPermissions;
@@ -271,7 +276,10 @@ export async function buildSessionFromLoginPayload(loginPayload, identifier = ""
     role: resolvedRole,
     permissao: resolvedRole,
     permission: resolvedRole,
-    permissao_raw: permissionNames[0] || payload.permissao || payload.role || null,
+    // So usa o nome de permissao fresco (da BD); nunca o do payload antigo --
+    // mesmo motivo do resolvedRole acima (refreshSessionFromStoredUser reutiliza
+    // a sessao antiga como payload, e essa continha o proprio valor a rever).
+    permissao_raw: permissionNames[0] || null,
     idpermissao: permissionRows[0]?.idpermissao || null,
     loja_id: lojaId,
     idloja: lojaId,
