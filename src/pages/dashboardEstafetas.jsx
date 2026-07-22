@@ -22,8 +22,12 @@ import {
   assignDeliveryToEstafeta,
   buildActiveOrdersForBoard,
   buildEstafetaBoardEntries,
+  createEstafetaLiquidacao,
+  fetchAdminDeliveryOpsReport,
   forceDeliverAssignment,
+  getEstafetaPendingPayout,
   listActiveAtribuicoes,
+  listEstafetaLiquidacoes,
   listEstafetasForDispatch,
   reassignDeliveryToEstafeta,
 } from "../services/estafetaService";
@@ -60,6 +64,8 @@ export default function DashboardEstafetas() {
   const [assignSelection, setAssignSelection] = useState({});
   const [reassignTarget, setReassignTarget] = useState(null);
   const [reassignSelection, setReassignSelection] = useState("");
+  const [payoutModal, setPayoutModal] = useState({ open: false, estafeta: null, pending: null, history: [], loading: false });
+  const [opsReport, setOpsReport] = useState({ loading: true, error: "", data: null });
 
   const load = useCallback(async () => {
     if (!Number.isFinite(callerUserId)) return;
@@ -113,6 +119,21 @@ export default function DashboardEstafetas() {
     const timer = setInterval(load, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [load]);
+
+  const loadOpsReport = useCallback(async () => {
+    if (!Number.isFinite(callerUserId)) return;
+    setOpsReport((prev) => ({ ...prev, loading: true, error: "" }));
+    try {
+      const data = await fetchAdminDeliveryOpsReport(callerUserId, 30, 45);
+      setOpsReport({ loading: false, error: "", data });
+    } catch (reportError) {
+      setOpsReport({ loading: false, error: reportError?.message || "Nao foi possivel carregar o relatorio.", data: null });
+    }
+  }, [callerUserId]);
+
+  useEffect(() => {
+    loadOpsReport();
+  }, [loadOpsReport]);
 
   const storeNameById = useMemo(
     () => new Map(stores.map((store) => [String(store?.idloja || ""), store?.nome || `Loja ${store?.idloja}`])),
@@ -219,6 +240,38 @@ export default function DashboardEstafetas() {
     }
   };
 
+  const handleOpenPayoutModal = async (estafeta) => {
+    setPayoutModal({ open: true, estafeta, pending: null, history: [], loading: true });
+    try {
+      const [pending, history] = await Promise.all([
+        getEstafetaPendingPayout(callerUserId, estafeta.id),
+        listEstafetaLiquidacoes(callerUserId, estafeta.id),
+      ]);
+      setPayoutModal({ open: true, estafeta, pending, history, loading: false });
+    } catch (payoutError) {
+      toast.error(payoutError?.message || "Nao foi possivel carregar os pagamentos deste estafeta.");
+      setPayoutModal({ open: false, estafeta: null, pending: null, history: [], loading: false });
+    }
+  };
+
+  const handleClosePayoutModal = () => {
+    setPayoutModal({ open: false, estafeta: null, pending: null, history: [], loading: false });
+  };
+
+  const handleConfirmPayout = async () => {
+    if (!payoutModal.estafeta) return;
+    setBusyKey(`payout-${payoutModal.estafeta.id}`);
+    try {
+      await createEstafetaLiquidacao(callerUserId, payoutModal.estafeta.id);
+      toast.success(`Pagamento registado para ${payoutModal.estafeta.nome}.`);
+      await handleOpenPayoutModal(payoutModal.estafeta);
+    } catch (payoutError) {
+      toast.error(payoutError?.message || "Nao foi possivel registar o pagamento.");
+    } finally {
+      setBusyKey("");
+    }
+  };
+
   const handleCreateEstafeta = async (event) => {
     event.preventDefault();
     setBusyKey("create");
@@ -254,7 +307,7 @@ export default function DashboardEstafetas() {
         subtitle="Ativa o dispatch interno por loja, gere estafetas e atribui pedidos manualmente."
         actions={(
           <>
-            <button className="btn-dashboard" onClick={load}>Atualizar</button>
+            <button className="btn-dashboard" onClick={() => { load(); loadOpsReport(); }}>Atualizar</button>
             <button className="btn-dashboard secondary" onClick={() => setShowCreateForm((prev) => !prev)}>
               {showCreateForm ? "Cancelar" : "Novo estafeta"}
             </button>
@@ -446,6 +499,12 @@ export default function DashboardEstafetas() {
                         >
                           {busyKey === `reset-password-${estafeta.id}` ? "..." : "Repor password"}
                         </button>
+                        <button
+                          className="btn-dashboard small secondary"
+                          onClick={() => handleOpenPayoutModal(estafeta)}
+                        >
+                          Pagamentos
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -458,6 +517,144 @@ export default function DashboardEstafetas() {
           </div>
         </DashboardPanel>
       </section>
+
+      <section className="dashboard-stack">
+        <DashboardPanel
+          title="Relatorio de operacao"
+          description={`Ultimos ${opsReport.data?.period_days || 30} dias. Entregas a tempo: dentro de ${opsReport.data?.on_time_threshold_minutes || 45} min desde o pedido.`}
+        >
+          {opsReport.error ? <p className="shipday-inline-error">{opsReport.error}</p> : null}
+
+          <div className="dashboard-grid premium-grid" style={{ marginBottom: 20 }}>
+            <article className="metric-card premium">
+              <div className="metric-label">Taxa de entregas a tempo</div>
+              <div className="metric-value">
+                {opsReport.data?.on_time_rate_percent === null || opsReport.data?.on_time_rate_percent === undefined
+                  ? "-"
+                  : `${opsReport.data.on_time_rate_percent}%`}
+              </div>
+            </article>
+            <article className="metric-card premium">
+              <div className="metric-label">Entregas concluidas</div>
+              <div className="metric-value">{opsReport.data?.total_delivered ?? 0}</div>
+            </article>
+            <article className="metric-card premium">
+              <div className="metric-label">Entregas falhadas/canceladas</div>
+              <div className="metric-value">{opsReport.data?.failed_deliveries?.length ?? 0}</div>
+            </article>
+          </div>
+
+          <div className="table-wrap">
+            <table className="ops-table">
+              <thead>
+                <tr>
+                  <th>Estafeta</th>
+                  <th>Concluidas</th>
+                  <th>Canceladas</th>
+                  <th>Rejeitados</th>
+                  <th>Tempo medio</th>
+                  <th>Avaliacao</th>
+                </tr>
+              </thead>
+              <tbody>
+                {opsReport.loading ? (
+                  <tr><td colSpan={6} className="muted">A carregar relatorio...</td></tr>
+                ) : (opsReport.data?.leaderboard || []).map((row) => (
+                  <tr key={`leaderboard-${row.estafeta_id}`}>
+                    <td>{row.nome}</td>
+                    <td>{row.entregas_concluidas}</td>
+                    <td>{row.entregas_canceladas}</td>
+                    <td>{row.pedidos_rejeitados}</td>
+                    <td>{row.tempo_medio_min ? `${row.tempo_medio_min} min` : "-"}</td>
+                    <td>{Number(row.avaliacao_media ?? 5).toFixed(1)} ★</td>
+                  </tr>
+                ))}
+                {!opsReport.loading && (opsReport.data?.leaderboard || []).length === 0 ? (
+                  <DashboardEmptyState as="tableRow" colSpan={6} label="Sem dados de estafetas para mostrar." />
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </DashboardPanel>
+
+        <DashboardPanel title="Entregas falhadas/canceladas" description="Ultimas 50 no periodo selecionado.">
+          <div className="table-wrap">
+            <table className="ops-table">
+              <thead>
+                <tr><th>Pedido</th><th>Cliente</th><th>Estafeta</th><th>Motivo</th><th>Quando</th></tr>
+              </thead>
+              <tbody>
+                {(opsReport.data?.failed_deliveries || []).map((item) => (
+                  <tr key={`failed-${item.id}`}>
+                    <td>#{item.order_id}</td>
+                    <td>{item.customer_nome}</td>
+                    <td>{item.estafeta_nome}</td>
+                    <td>{item.motivo_cancelamento || "-"}</td>
+                    <td>{item.cancelado_em ? new Date(item.cancelado_em).toLocaleString("pt-PT") : "-"}</td>
+                  </tr>
+                ))}
+                {!opsReport.loading && (opsReport.data?.failed_deliveries || []).length === 0 ? (
+                  <DashboardEmptyState as="tableRow" colSpan={5} label="Sem entregas falhadas ou canceladas no periodo." />
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </DashboardPanel>
+      </section>
+
+      <Modal
+        open={payoutModal.open}
+        title={`Pagamentos - ${payoutModal.estafeta?.nome || ""}`}
+        onClose={handleClosePayoutModal}
+        actions={(
+          <>
+            <Button variant="outline" onClick={handleClosePayoutModal} disabled={busyKey.startsWith("payout-")}>
+              Fechar
+            </Button>
+            <Button
+              onClick={handleConfirmPayout}
+              disabled={busyKey.startsWith("payout-") || payoutModal.loading || !payoutModal.pending?.entregas_pendentes}
+            >
+              {busyKey.startsWith("payout-") ? "A registar..." : "Marcar como pago"}
+            </Button>
+          </>
+        )}
+      >
+        {payoutModal.loading ? (
+          <p className="muted">A carregar pagamentos...</p>
+        ) : (
+          <>
+            <p className="estafeta-order-card-meta" style={{ marginTop: 0 }}>
+              Valor pendente de pagamento: <strong>{Number(payoutModal.pending?.valor_pendente || 0).toFixed(2)}EUR</strong>
+              {" "}({payoutModal.pending?.entregas_pendentes || 0} entregas por liquidar).
+            </p>
+
+            {payoutModal.history.length > 0 ? (
+              <>
+                <p className="estafeta-order-card-meta"><strong>Historico de pagamentos</strong></p>
+                <div className="table-wrap">
+                  <table className="ops-table">
+                    <thead>
+                      <tr><th>Data</th><th>Valor</th><th>Entregas</th></tr>
+                    </thead>
+                    <tbody>
+                      {payoutModal.history.map((item) => (
+                        <tr key={item.id}>
+                          <td>{new Date(item.criado_em).toLocaleString("pt-PT")}</td>
+                          <td>{Number(item.valor_total || 0).toFixed(2)}EUR</td>
+                          <td>{item.entregas_incluidas}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <p className="muted">Ainda sem pagamentos registados para este estafeta.</p>
+            )}
+          </>
+        )}
+      </Modal>
 
       <Modal
         open={Boolean(reassignTarget)}

@@ -16,6 +16,7 @@ import {
   changeEstafetaPassword,
   fetchMyEstafetaEarningsByDay,
   fetchMyEstafetaHistory,
+  fetchMyEstafetaLiquidacoes,
   fetchMyEstafetaState,
   toggleEstafetaOnline,
   uploadDeliveryProofPhoto,
@@ -40,6 +41,7 @@ export default function EstafetaDashboard() {
   const [state, setState] = useState(null);
   const [history, setHistory] = useState([]);
   const [earningsByDay, setEarningsByDay] = useState([]);
+  const [liquidacoes, setLiquidacoes] = useState([]);
   const [loadingState, setLoadingState] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingEarnings, setLoadingEarnings] = useState(false);
@@ -100,12 +102,23 @@ export default function EstafetaDashboard() {
     }
   }, [callerUserId]);
 
+  const loadLiquidacoes = useCallback(async () => {
+    if (!callerUserId) return;
+    try {
+      const data = await fetchMyEstafetaLiquidacoes(callerUserId);
+      setLiquidacoes(data);
+    } catch (error) {
+      console.error("Estafeta dashboard: falha ao carregar pagamentos", { error: error?.message });
+    }
+  }, [callerUserId]);
+
   useEffect(() => {
     if (activeTab === "historico") {
       loadHistory();
       loadEarnings();
+      loadLiquidacoes();
     }
-  }, [activeTab, loadHistory, loadEarnings]);
+  }, [activeTab, loadHistory, loadEarnings, loadLiquidacoes]);
 
   const handleToggleOnline = async (nextOnline) => {
     setBusy(true);
@@ -277,6 +290,7 @@ export default function EstafetaDashboard() {
           loading={loadingHistory}
           earningsByDay={earningsByDay}
           loadingEarnings={loadingEarnings}
+          liquidacoes={liquidacoes}
         />
       ) : null}
       {activeTab === "perfil" ? (

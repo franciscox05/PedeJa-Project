@@ -31,10 +31,28 @@ function formatDuration(startValue, endValue) {
   return `${Math.floor(totalMinutes / 60)}h${String(totalMinutes % 60).padStart(2, "0")}`;
 }
 
-export default function EstafetaHistoryTab({ history, loading, earningsByDay, loadingEarnings }) {
+export default function EstafetaHistoryTab({ history, loading, earningsByDay, loadingEarnings, liquidacoes = [] }) {
   return (
     <div className="dashboard-tab-section">
       <EstafetaEarningsChart earningsByDay={earningsByDay} loading={loadingEarnings} />
+
+      {liquidacoes.length > 0 ? (
+        <div className="estafeta-history-list" style={{ marginBottom: 20 }}>
+          <p className="estafeta-order-card-meta"><strong>Pagamentos recebidos</strong></p>
+          {liquidacoes.map((item) => (
+            <div className="estafeta-history-row" key={item.id}>
+              <div className="estafeta-history-row-main">
+                <span className="estafeta-history-row-title">Pagamento de {item.entregas_incluidas} entregas</span>
+                <span className="estafeta-history-row-meta">{formatDateTime(item.criado_em)}</span>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div className="tag ok">Pago</div>
+                <div className="estafeta-history-row-meta">{formatCurrency(item.valor_total)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {loading ? (
         <p className="muted">A carregar histórico...</p>

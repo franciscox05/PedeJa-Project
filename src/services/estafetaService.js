@@ -223,6 +223,55 @@ export async function adminResetEstafetaPassword(callerUserId, estafetaId) {
 }
 
 // ---------------------------------------------------------------------------
+// Pagamentos/liquidacoes de estafetas
+// ---------------------------------------------------------------------------
+
+export async function getEstafetaPendingPayout(callerUserId, estafetaId) {
+  const response = await supabase.rpc("admin_get_estafeta_pending_payout", {
+    caller_user_id: toInt(callerUserId),
+    estafeta_id_input: toInt(estafetaId),
+  });
+  return unwrap(response, "getEstafetaPendingPayout");
+}
+
+export async function createEstafetaLiquidacao(callerUserId, estafetaId, notas = null) {
+  const response = await supabase.rpc("admin_create_estafeta_liquidacao", {
+    caller_user_id: toInt(callerUserId),
+    estafeta_id_input: toInt(estafetaId),
+    notas_input: notas,
+  });
+  return unwrap(response, "createEstafetaLiquidacao");
+}
+
+export async function listEstafetaLiquidacoes(callerUserId, estafetaId) {
+  const response = await supabase.rpc("admin_list_estafeta_liquidacoes", {
+    caller_user_id: toInt(callerUserId),
+    estafeta_id_input: toInt(estafetaId),
+  });
+  return unwrap(response, "listEstafetaLiquidacoes") || [];
+}
+
+export async function fetchMyEstafetaLiquidacoes(callerUserId) {
+  const response = await supabase.rpc("estafeta_get_my_liquidacoes", {
+    caller_user_id: toInt(callerUserId),
+  });
+  return unwrap(response, "fetchMyEstafetaLiquidacoes") || [];
+}
+
+// ---------------------------------------------------------------------------
+// Relatorio de operacao (admin)
+// ---------------------------------------------------------------------------
+
+export async function fetchAdminDeliveryOpsReport(callerUserId, days = 30, onTimeThresholdMinutes = 45) {
+  const response = await supabase.rpc("admin_get_delivery_ops_report", {
+    caller_user_id: toInt(callerUserId),
+    days_input: days,
+    on_time_threshold_minutes_input: onTimeThresholdMinutes,
+  });
+  return unwrap(response, "fetchAdminDeliveryOpsReport");
+}
+
+// ---------------------------------------------------------------------------
 // Avaliacoes do cliente ao estafeta (Fase 4 backlog)
 // ---------------------------------------------------------------------------
 
