@@ -205,14 +205,13 @@ export default function EstafetaDashboard() {
   };
 
   const handleConfirmDelivery = async () => {
-    if (!deliveryProofTarget || !proofPhotoFile) {
-      toast.error("Tira uma foto da entrega antes de confirmar.");
-      return;
-    }
+    if (!deliveryProofTarget) return;
 
     setBusy(true);
     try {
-      const photoUrl = await uploadDeliveryProofPhoto(callerUserId, deliveryProofTarget, proofPhotoFile);
+      const photoUrl = proofPhotoFile
+        ? await uploadDeliveryProofPhoto(callerUserId, deliveryProofTarget, proofPhotoFile)
+        : null;
       await advanceDeliveryStatus(callerUserId, deliveryProofTarget, "entregue", photoUrl);
       toast.success("Entrega confirmada!");
       handleCloseProofModal();
@@ -352,14 +351,14 @@ export default function EstafetaDashboard() {
             <Button variant="outline" onClick={handleCloseProofModal} disabled={busy}>
               Voltar
             </Button>
-            <Button onClick={handleConfirmDelivery} disabled={busy || !proofPhotoFile}>
+            <Button onClick={handleConfirmDelivery} disabled={busy}>
               {busy ? "A confirmar..." : "Confirmar entrega"}
             </Button>
           </>
         )}
       >
         <p className="estafeta-order-card-meta" style={{ marginTop: 0 }}>
-          Tira uma foto da entrega (porta, receção, etc.) como prova. É obrigatória para marcar o pedido como entregue.
+          Podes tirar uma foto da entrega (porta, receção, etc.) como prova. É opcional.
         </p>
         <input
           type="file"
