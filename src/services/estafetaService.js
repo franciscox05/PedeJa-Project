@@ -110,6 +110,14 @@ export async function advanceDeliveryStatus(callerUserId, assignmentId, newEstad
   return unwrap(response, "advanceDeliveryStatus");
 }
 
+export async function revertDeliveryStatus(callerUserId, assignmentId) {
+  const response = await supabase.rpc("estafeta_revert_status", {
+    caller_user_id: toInt(callerUserId),
+    assignment_id_input: toInt(assignmentId),
+  });
+  return unwrap(response, "revertDeliveryStatus");
+}
+
 export async function uploadDeliveryProofPhoto(callerUserId, assignmentId, file) {
   if (!file) return null;
 

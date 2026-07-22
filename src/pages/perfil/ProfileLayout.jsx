@@ -1,4 +1,4 @@
-import { Link, NavLink, Navigate, Outlet, useOutletContext } from "react-router-dom";
+import { Link, NavLink, Navigate, Outlet } from "react-router-dom";
 import Logo from "../../components/Logo";
 import LoginButton from "../../components/LoginButton";
 import CartWidget from "../../components/CartWidget";
@@ -9,12 +9,15 @@ import { getDefaultPathByRole, resolveUserRole } from "../../utils/roles";
 import userGif from "../../assets/img/perfil.gif";
 import "../../css/pages/perfil.css";
 
+// Sem restricao por papel: uma conta admin/restaurante/estafeta pode ter
+// feito pedidos, favoritos ou moradas como cliente (nada no checkout impede
+// isso), por isso todos os separadores ficam visiveis a qualquer sessao.
 const TABS = [
-  { path: "pedidos", label: "Pedidos", roles: ["customer"] },
-  { path: "favoritos", label: "Favoritos", roles: ["customer"] },
+  { path: "pedidos", label: "Pedidos" },
+  { path: "favoritos", label: "Favoritos" },
   { path: "dados", label: "Dados pessoais" },
   { path: "seguranca", label: "Segurança" },
-  { path: "moradas", label: "Moradas", roles: ["customer"] },
+  { path: "moradas", label: "Moradas" },
 ];
 
 export default function ProfileLayout() {
@@ -59,7 +62,7 @@ export default function ProfileLayout() {
             </header>
 
             <nav className="profile-tabs" aria-label="Secoes do perfil">
-              {TABS.filter((tab) => !tab.roles || tab.roles.includes(role)).map((tab) => (
+              {TABS.map((tab) => (
                 <NavLink
                   key={tab.path}
                   to={`/perfil/${tab.path}`}
@@ -84,6 +87,5 @@ export default function ProfileLayout() {
 }
 
 export function ProfileIndexRedirect() {
-  const { role } = useOutletContext();
-  return <Navigate to={role === "customer" ? "pedidos" : "dados"} replace />;
+  return <Navigate to="pedidos" replace />;
 }

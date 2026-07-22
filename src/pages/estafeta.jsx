@@ -18,6 +18,7 @@ import {
   fetchMyEstafetaHistory,
   fetchMyEstafetaLiquidacoes,
   fetchMyEstafetaState,
+  revertDeliveryStatus,
   toggleEstafetaOnline,
   uploadDeliveryProofPhoto,
 } from "../services/estafetaService";
@@ -172,6 +173,19 @@ export default function EstafetaDashboard() {
     }
   };
 
+  const handleRevert = async (assignmentId) => {
+    setBusy(true);
+    try {
+      await revertDeliveryStatus(callerUserId, assignmentId);
+      toast.success("Estado revertido.");
+      await loadState();
+    } catch (error) {
+      toast.error(error?.message || "Não foi possível voltar atrás no estado do pedido.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleRequestDeliveryProof = (assignmentId) => {
     setDeliveryProofTarget(assignmentId);
     setProofPhotoFile(null);
@@ -279,6 +293,7 @@ export default function EstafetaDashboard() {
           onAccept={handleAccept}
           onReject={handleReject}
           onAdvance={handleAdvance}
+          onRevert={handleRevert}
           onRequestDeliveryProof={handleRequestDeliveryProof}
           onCancel={(assignmentId) => setCancelTarget(assignmentId)}
           busy={busy}

@@ -224,6 +224,7 @@ export default function EstafetaHomeTab({
   onReject,
   onAdvance,
   onRequestDeliveryProof,
+  onRevert,
   onCancel,
   busy,
 }) {
@@ -231,6 +232,9 @@ export default function EstafetaHomeTab({
   const isOnline = Boolean(estafeta?.online);
   const nextStep = activeAssignment ? NEXT_STEP_BY_ESTADO[activeAssignment.estado_interno] : null;
   const isFinalStep = nextStep?.estado === "entregue";
+  const canRevert = Boolean(
+    activeAssignment && ["recolhido", "pronto_entregar", "a_caminho"].includes(activeAssignment.estado_interno),
+  );
 
   return (
     <div className="dashboard-tab-section">
@@ -324,6 +328,11 @@ export default function EstafetaHomeTab({
           <OrderCardActions assignment={activeAssignment} />
 
           <div className="estafeta-order-card-actions">
+            {canRevert ? (
+              <Button variant="outline" onClick={() => onRevert(activeAssignment.id)} disabled={busy}>
+                Voltar atrás
+              </Button>
+            ) : null}
             {nextStep ? (
               <Button
                 onClick={() => (isFinalStep
