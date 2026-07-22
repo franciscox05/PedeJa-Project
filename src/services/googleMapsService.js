@@ -174,7 +174,7 @@ export function geocodeAddressWithGoogle(addressLine) {
   });
 }
 
-export function getDrivingDistanceKm(origin, destination) {
+function getDrivingDistanceMatrixElement(origin, destination) {
   return new Promise((resolve, reject) => {
     const originLat = Number(origin?.lat);
     const originLng = Number(origin?.lng);
@@ -213,16 +213,35 @@ export function getDrivingDistanceKm(origin, destination) {
               return;
             }
 
-            const meters = Number(element.distance?.value);
-            if (!Number.isFinite(meters)) {
-              reject(new Error("Distancia de conducao invalida."));
-              return;
-            }
-
-            resolve(meters / 1000);
+            resolve(element);
           },
         );
       })
       .catch(reject);
+  });
+}
+
+export function getDrivingDistanceKm(origin, destination) {
+  return getDrivingDistanceMatrixElement(origin, destination).then((element) => {
+    const meters = Number(element.distance?.value);
+    if (!Number.isFinite(meters)) {
+      throw new Error("Distancia de conducao invalida.");
+    }
+    return meters / 1000;
+  });
+}
+
+// Distancia + tempo de viagem reais (rede rodoviaria, via Google Distance
+// Matrix) em vez de uma estimativa em linha reta -- usado onde o numero e
+// mostrado a alguem que vai mesmo percorrer o trajeto (app do estafeta),
+// para nao destoar do que a estrada realmente exige.
+export function getDrivingRoute(origin, destination) {
+  return getDrivingDistanceMatrixElement(origin, destination).then((element) => {
+    const meters = Number(element.distance?.value);
+    const seconds = Number(element.duration?.value);
+    if (!Number.isFinite(meters) || !Number.isFinite(seconds)) {
+      throw new Error("Distancia/tempo de conducao invalidos.");
+    }
+    return { distanceKm: meters / 1000, durationMinutes: seconds / 60 };
   });
 }

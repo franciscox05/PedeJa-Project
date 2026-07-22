@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getEstadoInternoLabelPt, getEstadoInternoTone } from "../../services/orderStatusMapper";
 import { groupSelectedMenuOptionsForDisplay } from "../../services/menuOptionsService";
+import { getDrivingRoute } from "../../services/googleMapsService";
 
 const NEXT_STEP_BY_ESTADO = {
   estafeta_aceitou: { estado: "recolhido", label: "Marcar como recolhido", icon: "storefront" },
@@ -102,20 +103,41 @@ function EstafetaButton({ variant = "primary", size, icon, children, ...rest }) 
   );
 }
 
+// Mostra distancia/tempo reais de estrada (Google Distance Matrix) em vez de
+// linha reta -- a estimativa em linha reta fica so como fallback instantaneo
+// enquanto a chamada real nao responde (ou se falhar), porque em estradas
+// rurais como as da zona de Barcelos o desvio entre as duas pode ser grande.
 function DistanceEtaBadge({ estafeta, assignment, isPending }) {
   const isHeadingToStore = isPending || !assignment.recolhido_em;
   const targetLat = isHeadingToStore ? assignment.store_lat : assignment.customer_lat;
   const targetLng = isHeadingToStore ? assignment.store_lng : assignment.customer_lng;
-  const distanceKm = haversineKm(
-    estafeta?.ultima_localizacao_lat,
-    estafeta?.ultima_localizacao_lng,
-    targetLat,
-    targetLng,
-  );
+  const originLat = estafeta?.ultima_localizacao_lat;
+  const originLng = estafeta?.ultima_localizacao_lng;
 
-  if (distanceKm === null) return null;
+  const fallbackKm = haversineKm(originLat, originLng, targetLat, targetLng);
+  const routeKey = fallbackKm === null ? null : `${originLat},${originLng}|${targetLat},${targetLng}`;
+  const [route, setRoute] = useState(null);
 
-  const etaMinutes = Math.max(1, Math.round((distanceKm / resolveAvgSpeedKmh(estafeta?.veiculo)) * 60));
+  useEffect(() => {
+    if (!routeKey) return undefined;
+    let cancelled = false;
+    getDrivingRoute({ lat: originLat, lng: originLng }, { lat: targetLat, lng: targetLng })
+      .then((result) => {
+        if (!cancelled) setRoute({ key: routeKey, ...result });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [routeKey, originLat, originLng, targetLat, targetLng]);
+
+  if (fallbackKm === null) return null;
+
+  const hasRealRoute = route?.key === routeKey;
+  const distanceKm = hasRealRoute ? route.distanceKm : fallbackKm;
+  const etaMinutes = hasRealRoute
+    ? Math.max(1, Math.round(route.durationMinutes))
+    : Math.max(1, Math.round((fallbackKm / resolveAvgSpeedKmh(estafeta?.veiculo)) * 60));
 
   return (
     <p className="estafeta-order-card-eta">
