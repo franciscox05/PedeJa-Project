@@ -507,6 +507,185 @@
   font-size: 15px;
 }
 
+/* ---------- Tarefa em 2 paragens (recolha -> entrega) ---------- */
+
+.estafeta-task-earn {
+  margin: 0 0 14px;
+  font-size: 0.86rem;
+  color: var(--ped-ink-soft);
+}
+
+.estafeta-task-earn strong {
+  color: var(--ped-ink);
+  font-size: 1.05rem;
+}
+
+.estafeta-task-stops {
+  display: grid;
+  gap: 0;
+  margin-bottom: 4px;
+}
+
+.estafeta-task-stop {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 12px;
+  padding-bottom: 18px;
+}
+
+.estafeta-task-stop:last-child {
+  padding-bottom: 4px;
+}
+
+.estafeta-task-stop::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 34px;
+  bottom: 0;
+  width: 2px;
+  background: var(--ped-border);
+}
+
+.estafeta-task-stop:last-child::after {
+  display: none;
+}
+
+.estafeta-task-stop.is-done::after {
+  background: var(--ped-success);
+}
+
+.estafeta-task-stop-marker {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--ped-bg);
+  border: 2px solid var(--ped-border);
+  color: var(--ped-ink-faint);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.estafeta-task-stop-marker .material-icons {
+  font-size: 18px;
+}
+
+.estafeta-task-stop.is-done .estafeta-task-stop-marker {
+  background: var(--ped-success);
+  border-color: var(--ped-success);
+  color: #fff;
+}
+
+.estafeta-task-stop.is-current .estafeta-task-stop-marker {
+  background: var(--ped-red);
+  border-color: var(--ped-red);
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--ped-red-soft);
+}
+
+.estafeta-task-stop-body {
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.estafeta-task-stop-label {
+  margin: 0 0 2px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ped-ink-faint);
+}
+
+.estafeta-task-stop.is-current .estafeta-task-stop-label {
+  color: var(--ped-red);
+}
+
+.estafeta-task-stop-name {
+  margin: 0;
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: var(--ped-ink);
+}
+
+.estafeta-task-stop-address {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+  color: var(--ped-ink-soft);
+}
+
+.estafeta-task-stop-time {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ped-success);
+}
+
+.estafeta-task-cta-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.estafeta-task-cta-row .estafeta-btn {
+  flex: 1 1 0;
+  height: 52px;
+  font-size: 1rem;
+}
+
+.estafeta-task-primary-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 56px;
+  margin-top: 18px;
+  border: none;
+  border-radius: var(--ped-radius-md);
+  background: var(--ped-red);
+  color: #fff;
+  font-size: 1.02rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(230, 36, 41, 0.32);
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.estafeta-task-primary-cta:hover:not(:disabled) {
+  background: var(--ped-red-dark);
+}
+
+.estafeta-task-primary-cta:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.estafeta-task-primary-cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.estafeta-task-primary-cta .material-icons {
+  font-size: 22px;
+}
+
+.estafeta-task-secondary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.estafeta-link-btn--danger {
+  color: #b91c1c;
+  margin-left: auto;
+}
+
 /* ---------- Timeline ---------- */
 
 .estafeta-order-timeline {

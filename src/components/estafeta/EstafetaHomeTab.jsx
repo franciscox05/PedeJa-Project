@@ -102,8 +102,8 @@ function EstafetaButton({ variant = "primary", size, icon, children, ...rest }) 
   );
 }
 
-function DistanceEtaBadge({ estafeta, assignment }) {
-  const isHeadingToStore = !assignment.recolhido_em;
+function DistanceEtaBadge({ estafeta, assignment, isPending }) {
+  const isHeadingToStore = isPending || !assignment.recolhido_em;
   const targetLat = isHeadingToStore ? assignment.store_lat : assignment.customer_lat;
   const targetLng = isHeadingToStore ? assignment.store_lng : assignment.customer_lng;
   const distanceKm = haversineKm(
@@ -122,6 +122,45 @@ function DistanceEtaBadge({ estafeta, assignment }) {
       <span className="material-icons" aria-hidden="true">near_me</span>
       {isHeadingToStore ? "Até à loja" : "Até ao cliente"}: ~{distanceKm.toFixed(1)} km · ~{etaMinutes} min
     </p>
+  );
+}
+
+// Viagem em 2 paragens (recolha na loja -> entrega ao cliente), no padrao
+// usado por apps de dispatch de estafetas -- a paragem atual fica destacada,
+// a concluida fica com o visto e esbatida.
+function TaskStops({ assignment, isPending }) {
+  const pickupDone = !isPending && Boolean(assignment.recolhido_em);
+  const deliveryDone = !isPending && Boolean(assignment.entregue_em);
+  const pickupIsCurrent = !pickupDone;
+  const deliveryIsCurrent = pickupDone && !deliveryDone;
+
+  return (
+    <div className="estafeta-task-stops">
+      <div className={`estafeta-task-stop${pickupDone ? " is-done" : ""}${pickupIsCurrent ? " is-current" : ""}`}>
+        <span className="estafeta-task-stop-marker">
+          <span className="material-icons" aria-hidden="true">{pickupDone ? "check" : "storefront"}</span>
+        </span>
+        <div className="estafeta-task-stop-body">
+          <p className="estafeta-task-stop-label">Recolha</p>
+          <p className="estafeta-task-stop-name">{assignment.store_nome || `Loja ${assignment.loja_id}`}</p>
+          <p className="estafeta-task-stop-address">{assignment.store_morada || "Morada não disponível"}</p>
+          {pickupDone && assignment.recolhido_em ? (
+            <p className="estafeta-task-stop-time">Recolhido às {formatDateTime(assignment.recolhido_em)}</p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className={`estafeta-task-stop${deliveryDone ? " is-done" : ""}${deliveryIsCurrent ? " is-current" : ""}`}>
+        <span className="estafeta-task-stop-marker">
+          <span className="material-icons" aria-hidden="true">{deliveryDone ? "check" : "person_pin_circle"}</span>
+        </span>
+        <div className="estafeta-task-stop-body">
+          <p className="estafeta-task-stop-label">Entrega</p>
+          <p className="estafeta-task-stop-name">{assignment.customer_nome}</p>
+          <p className="estafeta-task-stop-address">{assignment.customer_address}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -175,6 +214,7 @@ function OrderDetailPanel({ assignment, showTimeline }) {
   return (
     <div className="estafeta-order-detail-panel">
       <div className="estafeta-order-detail-times">
+        <p className="estafeta-order-card-meta">Total do pedido: <strong>{formatCurrency(assignment.total)}</strong></p>
         {orderTime ? <p className="estafeta-order-card-meta">Pedido feito às {orderTime}</p> : null}
         {scheduledTime ? (
           <p className="estafeta-order-card-meta">Entrega agendada para {scheduledTime}</p>
@@ -200,19 +240,37 @@ function OrderDetailPanel({ assignment, showTimeline }) {
   );
 }
 
-function OrderCardActions({ assignment }) {
-  const storeMapsUrl = buildMapsUrl(assignment.store_morada, assignment.store_lat, assignment.store_lng);
+// Acoes de contacto/navegacao focadas so na paragem atual da tarefa (loja
+// enquanto nao ha recolha, cliente depois) -- em vez de mostrar sempre os 4
+// botoes, guia o estafeta passo a passo como um app de dispatch a serio.
+function TaskStopActions({ assignment, isPending }) {
+  const pickupDone = !isPending && Boolean(assignment.recolhido_em);
+
+  if (!pickupDone) {
+    const storeMapsUrl = buildMapsUrl(assignment.store_morada, assignment.store_lat, assignment.store_lng);
+    const storeTelUrl = buildTelUrl(assignment.store_contacto);
+    return (
+      <div className="estafeta-order-card-actions">
+        <EstafetaButton variant="outline" size="sm" icon="storefront" onClick={() => openExternal(storeMapsUrl)}>
+          Navegar até à loja
+        </EstafetaButton>
+        {storeTelUrl ? (
+          <EstafetaButton variant="outline" size="sm" icon="call" onClick={() => openExternal(storeTelUrl)}>
+            Ligar à loja
+          </EstafetaButton>
+        ) : null}
+      </div>
+    );
+  }
+
   const customerMapsUrl = buildMapsUrl(assignment.customer_address, assignment.customer_lat, assignment.customer_lng);
   const telUrl = buildTelUrl(assignment.customer_phone);
   const whatsappUrl = buildWhatsappUrl(assignment.customer_phone);
 
   return (
     <div className="estafeta-order-card-actions">
-      <EstafetaButton variant="outline" size="sm" icon="storefront" onClick={() => openExternal(storeMapsUrl)}>
-        Loja
-      </EstafetaButton>
       <EstafetaButton variant="outline" size="sm" icon="location_on" onClick={() => openExternal(customerMapsUrl)}>
-        Cliente
+        Navegar até ao cliente
       </EstafetaButton>
       {telUrl ? (
         <EstafetaButton variant="outline" size="sm" icon="call" onClick={() => openExternal(telUrl)}>
@@ -299,19 +357,14 @@ export default function EstafetaHomeTab({
           <div className="estafeta-order-card-head">
             <h3 className="estafeta-order-card-title">
               <span className="material-icons" aria-hidden="true">notifications_active</span>
-              Novo pedido
+              Nova tarefa
             </h3>
             <span className="estafeta-tag estafeta-tag--warn">Por responder</span>
           </div>
-          <p className="estafeta-order-card-store">
-            <span className="material-icons" aria-hidden="true">storefront</span>
-            {pendingAssignment.store_nome || `Loja ${pendingAssignment.loja_id}`}
-          </p>
-          <p className="estafeta-order-card-meta">Cliente: <strong>{pendingAssignment.customer_nome}</strong></p>
-          <p className="estafeta-order-card-meta">Morada: <strong>{pendingAssignment.customer_address}</strong></p>
-          <p className="estafeta-order-card-meta">Total do pedido: <strong>{formatCurrency(pendingAssignment.total)}</strong></p>
-          <p className="estafeta-order-card-meta">Ganho estimado: <strong>{formatCurrency(pendingAssignment.valor_estafeta)}</strong></p>
-          <DistanceEtaBadge estafeta={estafeta} assignment={pendingAssignment} />
+          <p className="estafeta-task-earn">Ganho estimado <strong>{formatCurrency(pendingAssignment.valor_estafeta)}</strong></p>
+
+          <TaskStops assignment={pendingAssignment} isPending />
+          <DistanceEtaBadge estafeta={estafeta} assignment={pendingAssignment} isPending />
 
           <button
             type="button"
@@ -323,13 +376,11 @@ export default function EstafetaHomeTab({
           </button>
           {expandedId === pendingAssignment.id ? <OrderDetailPanel assignment={pendingAssignment} /> : null}
 
-          <OrderCardActions assignment={pendingAssignment} />
-
-          <div className="estafeta-order-card-actions">
-            <EstafetaButton variant="primary" icon="check" onClick={() => onAccept(pendingAssignment.id)} disabled={busy}>
-              Aceitar
+          <div className="estafeta-task-cta-row">
+            <EstafetaButton variant="primary" size="lg" icon="check" onClick={() => onAccept(pendingAssignment.id)} disabled={busy}>
+              Aceitar tarefa
             </EstafetaButton>
-            <EstafetaButton variant="outline" icon="close" onClick={() => onReject(pendingAssignment.id)} disabled={busy}>
+            <EstafetaButton variant="outline" size="lg" icon="close" onClick={() => onReject(pendingAssignment.id)} disabled={busy}>
               Rejeitar
             </EstafetaButton>
           </div>
@@ -340,21 +391,19 @@ export default function EstafetaHomeTab({
         <div className="estafeta-order-card estafeta-order-card--active">
           <div className="estafeta-order-card-head">
             <h3 className="estafeta-order-card-title">
-              <span className="material-icons" aria-hidden="true">two_wheeler</span>
-              Entrega em curso
+              <span className="material-icons" aria-hidden="true">assignment</span>
+              Tarefa #{activeAssignment.order_id}
             </h3>
             <span className={`estafeta-tag estafeta-tag--${activeTone}`}>
               {getEstadoInternoLabelPt(activeAssignment.estado_interno)}
             </span>
           </div>
-          <p className="estafeta-order-card-store">
-            <span className="material-icons" aria-hidden="true">storefront</span>
-            {activeAssignment.store_nome || `Loja ${activeAssignment.loja_id}`}
-          </p>
-          <p className="estafeta-order-card-meta">Cliente: <strong>{activeAssignment.customer_nome}</strong></p>
-          <p className="estafeta-order-card-meta">Morada: <strong>{activeAssignment.customer_address}</strong></p>
-          <p className="estafeta-order-card-meta">Ganho: <strong>{formatCurrency(activeAssignment.valor_estafeta)}</strong></p>
+          <p className="estafeta-task-earn">Ganho <strong>{formatCurrency(activeAssignment.valor_estafeta)}</strong></p>
+
+          <TaskStops assignment={activeAssignment} />
           <DistanceEtaBadge estafeta={estafeta} assignment={activeAssignment} />
+
+          <TaskStopActions assignment={activeAssignment} />
 
           <button
             type="button"
@@ -366,36 +415,32 @@ export default function EstafetaHomeTab({
           </button>
           {expandedId === activeAssignment.id ? <OrderDetailPanel assignment={activeAssignment} showTimeline /> : null}
 
-          <OrderCardActions assignment={activeAssignment} />
+          {nextStep ? (
+            <button
+              type="button"
+              className="estafeta-task-primary-cta"
+              onClick={() => (isFinalStep
+                ? onRequestDeliveryProof(activeAssignment.id)
+                : onAdvance(activeAssignment.id, nextStep.estado))}
+              disabled={busy}
+            >
+              <span className="material-icons" aria-hidden="true">{nextStep.icon}</span>
+              {nextStep.label}
+            </button>
+          ) : null}
 
-          <div className="estafeta-order-card-actions">
+          <div className="estafeta-task-secondary-row">
             {canRevert ? (
-              <EstafetaButton variant="outline" icon="undo" onClick={() => onRevert(activeAssignment.id)} disabled={busy}>
+              <button type="button" className="estafeta-link-btn" onClick={() => onRevert(activeAssignment.id)} disabled={busy}>
+                <span className="material-icons" aria-hidden="true">undo</span>
                 Voltar atrás
-              </EstafetaButton>
+              </button>
             ) : null}
-            {nextStep ? (
-              <EstafetaButton
-                variant="primary"
-                icon={nextStep.icon}
-                onClick={() => (isFinalStep
-                  ? onRequestDeliveryProof(activeAssignment.id)
-                  : onAdvance(activeAssignment.id, nextStep.estado))}
-                disabled={busy}
-              >
-                {nextStep.label}
-              </EstafetaButton>
-            ) : null}
+            <button type="button" className="estafeta-link-btn estafeta-link-btn--danger" onClick={() => onCancel(activeAssignment.id)} disabled={busy}>
+              <span className="material-icons" aria-hidden="true">report_problem</span>
+              Reportar problema
+            </button>
           </div>
-          <button
-            type="button"
-            className="estafeta-btn estafeta-btn--ghost"
-            onClick={() => onCancel(activeAssignment.id)}
-            disabled={busy}
-            style={{ marginTop: 4 }}
-          >
-            Reportar problema
-          </button>
         </div>
       ) : null}
 
