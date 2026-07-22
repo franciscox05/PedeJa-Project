@@ -227,6 +227,8 @@ export default function EstafetaHomeTab({
   onRevert,
   onCancel,
   busy,
+  locationStatus = "idle",
+  locationErrorMessage = "",
 }) {
   const [expandedId, setExpandedId] = useState(null);
   const isOnline = Boolean(estafeta?.online);
@@ -251,6 +253,12 @@ export default function EstafetaHomeTab({
           {isOnline ? "Ficar offline" : "Ficar online"}
         </Button>
       </div>
+
+      {isOnline && locationStatus === "error" ? (
+        <div className="estafeta-location-warning">
+          ⚠️ {locationErrorMessage || "Não foi possível partilhar a tua localização."} Sem isto, o admin não te vê corretamente no mapa nem consegue calcular distâncias.
+        </div>
+      ) : null}
 
       <div className="estafeta-stats-row">
         <div className="estafeta-stat-card">

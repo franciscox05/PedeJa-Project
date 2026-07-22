@@ -55,7 +55,7 @@ export default function EstafetaDashboard() {
 
   const estafeta = state?.estafeta || null;
 
-  useEstafetaLocationPing(callerUserId, Boolean(estafeta?.online));
+  const locationPing = useEstafetaLocationPing(callerUserId, Boolean(estafeta?.online));
   useEstafetaOrderAlert(state?.pending_assignment?.id || null, true);
   const pushSubscription = useEstafetaPushSubscription(callerUserId);
 
@@ -296,6 +296,8 @@ export default function EstafetaDashboard() {
           onRequestDeliveryProof={handleRequestDeliveryProof}
           onCancel={(assignmentId) => setCancelTarget(assignmentId)}
           busy={busy}
+          locationStatus={locationPing.status}
+          locationErrorMessage={locationPing.errorMessage}
         />
       ) : null}
       {activeTab === "historico" ? (

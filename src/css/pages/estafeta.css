@@ -11,6 +11,17 @@
   margin-bottom: 20px;
 }
 
+.estafeta-location-warning {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(234, 88, 12, 0.1);
+  border: 1px solid rgba(234, 88, 12, 0.3);
+  color: #9a3412;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
 .estafeta-online-card-status {
   display: flex;
   align-items: center;
