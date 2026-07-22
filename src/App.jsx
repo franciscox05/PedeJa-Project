@@ -61,7 +61,7 @@ export default function App() {
 
     document.addEventListener("contextmenu", handleContextMenu);
     document.addEventListener("mousedown", handleMouseDown);
-    const maybeRedirectRestaurant = () => {
+    const maybeRedirectRestrictedRole = () => {
       const raw = localStorage.getItem("pedeja_user");
       let user = null;
       try {
@@ -71,26 +71,35 @@ export default function App() {
       }
       const role = resolveUserRole(user);
 
-      if (role !== "restaurant") return;
+      if (role === "restaurant") {
+        const isParceirosEdit =
+          location.pathname.startsWith("/parceiros")
+          && new URLSearchParams(location.search).get("edit") === "1";
 
-      const isParceirosEdit =
-        location.pathname.startsWith("/parceiros")
-        && new URLSearchParams(location.search).get("edit") === "1";
+        const allowedForRestaurant = [
+          location.pathname === "/",
+          location.pathname.startsWith("/dashboard/restaurante"),
+          location.pathname.startsWith("/menu-manager"),
+          location.pathname.startsWith("/perfil"),
+          isParceirosEdit,
+        ];
 
-      const allowedForRestaurant = [
-        location.pathname === "/",
-        location.pathname.startsWith("/dashboard/restaurante"),
-        location.pathname.startsWith("/menu-manager"),
-        location.pathname.startsWith("/perfil"),
-        isParceirosEdit,
-      ];
+        if (!allowedForRestaurant.some(Boolean)) {
+          navigate("/dashboard/restaurante", { replace: true });
+        }
+        return;
+      }
 
-      if (!allowedForRestaurant.some(Boolean)) {
-        navigate("/dashboard/restaurante", { replace: true });
+      if (role === "estafeta") {
+        // Conta de estafeta: so pode aceder ao proprio dashboard, nunca ao
+        // fluxo de cliente (browsing/checkout) nem a dashboards de outros papeis.
+        if (!location.pathname.startsWith("/estafeta")) {
+          navigate("/estafeta", { replace: true });
+        }
       }
     };
 
-    maybeRedirectRestaurant();
+    maybeRedirectRestrictedRole();
 
     return () => {
       document.removeEventListener("contextmenu", handleContextMenu);
