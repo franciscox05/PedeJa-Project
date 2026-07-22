@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ALLOWED_BUCKETS = new Set(["store-images", "menu-images"]);
+const ALLOWED_BUCKETS = new Set(["store-images", "menu-images", "delivery-proofs"]);
 const ALLOWED_STORE_IMAGE_SCOPES = new Set(["restaurantes/background", "restaurantes/icon"]);
 
 function json(body: Record<string, unknown>, status = 200) {
@@ -43,6 +43,33 @@ async function isAuthorizedForLoja(
   return Boolean(ownerRes.data || staffRes.data || adminRes.data);
 }
 
+async function isAuthorizedForActiveAssignment(
+  supabase: ReturnType<typeof createClient>,
+  callerUserId: number,
+  assignmentId: number,
+) {
+  const { data: estafeta, error: estafetaError } = await supabase
+    .from("estafetas")
+    .select("id")
+    .eq("idutilizador", callerUserId)
+    .eq("eliminado", false)
+    .maybeSingle();
+
+  if (estafetaError) throw estafetaError;
+  if (!estafeta) return false;
+
+  const { data: assignment, error: assignmentError } = await supabase
+    .from("atribuicoes_entrega")
+    .select("id")
+    .eq("id", assignmentId)
+    .eq("estafeta_id", estafeta.id)
+    .eq("ativo", true)
+    .maybeSingle();
+
+  if (assignmentError) throw assignmentError;
+  return Boolean(assignment);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -69,6 +96,7 @@ serve(async (req) => {
     const contentType = String(payload?.content_type || "").trim();
     const callerUserId = toInt(payload?.caller_user_id);
     const lojaId = toInt(payload?.loja_id);
+    const assignmentId = toInt(payload?.assignment_id);
 
     if (!ALLOWED_BUCKETS.has(bucket)) {
       return json({ error: "Bucket invalido." }, 400);
@@ -80,7 +108,21 @@ serve(async (req) => {
 
     let path: string;
 
-    if (bucket === "menu-images") {
+    if (bucket === "delivery-proofs") {
+      if (!callerUserId) {
+        return json({ error: "Sessão inválida: inicia sessão novamente." }, 401);
+      }
+      if (!assignmentId) {
+        return json({ error: "assignment_id em falta." }, 400);
+      }
+
+      const authorized = await isAuthorizedForActiveAssignment(supabase, callerUserId, assignmentId);
+      if (!authorized) {
+        return json({ error: "Sem permissão para esta entrega." }, 403);
+      }
+
+      path = `${assignmentId}/${Date.now()}-${sanitizeFileName(filename)}`;
+    } else if (bucket === "menu-images") {
       if (!lojaId) {
         return json({ error: "loja_id em falta." }, 400);
       }

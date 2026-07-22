@@ -18,6 +18,7 @@ import {
   fetchMyEstafetaHistory,
   fetchMyEstafetaState,
   toggleEstafetaOnline,
+  uploadDeliveryProofPhoto,
 } from "../services/estafetaService";
 import { useEstafetaLocationPing } from "../hooks/useEstafetaLocationPing";
 import { useEstafetaOrderAlert } from "../hooks/useEstafetaOrderAlert";
@@ -45,6 +46,9 @@ export default function EstafetaDashboard() {
   const [busy, setBusy] = useState(false);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [deliveryProofTarget, setDeliveryProofTarget] = useState(null);
+  const [proofPhotoFile, setProofPhotoFile] = useState(null);
+  const [proofPhotoPreviewUrl, setProofPhotoPreviewUrl] = useState("");
 
   const estafeta = state?.estafeta || null;
 
@@ -155,6 +159,44 @@ export default function EstafetaDashboard() {
     }
   };
 
+  const handleRequestDeliveryProof = (assignmentId) => {
+    setDeliveryProofTarget(assignmentId);
+    setProofPhotoFile(null);
+    setProofPhotoPreviewUrl("");
+  };
+
+  const handleProofPhotoSelected = (event) => {
+    const file = event.target.files?.[0] || null;
+    setProofPhotoFile(file);
+    setProofPhotoPreviewUrl(file ? URL.createObjectURL(file) : "");
+  };
+
+  const handleCloseProofModal = () => {
+    setDeliveryProofTarget(null);
+    setProofPhotoFile(null);
+    setProofPhotoPreviewUrl("");
+  };
+
+  const handleConfirmDelivery = async () => {
+    if (!deliveryProofTarget || !proofPhotoFile) {
+      toast.error("Tira uma foto da entrega antes de confirmar.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const photoUrl = await uploadDeliveryProofPhoto(callerUserId, deliveryProofTarget, proofPhotoFile);
+      await advanceDeliveryStatus(callerUserId, deliveryProofTarget, "entregue", photoUrl);
+      toast.success("Entrega confirmada!");
+      handleCloseProofModal();
+      await loadState();
+    } catch (error) {
+      toast.error(error?.message || "Não foi possível confirmar a entrega.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleCancelConfirm = async () => {
     if (!cancelTarget) return;
     setBusy(true);
@@ -224,6 +266,7 @@ export default function EstafetaDashboard() {
           onAccept={handleAccept}
           onReject={handleReject}
           onAdvance={handleAdvance}
+          onRequestDeliveryProof={handleRequestDeliveryProof}
           onCancel={(assignmentId) => setCancelTarget(assignmentId)}
           busy={busy}
         />
@@ -269,6 +312,39 @@ export default function EstafetaDashboard() {
           value={cancelReason}
           onChange={(event) => setCancelReason(event.target.value)}
         />
+      </Modal>
+
+      <Modal
+        open={Boolean(deliveryProofTarget)}
+        title="Confirmar entrega"
+        onClose={handleCloseProofModal}
+        actions={(
+          <>
+            <Button variant="outline" onClick={handleCloseProofModal} disabled={busy}>
+              Voltar
+            </Button>
+            <Button onClick={handleConfirmDelivery} disabled={busy || !proofPhotoFile}>
+              {busy ? "A confirmar..." : "Confirmar entrega"}
+            </Button>
+          </>
+        )}
+      >
+        <p className="estafeta-order-card-meta" style={{ marginTop: 0 }}>
+          Tira uma foto da entrega (porta, receção, etc.) como prova. É obrigatória para marcar o pedido como entregue.
+        </p>
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleProofPhotoSelected}
+        />
+        {proofPhotoPreviewUrl ? (
+          <img
+            src={proofPhotoPreviewUrl}
+            alt="Pré-visualização da prova de entrega"
+            className="estafeta-proof-photo-preview"
+          />
+        ) : null}
       </Modal>
     </DashboardSidebarLayout>
   );

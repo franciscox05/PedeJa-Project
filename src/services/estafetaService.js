@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase, buildSupabaseFunctionHeaders, getSupabaseFunctionUrl } from "./supabaseClient";
 
 function toInt(value) {
   const parsed = Number(value);
@@ -100,13 +100,44 @@ export async function acceptOrRejectAssignment(callerUserId, assignmentId, accep
   return unwrap(response, "acceptOrRejectAssignment");
 }
 
-export async function advanceDeliveryStatus(callerUserId, assignmentId, newEstado) {
+export async function advanceDeliveryStatus(callerUserId, assignmentId, newEstado, fotoUrl = null) {
   const response = await supabase.rpc("estafeta_advance_status", {
     caller_user_id: toInt(callerUserId),
     assignment_id_input: toInt(assignmentId),
     new_estado_input: newEstado,
+    foto_url_input: fotoUrl,
   });
   return unwrap(response, "advanceDeliveryStatus");
+}
+
+export async function uploadDeliveryProofPhoto(callerUserId, assignmentId, file) {
+  if (!file) return null;
+
+  const headers = await buildSupabaseFunctionHeaders();
+  const response = await fetch(getSupabaseFunctionUrl("request-image-upload"), {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      bucket: "delivery-proofs",
+      filename: file.name,
+      content_type: file.type,
+      caller_user_id: toInt(callerUserId),
+      assignment_id: toInt(assignmentId),
+    }),
+  });
+
+  const parsed = await response.json().catch(() => null);
+  if (!response.ok || !parsed?.ok) {
+    throw new Error(parsed?.error || "Falha ao preparar o upload da foto.");
+  }
+
+  const { error: uploadError } = await supabase.storage
+    .from("delivery-proofs")
+    .uploadToSignedUrl(parsed.path, parsed.token, file);
+  if (uploadError) throw uploadError;
+
+  const { data } = supabase.storage.from("delivery-proofs").getPublicUrl(parsed.path);
+  return data.publicUrl;
 }
 
 export async function cancelDeliveryAssignment(callerUserId, assignmentId, motivo = null) {

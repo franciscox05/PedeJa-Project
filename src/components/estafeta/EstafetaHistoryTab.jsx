@@ -20,6 +20,17 @@ function resolveHistoryStatus(item) {
   return { label: "Terminado", className: "tag warn" };
 }
 
+function formatDuration(startValue, endValue) {
+  if (!startValue || !endValue) return null;
+  const start = new Date(startValue).getTime();
+  const end = new Date(endValue).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+
+  const totalMinutes = Math.round((end - start) / 60000);
+  if (totalMinutes < 60) return `${totalMinutes} min`;
+  return `${Math.floor(totalMinutes / 60)}h${String(totalMinutes % 60).padStart(2, "0")}`;
+}
+
 export default function EstafetaHistoryTab({ history, loading, earningsByDay, loadingEarnings }) {
   return (
     <div className="dashboard-tab-section">
@@ -35,12 +46,17 @@ export default function EstafetaHistoryTab({ history, loading, earningsByDay, lo
         <div className="estafeta-history-list">
           {history.map((item) => {
             const status = resolveHistoryStatus(item);
+            const duration = formatDuration(item.atribuido_em, item.entregue_em);
             return (
               <div className="estafeta-history-row" key={item.id}>
                 <div className="estafeta-history-row-main">
-                  <span className="estafeta-history-row-title">{item.customer_nome || "Cliente"}</span>
+                  <span className="estafeta-history-row-title">
+                    {item.store_nome ? `${item.store_nome} → ` : ""}{item.customer_nome || "Cliente"}
+                  </span>
                   <span className="estafeta-history-row-meta">
                     {item.customer_address} • {formatDateTime(item.criado_em)}
+                    {Number.isFinite(Number(item.distancia_km)) ? ` • ${Number(item.distancia_km).toFixed(1)} km` : ""}
+                    {duration ? ` • ${duration}` : ""}
                   </span>
                 </div>
                 <div style={{ textAlign: "right" }}>

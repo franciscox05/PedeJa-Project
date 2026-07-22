@@ -13,6 +13,25 @@ const NEXT_STEP_BY_ESTADO = {
   a_caminho: { estado: "entregue", label: "Marcar como entregue" },
 };
 
+const AVG_SPEED_KMH_BY_VEICULO = {
+  bicicleta: 15,
+  bike: 15,
+  mota: 28,
+  scooter: 28,
+  carro: 24,
+  car: 24,
+  pe: 5,
+};
+
+const TIMELINE_STEPS = [
+  { key: "order_created_at", label: "Pedido feito" },
+  { key: "atribuido_em", label: "Atribuído a ti" },
+  { key: "aceite_em", label: "Aceitaste" },
+  { key: "recolhido_em", label: "Recolhido na loja" },
+  { key: "a_caminho_em", label: "A caminho do cliente" },
+  { key: "entregue_em", label: "Entregue" },
+];
+
 function formatCurrency(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return "-";
@@ -56,6 +75,62 @@ function openExternal(url) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
+function haversineKm(lat1, lng1, lat2, lng2) {
+  if (![lat1, lng1, lat2, lng2].every((value) => Number.isFinite(Number(value)))) return null;
+  const toRad = (value) => (Number(value) * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function resolveAvgSpeedKmh(veiculo) {
+  const key = String(veiculo || "").trim().toLowerCase();
+  return AVG_SPEED_KMH_BY_VEICULO[key] || 22;
+}
+
+function DistanceEtaBadge({ estafeta, assignment }) {
+  const isHeadingToStore = !assignment.recolhido_em;
+  const targetLat = isHeadingToStore ? assignment.store_lat : assignment.customer_lat;
+  const targetLng = isHeadingToStore ? assignment.store_lng : assignment.customer_lng;
+  const distanceKm = haversineKm(
+    estafeta?.ultima_localizacao_lat,
+    estafeta?.ultima_localizacao_lng,
+    targetLat,
+    targetLng,
+  );
+
+  if (distanceKm === null) return null;
+
+  const etaMinutes = Math.max(1, Math.round((distanceKm / resolveAvgSpeedKmh(estafeta?.veiculo)) * 60));
+
+  return (
+    <p className="estafeta-order-card-eta">
+      📍 {isHeadingToStore ? "Até à loja" : "Até ao cliente"}: ~{distanceKm.toFixed(1)} km · ~{etaMinutes} min
+    </p>
+  );
+}
+
+function OrderTimeline({ assignment }) {
+  return (
+    <div className="estafeta-order-timeline">
+      {TIMELINE_STEPS.map((step) => {
+        const value = formatDateTime(assignment[step.key]);
+        const done = Boolean(value);
+        return (
+          <div key={step.key} className={`estafeta-timeline-step${done ? " is-done" : ""}`}>
+            <span className="estafeta-timeline-dot" />
+            <span className="estafeta-timeline-label">{step.label}</span>
+            <span className="estafeta-timeline-time">{value || "-"}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function OrderItemsList({ items }) {
   const list = Array.isArray(items) ? items : [];
   if (list.length === 0) {
@@ -80,7 +155,7 @@ function OrderItemsList({ items }) {
   );
 }
 
-function OrderDetailPanel({ assignment }) {
+function OrderDetailPanel({ assignment, showTimeline }) {
   const orderTime = formatDateTime(assignment.order_created_at);
   const scheduledTime = formatDateTime(assignment.scheduled_for);
 
@@ -100,6 +175,13 @@ function OrderDetailPanel({ assignment }) {
 
       {assignment.customer_notes ? (
         <p className="estafeta-order-card-meta"><strong>Notas do cliente:</strong> {assignment.customer_notes}</p>
+      ) : null}
+
+      {showTimeline ? (
+        <>
+          <p className="estafeta-order-card-meta" style={{ marginTop: 10 }}><strong>Linha do tempo:</strong></p>
+          <OrderTimeline assignment={assignment} />
+        </>
       ) : null}
     </div>
   );
@@ -141,12 +223,14 @@ export default function EstafetaHomeTab({
   onAccept,
   onReject,
   onAdvance,
+  onRequestDeliveryProof,
   onCancel,
   busy,
 }) {
   const [expandedId, setExpandedId] = useState(null);
   const isOnline = Boolean(estafeta?.online);
   const nextStep = activeAssignment ? NEXT_STEP_BY_ESTADO[activeAssignment.estado_interno] : null;
+  const isFinalStep = nextStep?.estado === "entregue";
 
   return (
     <div className="dashboard-tab-section">
@@ -190,6 +274,7 @@ export default function EstafetaHomeTab({
           <p className="estafeta-order-card-meta">Morada: {pendingAssignment.customer_address}</p>
           <p className="estafeta-order-card-meta">Total do pedido: {formatCurrency(pendingAssignment.total)}</p>
           <p className="estafeta-order-card-meta">Ganho estimado: {formatCurrency(pendingAssignment.valor_estafeta)}</p>
+          <DistanceEtaBadge estafeta={estafeta} assignment={pendingAssignment} />
 
           <button
             type="button"
@@ -225,6 +310,7 @@ export default function EstafetaHomeTab({
           <p className="estafeta-order-card-meta">Cliente: {activeAssignment.customer_nome}</p>
           <p className="estafeta-order-card-meta">Morada: {activeAssignment.customer_address}</p>
           <p className="estafeta-order-card-meta">Ganho: {formatCurrency(activeAssignment.valor_estafeta)}</p>
+          <DistanceEtaBadge estafeta={estafeta} assignment={activeAssignment} />
 
           <button
             type="button"
@@ -233,13 +319,18 @@ export default function EstafetaHomeTab({
           >
             {expandedId === activeAssignment.id ? "Esconder detalhes do pedido" : "Ver detalhes do pedido"}
           </button>
-          {expandedId === activeAssignment.id ? <OrderDetailPanel assignment={activeAssignment} /> : null}
+          {expandedId === activeAssignment.id ? <OrderDetailPanel assignment={activeAssignment} showTimeline /> : null}
 
           <OrderCardActions assignment={activeAssignment} />
 
           <div className="estafeta-order-card-actions">
             {nextStep ? (
-              <Button onClick={() => onAdvance(activeAssignment.id, nextStep.estado)} disabled={busy}>
+              <Button
+                onClick={() => (isFinalStep
+                  ? onRequestDeliveryProof(activeAssignment.id)
+                  : onAdvance(activeAssignment.id, nextStep.estado))}
+                disabled={busy}
+              >
                 {nextStep.label}
               </Button>
             ) : null}
