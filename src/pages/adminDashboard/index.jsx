@@ -14,6 +14,7 @@ import {
   updateRestaurantSignupRequest,
   updateOrderWorkflowStatus,
 } from "../../services/opsDashboardService";
+import { fetchAdminRevenueBreakdown } from "../../services/adminRevenueService";
 import DashboardSidebarLayout from "../../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../../components/dashboard/DashboardPageHeader";
 import InHouseTrackingModal from "../../components/dashboard/InHouseTrackingModal";
@@ -132,6 +133,7 @@ export default function DashboardAdmin() {
     },
     customers: [],
   });
+  const [commissionEarned, setCommissionEarned] = useState({ loading: true, error: "", value: 0 });
   const dashboardWindowInput = useMemo(
     () => buildWindowInput({ rangeMode, periodDays, customRange }),
     [customRange, periodDays, rangeMode],
@@ -496,6 +498,29 @@ export default function DashboardAdmin() {
     }
   }, [dashboardWindowInput, user]);
 
+  // Comissao ganha pela plataforma (nao a receita bruta faturada) -- reutiliza
+  // o mesmo calculo ja usado na pagina Receita (reconstroi preco base vs.
+  // preco final por item), por isso so aceita um numero de dias (sem suporte
+  // a intervalo personalizado, tal como a pagina Receita hoje).
+  const loadCommissionEarned = useCallback(async (days = periodDays) => {
+    setCommissionEarned((prev) => ({ ...prev, loading: true, error: "" }));
+    try {
+      const data = await fetchAdminRevenueBreakdown(days, extractUserId(user));
+      setCommissionEarned({
+        loading: false,
+        error: "",
+        value: Number(data?.overview?.totalCommissionProfit || 0),
+      });
+    } catch (error) {
+      console.error("Falha ao carregar a comissao ganha pela plataforma", error);
+      setCommissionEarned((prev) => ({
+        ...prev,
+        loading: false,
+        error: error?.message || "Nao foi possivel calcular a comissao ganha.",
+      }));
+    }
+  }, [periodDays, user]);
+
   const anyModalOpenRef = useRef(false);
   useEffect(() => {
     anyModalOpenRef.current = Boolean(
@@ -519,6 +544,13 @@ export default function DashboardAdmin() {
     const timer = setInterval(() => loadCustomerInsights(), 45000);
     return () => clearInterval(timer);
   }, [activeTab, loadCustomerInsights]);
+
+  useEffect(() => {
+    if (activeTab !== "dashboard") return undefined;
+    loadCommissionEarned();
+    const timer = setInterval(() => loadCommissionEarned(), 60000);
+    return () => clearInterval(timer);
+  }, [activeTab, loadCommissionEarned]);
 
   const reviewRequest = async (requestId, status) => {
     setReviewingId(requestId);
@@ -815,7 +847,14 @@ export default function DashboardAdmin() {
             ) : null}
             <button
               className="btn-dashboard"
-              onClick={() => (activeTab === "customers" ? loadCustomerInsights() : load())}
+              onClick={() => {
+                if (activeTab === "customers") {
+                  loadCustomerInsights();
+                  return;
+                }
+                load();
+                if (activeTab === "dashboard") loadCommissionEarned();
+              }}
             >
               Atualizar
             </button>
@@ -830,6 +869,7 @@ export default function DashboardAdmin() {
         <OverviewTab
           state={state}
           periodDays={periodDays}
+          commissionEarned={commissionEarned}
           safeSlaAlerts={safeSlaAlerts}
           safeRequests={safeRequests}
           driverAlertOrders={driverAlertOrders}

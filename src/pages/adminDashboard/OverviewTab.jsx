@@ -20,6 +20,7 @@ import {
 export default function OverviewTab({
   state,
   periodDays,
+  commissionEarned,
   safeSlaAlerts,
   safeRequests,
   driverAlertOrders,
@@ -55,7 +56,24 @@ export default function OverviewTab({
         >
           <div className="metric-label">Receita</div>
           <div className="metric-value">{safeFixed(state?.metrics?.totalRevenue, 2)}EUR</div>
-          <div className="metric-foot">Abrir detalhe da receita</div>
+          <div className="metric-foot">Faturado pelos clientes -- abrir detalhe</div>
+        </article>
+        <article
+          className="metric-card premium is-clickable"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate(`/dashboard/admin/receita?days=${periodDays}`)}
+          onKeyDown={(event) => handleRowKeyDown(event, () => navigate(`/dashboard/admin/receita?days=${periodDays}`))}
+        >
+          <div className="metric-label">Comissao ganha</div>
+          <div className="metric-value">
+            {commissionEarned?.loading ? "..." : `${safeFixed(commissionEarned?.value, 2)}EUR`}
+          </div>
+          <div className="metric-foot">
+            {commissionEarned?.error
+              ? "Nao foi possivel calcular"
+              : `O que a PedeJa realmente ganhou nos ultimos ${periodDays} dias`}
+          </div>
         </article>
         <article className="metric-card premium">
           <div className="metric-label">Pedidos</div>
