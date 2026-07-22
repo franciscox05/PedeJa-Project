@@ -14,10 +14,10 @@ function formatDateTime(value) {
 }
 
 function resolveHistoryStatus(item) {
-  if (item.entregue_em) return { label: "Entregue", className: "tag ok" };
-  if (item.rejeitado_em) return { label: "Rejeitado", className: "tag warn" };
-  if (item.cancelado_em) return { label: "Cancelado", className: "tag bad" };
-  return { label: "Terminado", className: "tag warn" };
+  if (item.entregue_em) return { label: "Entregue", tone: "ok", icon: "task_alt" };
+  if (item.rejeitado_em) return { label: "Rejeitado", tone: "warn", icon: "block" };
+  if (item.cancelado_em) return { label: "Cancelado", tone: "bad", icon: "cancel" };
+  return { label: "Terminado", tone: "warn", icon: "info" };
 }
 
 function formatDuration(startValue, endValue) {
@@ -33,31 +33,38 @@ function formatDuration(startValue, endValue) {
 
 export default function EstafetaHistoryTab({ history, loading, earningsByDay, loadingEarnings, liquidacoes = [] }) {
   return (
-    <div className="dashboard-tab-section">
+    <div className="estafeta-app-section">
       <EstafetaEarningsChart earningsByDay={earningsByDay} loading={loadingEarnings} />
 
       {liquidacoes.length > 0 ? (
-        <div className="estafeta-history-list" style={{ marginBottom: 20 }}>
-          <p className="estafeta-order-card-meta"><strong>Pagamentos recebidos</strong></p>
-          {liquidacoes.map((item) => (
-            <div className="estafeta-history-row" key={item.id}>
-              <div className="estafeta-history-row-main">
-                <span className="estafeta-history-row-title">Pagamento de {item.entregas_incluidas} entregas</span>
-                <span className="estafeta-history-row-meta">{formatDateTime(item.criado_em)}</span>
+        <>
+          <p className="estafeta-section-title">Pagamentos recebidos</p>
+          <div className="estafeta-history-list" style={{ marginBottom: 20 }}>
+            {liquidacoes.map((item) => (
+              <div className="estafeta-history-row" key={item.id}>
+                <span className="estafeta-history-row-icon">
+                  <span className="material-icons" aria-hidden="true">payments</span>
+                </span>
+                <div className="estafeta-history-row-main">
+                  <span className="estafeta-history-row-title">Pagamento de {item.entregas_incluidas} entregas</span>
+                  <span className="estafeta-history-row-meta">{formatDateTime(item.criado_em)}</span>
+                </div>
+                <div className="estafeta-history-row-right">
+                  <span className="estafeta-tag estafeta-tag--ok">Pago</span>
+                  <div className="estafeta-history-row-amount">{formatCurrency(item.valor_total)}</div>
+                </div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div className="tag ok">Pago</div>
-                <div className="estafeta-history-row-meta">{formatCurrency(item.valor_total)}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       ) : null}
 
+      <p className="estafeta-section-title">Entregas anteriores</p>
       {loading ? (
         <p className="muted">A carregar histórico...</p>
       ) : !history?.length ? (
         <div className="estafeta-empty-state">
+          <span className="material-icons estafeta-empty-state-icon" aria-hidden="true">receipt_long</span>
           <p>Ainda não tens entregas no histórico.</p>
         </div>
       ) : (
@@ -67,6 +74,9 @@ export default function EstafetaHistoryTab({ history, loading, earningsByDay, lo
             const duration = formatDuration(item.atribuido_em, item.entregue_em);
             return (
               <div className="estafeta-history-row" key={item.id}>
+                <span className={`estafeta-history-row-icon${status.tone !== "ok" ? ` is-${status.tone}` : ""}`}>
+                  <span className="material-icons" aria-hidden="true">{status.icon}</span>
+                </span>
                 <div className="estafeta-history-row-main">
                   <span className="estafeta-history-row-title">
                     {item.store_nome ? `${item.store_nome} → ` : ""}{item.customer_nome || "Cliente"}
@@ -77,9 +87,9 @@ export default function EstafetaHistoryTab({ history, loading, earningsByDay, lo
                     {duration ? ` • ${duration}` : ""}
                   </span>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <div className={status.className}>{status.label}</div>
-                  <div className="estafeta-history-row-meta">{formatCurrency(item.valor_estafeta)}</div>
+                <div className="estafeta-history-row-right">
+                  <span className={`estafeta-tag estafeta-tag--${status.tone}`}>{status.label}</span>
+                  <div className="estafeta-history-row-amount">{formatCurrency(item.valor_estafeta)}</div>
                 </div>
               </div>
             );

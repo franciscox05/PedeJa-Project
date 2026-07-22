@@ -3,9 +3,9 @@ import toast from "react-hot-toast";
 import "../css/pages/dashboard.css";
 import "../css/pages/estafeta.css";
 import { useAuth } from "../context/AuthContext";
-import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
+import { useCart } from "../context/CartContext";
+import EstafetaAppShell from "../components/estafeta/EstafetaAppShell";
 import Modal from "../components/ui/modal";
-import { Button } from "../components/ui/button";
 import EstafetaHomeTab from "../components/estafeta/EstafetaHomeTab";
 import EstafetaHistoryTab from "../components/estafeta/EstafetaHistoryTab";
 import EstafetaProfileTab from "../components/estafeta/EstafetaProfileTab";
@@ -26,17 +26,20 @@ import { useEstafetaLocationPing } from "../hooks/useEstafetaLocationPing";
 import { useEstafetaOrderAlert } from "../hooks/useEstafetaOrderAlert";
 import { useEstafetaPushSubscription } from "../hooks/useEstafetaPushSubscription";
 
-const TABS = [
-  { id: "inicio", label: "Início", icon: "home" },
-  { id: "historico", label: "Histórico", icon: "history" },
-  { id: "perfil", label: "Perfil", icon: "profile" },
-];
-
 const STATE_POLL_INTERVAL_MS = 8000;
 
 export default function EstafetaDashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { clearCart } = useCart();
   const callerUserId = user?.idutilizador || null;
+
+  const handleLogout = () => {
+    logout();
+    clearCart();
+    // Navegacao "dura" (nao client-side): mesmo padrao de DashboardSidebarLayout,
+    // evita o ProtectedRoute reagir a user=null antes do router assentar.
+    window.location.href = "/";
+  };
 
   const [activeTab, setActiveTab] = useState("inicio");
   const [state, setState] = useState(null);
@@ -256,32 +259,31 @@ export default function EstafetaDashboard() {
 
   if (loadingState) {
     return (
-      <DashboardSidebarLayout kicker="Estafeta" title="A carregar..." tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab}>
-        <div className="dashboard-tab-section"><p className="muted">A carregar o teu perfil de estafeta...</p></div>
-      </DashboardSidebarLayout>
+      <div className="estafeta-app-loading-screen">
+        <div className="estafeta-app-loading-spinner" />
+        <p>A carregar o teu perfil de estafeta...</p>
+      </div>
     );
   }
 
   if (!estafeta) {
     return (
-      <DashboardSidebarLayout kicker="Estafeta" title="Sem perfil" tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab}>
-        <div className="dashboard-tab-section">
-          <div className="estafeta-empty-state">
-            <p>Esta conta não tem um perfil de estafeta associado.</p>
-          </div>
+      <div className="estafeta-app-loading-screen">
+        <div className="estafeta-empty-state">
+          <span className="material-icons estafeta-empty-state-icon" aria-hidden="true">person_off</span>
+          <p>Esta conta não tem um perfil de estafeta associado.</p>
         </div>
-      </DashboardSidebarLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardSidebarLayout
-      kicker="Estafeta"
-      title={estafeta.nome}
-      subtitle={estafeta.online ? "Online" : "Offline"}
-      tabs={TABS}
+    <EstafetaAppShell
+      nome={estafeta.nome}
+      online={Boolean(estafeta.online)}
       activeTab={activeTab}
       onTabChange={setActiveTab}
+      onLogout={handleLogout}
     >
       {activeTab === "inicio" ? (
         <EstafetaHomeTab
@@ -324,12 +326,12 @@ export default function EstafetaDashboard() {
         onClose={() => setCancelTarget(null)}
         actions={(
           <>
-            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={busy}>
+            <button type="button" className="estafeta-btn estafeta-btn--outline" onClick={() => setCancelTarget(null)} disabled={busy}>
               Voltar
-            </Button>
-            <Button variant="destructive" onClick={handleCancelConfirm} disabled={busy}>
+            </button>
+            <button type="button" className="estafeta-btn estafeta-btn--danger" onClick={handleCancelConfirm} disabled={busy}>
               Confirmar cancelamento
-            </Button>
+            </button>
           </>
         )}
       >
@@ -350,12 +352,12 @@ export default function EstafetaDashboard() {
         onClose={handleCloseProofModal}
         actions={(
           <>
-            <Button variant="outline" onClick={handleCloseProofModal} disabled={busy}>
+            <button type="button" className="estafeta-btn estafeta-btn--outline" onClick={handleCloseProofModal} disabled={busy}>
               Voltar
-            </Button>
-            <Button onClick={handleConfirmDelivery} disabled={busy}>
+            </button>
+            <button type="button" className="estafeta-btn estafeta-btn--primary" onClick={handleConfirmDelivery} disabled={busy}>
               {busy ? "A confirmar..." : "Confirmar entrega"}
-            </Button>
+            </button>
           </>
         )}
       >
@@ -376,6 +378,6 @@ export default function EstafetaDashboard() {
           />
         ) : null}
       </Modal>
-    </DashboardSidebarLayout>
+    </EstafetaAppShell>
   );
 }

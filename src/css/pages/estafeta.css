@@ -1,32 +1,275 @@
+/* ==========================================================================
+   PedeJá Estafeta — sistema visual dedicado (mobile-first).
+   Tokens de design proprios, independentes do dashboard.css do admin/
+   restaurante -- esta app e quase sempre usada no telemovel por estafetas,
+   por isso segue o padrao de app nativa (top bar + bottom nav) em vez de
+   uma sidebar de secretaria.
+   ========================================================================== */
+
+/* Tokens definidos em :root (nao so em .estafeta-app-shell) porque
+   dashboardEstafetas.jsx (admin) tambem importa este ficheiro e reutiliza
+   algumas classes partilhadas (.estafeta-order-card-meta, .app-modal-*) fora
+   da shell nova -- sem isto, var(--ped-*) ficaria por definir nesse contexto. */
+:root {
+  --ped-red: #e62429;
+  --ped-red-dark: #c81e22;
+  --ped-red-soft: rgba(230, 36, 41, 0.08);
+  --ped-ink: #14141a;
+  --ped-ink-soft: rgba(20, 20, 26, 0.62);
+  --ped-ink-faint: rgba(20, 20, 26, 0.42);
+  --ped-border: rgba(20, 20, 26, 0.08);
+  --ped-surface: #ffffff;
+  --ped-bg: #f4f4f7;
+  --ped-success: #17a06a;
+  --ped-success-soft: rgba(23, 160, 106, 0.1);
+  --ped-warn: #ea580c;
+  --ped-warn-soft: rgba(234, 88, 12, 0.1);
+  --ped-info: #2563eb;
+  --ped-info-soft: rgba(37, 99, 235, 0.08);
+  --ped-radius-lg: 20px;
+  --ped-radius-md: 14px;
+  --ped-radius-sm: 10px;
+  --ped-shadow-card: 0 1px 2px rgba(20, 20, 26, 0.04), 0 8px 24px rgba(20, 20, 26, 0.06);
+  --ped-shadow-float: 0 12px 32px rgba(20, 20, 26, 0.16);
+}
+
+.estafeta-app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--ped-bg);
+  display: flex;
+  flex-direction: column;
+  font-family: inherit;
+  color: var(--ped-ink);
+}
+
+/* ---------- Top bar ---------- */
+
+.estafeta-app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 14px 18px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  background: linear-gradient(180deg, #1a1a22 0%, #101014 100%);
+  color: #fff;
+}
+
+.estafeta-app-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.estafeta-app-topbar-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.estafeta-app-avatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--ped-red);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.05rem;
+  box-shadow: 0 4px 12px rgba(230, 36, 41, 0.4);
+}
+
+.estafeta-app-topbar-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.estafeta-app-topbar-name {
+  margin: 1px 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 46vw;
+}
+
+.estafeta-app-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.estafeta-app-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.estafeta-app-status-pill.is-online {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+
+.estafeta-app-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.estafeta-app-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.estafeta-app-icon-btn .material-icons {
+  font-size: 20px;
+}
+
+/* ---------- Conteudo ---------- */
+
+.estafeta-app-content {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 18px 16px calc(96px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.estafeta-app-section {
+  display: block;
+}
+
+/* ---------- Bottom nav ---------- */
+
+.estafeta-app-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  background: var(--ped-surface);
+  border-top: 1px solid var(--ped-border);
+  box-shadow: 0 -6px 24px rgba(20, 20, 26, 0.06);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.estafeta-app-bottom-nav-inner {
+  display: flex;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.estafeta-app-bottom-nav-btn {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px 8px;
+  border: none;
+  background: none;
+  color: var(--ped-ink-faint);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.estafeta-app-bottom-nav-btn .material-icons {
+  font-size: 22px;
+}
+
+.estafeta-app-bottom-nav-btn.is-active {
+  color: var(--ped-red);
+}
+
+/* ---------- Loading / empty ---------- */
+
+.estafeta-app-loading-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--ped-bg);
+  color: rgba(20, 20, 26, 0.55);
+  text-align: center;
+  padding: 24px;
+}
+
+.estafeta-app-loading-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 3px solid rgba(230, 36, 41, 0.18);
+  border-top-color: #e62429;
+  animation: estafeta-spin 0.8s linear infinite;
+}
+
+@keyframes estafeta-spin {
+  to { transform: rotate(360deg); }
+}
+
+.estafeta-empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: rgba(20, 20, 26, 0.5);
+}
+
+.estafeta-empty-state-icon {
+  font-size: 40px;
+  color: rgba(20, 20, 26, 0.22);
+  display: block;
+  margin: 0 auto 12px;
+}
+
+/* ---------- Card "estas online" ---------- */
+
 .estafeta-online-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
-  border-radius: 16px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-  margin-bottom: 20px;
-}
-
-.estafeta-location-warning {
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: rgba(234, 88, 12, 0.1);
-  border: 1px solid rgba(234, 88, 12, 0.3);
-  color: #9a3412;
-  font-size: 0.88rem;
-  font-weight: 600;
-  margin-bottom: 20px;
+  border-radius: var(--ped-radius-lg);
+  background: var(--ped-surface);
+  border: 1px solid var(--ped-border);
+  box-shadow: var(--ped-shadow-card);
+  margin-bottom: 16px;
 }
 
 .estafeta-online-card-status {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .estafeta-online-dot {
@@ -34,81 +277,160 @@
   height: 10px;
   border-radius: 999px;
   background: #94a3b8;
+  flex-shrink: 0;
 }
 
 .estafeta-online-dot.is-online {
   background: #22c55e;
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+  animation: estafeta-pulse 2s ease-in-out infinite;
 }
+
+@keyframes estafeta-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18); }
+  50% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0.1); }
+}
+
+.estafeta-location-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--ped-radius-md);
+  background: var(--ped-warn-soft);
+  border: 1px solid rgba(234, 88, 12, 0.28);
+  color: #9a3412;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+/* ---------- Stats ---------- */
 
 .estafeta-stats-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 14px;
-  margin-bottom: 22px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
 .estafeta-stat-card {
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
-  padding: 16px 18px;
+  background: var(--ped-surface);
+  border: 1px solid var(--ped-border);
+  border-radius: var(--ped-radius-md);
+  padding: 14px 12px;
+  box-shadow: var(--ped-shadow-card);
+}
+
+.estafeta-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--ped-red-soft);
+  color: var(--ped-red);
+  margin-bottom: 8px;
+}
+
+.estafeta-stat-icon .material-icons {
+  font-size: 16px;
 }
 
 .estafeta-stat-label {
-  font-size: 0.78rem;
-  color: rgba(15, 23, 42, 0.55);
-  margin: 0 0 6px;
+  font-size: 0.72rem;
+  color: var(--ped-ink-soft);
+  margin: 0 0 4px;
+  line-height: 1.2;
 }
 
 .estafeta-stat-value {
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.15rem;
+  font-weight: 800;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
+/* ---------- Order cards ---------- */
+
 .estafeta-order-card {
-  border-radius: 18px;
-  padding: 20px;
-  margin-bottom: 18px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: #ffffff;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+  position: relative;
+  border-radius: var(--ped-radius-lg);
+  padding: 20px 20px 20px 22px;
+  margin-bottom: 16px;
+  border: 1px solid var(--ped-border);
+  background: var(--ped-surface);
+  box-shadow: var(--ped-shadow-card);
+  overflow: hidden;
+}
+
+.estafeta-order-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--ped-ink-faint);
+}
+
+.estafeta-order-card--pending::before {
+  background: var(--ped-warn);
+}
+
+.estafeta-order-card--active::before {
+  background: var(--ped-success);
 }
 
 .estafeta-order-card--pending {
-  border-color: rgba(234, 88, 12, 0.35);
-  background: linear-gradient(180deg, rgba(255, 247, 237, 0.9), #ffffff);
-}
-
-.estafeta-order-card--active {
-  border-color: rgba(34, 197, 94, 0.35);
+  background: linear-gradient(180deg, rgba(234, 88, 12, 0.05), #ffffff 140px);
 }
 
 .estafeta-order-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .estafeta-order-card-title {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1.02rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .estafeta-order-card-meta {
-  color: rgba(15, 23, 42, 0.65);
+  color: var(--ped-ink-soft);
   font-size: 0.9rem;
-  margin: 4px 0;
+  margin: 5px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.estafeta-order-card-meta strong {
+  color: var(--ped-ink);
 }
 
 .estafeta-order-card-store {
-  font-weight: 700;
-  font-size: 0.92rem;
-  margin: 0 0 6px;
-  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 1rem;
+  margin: 0 0 10px;
+  color: var(--ped-ink);
+}
+
+.estafeta-order-card-store .material-icons {
+  font-size: 18px;
+  color: var(--ped-red);
 }
 
 .estafeta-order-card-actions {
@@ -118,12 +440,16 @@
   margin-top: 16px;
 }
 
+.estafeta-order-card-actions .btn {
+  flex: 1 1 auto;
+}
+
 .estafeta-order-detail-panel {
-  margin-top: 10px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.03);
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: var(--ped-radius-md);
+  background: rgba(20, 20, 26, 0.025);
+  border: 1px solid var(--ped-border);
 }
 
 .estafeta-order-detail-times {
@@ -132,13 +458,16 @@
 
 .estafeta-order-items-list {
   display: grid;
-  gap: 8px;
-  margin: 6px 0;
+  gap: 10px;
+  margin: 8px 0;
 }
 
 .estafeta-order-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  border-bottom: 1px solid var(--ped-border);
 }
 
 .estafeta-order-item-row:last-child {
@@ -146,70 +475,208 @@
   padding-bottom: 0;
 }
 
+.estafeta-order-item-qty {
+  flex: 0 0 auto;
+  min-width: 30px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 7px;
+  background: var(--ped-red-soft);
+  color: var(--ped-red);
+  font-weight: 800;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .estafeta-order-card-eta {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin: 6px 0 0;
-  padding: 4px 10px;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 5px 12px;
   border-radius: 999px;
-  background: rgba(37, 99, 235, 0.08);
-  color: #1d4ed8;
+  background: var(--ped-info-soft);
+  color: var(--ped-info);
   font-size: 0.82rem;
   font-weight: 700;
 }
 
+.estafeta-order-card-eta .material-icons {
+  font-size: 15px;
+}
+
+/* ---------- Timeline ---------- */
+
 .estafeta-order-timeline {
   display: grid;
-  gap: 4px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .estafeta-timeline-step {
   display: grid;
-  grid-template-columns: 14px 1fr auto;
+  grid-template-columns: 20px 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 4px 0;
-  color: rgba(15, 23, 42, 0.4);
-  font-size: 0.85rem;
+  gap: 12px;
+  padding: 7px 0;
+  color: var(--ped-ink-faint);
+  font-size: 0.86rem;
+  position: relative;
+}
+
+.estafeta-timeline-step::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--ped-border);
+  z-index: 0;
+}
+
+.estafeta-timeline-step:first-child::before {
+  top: 50%;
+}
+
+.estafeta-timeline-step:last-child::before {
+  bottom: 50%;
 }
 
 .estafeta-timeline-step.is-done {
-  color: rgba(15, 23, 42, 0.85);
-  font-weight: 600;
+  color: var(--ped-ink);
+  font-weight: 700;
+}
+
+.estafeta-timeline-step.is-done::before {
+  background: var(--ped-success);
 }
 
 .estafeta-timeline-dot {
-  width: 10px;
-  height: 10px;
+  position: relative;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.15);
+  background: var(--ped-surface);
+  border: 2px solid var(--ped-border);
 }
 
 .estafeta-timeline-step.is-done .estafeta-timeline-dot {
-  background: #22c55e;
+  background: var(--ped-success);
+  border-color: var(--ped-success);
+}
+
+.estafeta-timeline-label {
+  min-width: 0;
 }
 
 .estafeta-timeline-time {
   font-variant-numeric: tabular-nums;
-  color: rgba(15, 23, 42, 0.55);
+  color: var(--ped-ink-faint);
+  font-size: 0.8rem;
 }
+
+/* ---------- Prova de entrega ---------- */
 
 .estafeta-proof-photo-preview {
   display: block;
   width: 100%;
   max-height: 260px;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: var(--ped-radius-md);
   margin-top: 12px;
 }
 
-.estafeta-empty-state {
-  text-align: center;
-  padding: 48px 24px;
-  color: rgba(15, 23, 42, 0.55);
+/* ---------- Botoes ---------- */
+
+.estafeta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--ped-radius-sm);
+  border: none;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
 }
+
+.estafeta-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.estafeta-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.estafeta-btn--primary {
+  background: var(--ped-red);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(230, 36, 41, 0.3);
+}
+
+.estafeta-btn--primary:hover:not(:disabled) {
+  background: var(--ped-red-dark);
+}
+
+.estafeta-btn--outline {
+  background: var(--ped-surface);
+  color: var(--ped-ink);
+  border: 1.5px solid var(--ped-border);
+}
+
+.estafeta-btn--outline:hover:not(:disabled) {
+  border-color: rgba(20, 20, 26, 0.2);
+}
+
+.estafeta-btn--ghost {
+  background: none;
+  color: var(--ped-ink-soft);
+  height: auto;
+  padding: 8px 4px;
+}
+
+.estafeta-btn--danger {
+  background: #fff;
+  color: #b91c1c;
+  border: 1.5px solid rgba(185, 28, 28, 0.3);
+}
+
+.estafeta-btn--sm {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+}
+
+.estafeta-btn .material-icons {
+  font-size: 18px;
+}
+
+.estafeta-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--ped-red);
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.estafeta-link-btn .material-icons {
+  font-size: 17px;
+}
+
+/* ---------- Historico ---------- */
 
 .estafeta-history-list {
   display: grid;
@@ -219,76 +686,228 @@
 .estafeta-history-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: #ffffff;
+  border-radius: var(--ped-radius-md);
+  border: 1px solid var(--ped-border);
+  background: var(--ped-surface);
+  box-shadow: var(--ped-shadow-card);
+}
+
+.estafeta-history-row-icon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ped-success-soft);
+  color: var(--ped-success);
+}
+
+.estafeta-history-row-icon.is-warn {
+  background: var(--ped-warn-soft);
+  color: var(--ped-warn);
+}
+
+.estafeta-history-row-icon.is-bad {
+  background: rgba(185, 28, 28, 0.1);
+  color: #b91c1c;
 }
 
 .estafeta-history-row-main {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .estafeta-history-row-title {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.94rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .estafeta-history-row-meta {
-  font-size: 0.82rem;
-  color: rgba(15, 23, 42, 0.55);
+  font-size: 0.78rem;
+  color: var(--ped-ink-soft);
+}
+
+.estafeta-history-row-right {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.estafeta-history-row-amount {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+/* ---------- Tags de estado ---------- */
+
+.estafeta-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.estafeta-tag--ok {
+  background: var(--ped-success-soft);
+  color: var(--ped-success);
+}
+
+.estafeta-tag--warn {
+  background: var(--ped-warn-soft);
+  color: var(--ped-warn);
+}
+
+.estafeta-tag--bad {
+  background: rgba(185, 28, 28, 0.1);
+  color: #b91c1c;
+}
+
+/* ---------- Secoes genericas ---------- */
+
+.estafeta-section-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ped-ink-faint);
+  margin: 22px 0 10px;
+}
+
+.estafeta-section-title:first-child {
+  margin-top: 0;
+}
+
+/* ---------- Perfil ---------- */
+
+.estafeta-profile-card {
+  background: var(--ped-surface);
+  border: 1px solid var(--ped-border);
+  border-radius: var(--ped-radius-lg);
+  box-shadow: var(--ped-shadow-card);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.estafeta-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.estafeta-profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: linear-gradient(160deg, var(--ped-red), var(--ped-red-dark));
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.estafeta-profile-header-name {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.estafeta-profile-header-sub {
+  margin: 2px 0 0;
+  font-size: 0.84rem;
+  color: var(--ped-ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .estafeta-profile-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+.estafeta-profile-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.estafeta-profile-field .material-icons {
+  font-size: 18px;
+  color: var(--ped-ink-faint);
+  margin-top: 1px;
 }
 
 .estafeta-profile-field-label {
-  font-size: 0.78rem;
-  color: rgba(15, 23, 42, 0.55);
-  margin: 0 0 4px;
+  font-size: 0.72rem;
+  color: var(--ped-ink-soft);
+  margin: 0 0 2px;
 }
 
 .estafeta-profile-field-value {
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
+  font-size: 0.94rem;
 }
 
 .estafeta-password-banner {
-  background: rgba(234, 88, 12, 0.1);
-  border: 1px solid rgba(234, 88, 12, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ped-warn-soft);
+  border: 1px solid rgba(234, 88, 12, 0.28);
   color: #9a3412;
   padding: 12px 16px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  font-size: 0.9rem;
+  border-radius: var(--ped-radius-md);
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
 .estafeta-password-form {
   display: grid;
   gap: 12px;
-  max-width: 360px;
 }
 
 .estafeta-password-form input {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(15, 23, 42, 0.15);
+  padding: 12px 14px;
+  border-radius: var(--ped-radius-sm);
+  border: 1.5px solid var(--ped-border);
   font-size: 0.95rem;
+  font-family: inherit;
+  background: var(--ped-surface);
 }
 
+.estafeta-password-form input:focus {
+  outline: none;
+  border-color: var(--ped-red);
+}
+
+/* ---------- Grafico de ganhos ---------- */
+
 .estafeta-earnings-chart {
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  padding: 18px 20px;
-  margin-bottom: 20px;
+  background: var(--ped-surface);
+  border: 1px solid var(--ped-border);
+  border-radius: var(--ped-radius-lg);
+  padding: 18px 18px 8px;
+  margin-bottom: 18px;
+  box-shadow: var(--ped-shadow-card);
 }
 
 .estafeta-earnings-chart-header {
@@ -301,40 +920,41 @@
 }
 
 .estafeta-earnings-chart-total {
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   margin: 2px 0;
+  letter-spacing: -0.01em;
 }
 
 .estafeta-period-toggle {
   display: inline-flex;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 10px;
+  border: 1px solid var(--ped-border);
+  border-radius: var(--ped-radius-sm);
   overflow: hidden;
 }
 
 .estafeta-period-toggle-btn {
   border: none;
-  background: #ffffff;
+  background: var(--ped-surface);
   padding: 8px 14px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: rgba(15, 23, 42, 0.6);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ped-ink-soft);
   cursor: pointer;
 }
 
 .estafeta-period-toggle-btn.is-active {
-  background: #e62429;
+  background: var(--ped-red);
   color: #ffffff;
 }
 
 .estafeta-chart-tooltip {
-  background: #111827;
+  background: #14141a;
   color: #ffffff;
   border-radius: 10px;
   padding: 8px 12px;
   font-size: 0.82rem;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+  box-shadow: var(--ped-shadow-float);
 }
 
 .estafeta-chart-tooltip-meta {
@@ -342,26 +962,41 @@
   font-size: 0.78rem;
 }
 
+/* ---------- Modais (partilhados por Modal.jsx) ---------- */
+
 .app-modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.5);
   z-index: 1400;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 20px;
+  padding: 0;
 }
 
 .app-modal-card {
-  width: min(480px, 96vw);
+  width: 100%;
+  max-width: 480px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.28);
-  padding: 20px;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -12px 44px rgba(15, 23, 42, 0.28);
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
   display: grid;
   gap: 14px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .app-modal-backdrop {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .app-modal-card {
+    border-radius: 18px;
+  }
 }
 
 .app-modal-header {
@@ -389,15 +1024,34 @@
 .app-modal-body select,
 .app-modal-body input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(15, 23, 42, 0.15);
+  border: 1.5px solid rgba(15, 23, 42, 0.12);
   font-size: 0.95rem;
   font-family: inherit;
+  box-sizing: border-box;
+}
+
+.app-modal-body input:focus,
+.app-modal-body textarea:focus {
+  outline: none;
+  border-color: #e62429;
 }
 
 .app-modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* ---------- Desktop: largura confortavel, sem esticar tudo ---------- */
+
+@media (min-width: 720px) {
+  .estafeta-app-content {
+    padding-top: 24px;
+  }
+
+  .estafeta-app-topbar {
+    padding: 16px 28px;
+  }
 }
