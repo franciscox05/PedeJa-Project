@@ -33,12 +33,12 @@ export default function InHouseTrackingModal({
   if (!isOpen || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="shipday-modal-backdrop shipday-modal-backdrop--tracking" onClick={onClose}>
+    <div className="admin-modal-backdrop admin-modal-backdrop--tracking" onClick={onClose}>
       <div
-        className="shipday-modal-card shipday-modal-card--tracking"
+        className="admin-modal-card admin-modal-card--tracking"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="shipday-modal-header">
+        <div className="admin-modal-header">
           <div>
             <h3>{title}</h3>
             <p className="muted">Localizacao do estafeta em tempo real (dispatch interno).</p>
@@ -48,12 +48,12 @@ export default function InHouseTrackingModal({
           </button>
         </div>
 
-        <div className="shipday-tracking-frame-wrap">
+        <div className="admin-tracking-frame-wrap">
           <InHouseTrackingMap
             orderId={orderId}
             callerUserId={callerUserId}
             isLive={isLive}
-            fallback={<p className="shipday-inline-error">Tracking indisponivel para este pedido.</p>}
+            fallback={<p className="admin-inline-error">Tracking indisponivel para este pedido.</p>}
           />
         </div>
       </div>

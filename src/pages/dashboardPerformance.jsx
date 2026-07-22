@@ -164,7 +164,7 @@ export default function DashboardPerformance() {
   return (
     <DashboardSidebarLayout
       tabs={ADMIN_DASHBOARD_TABS}
-      activeTab="dashboard"
+      activeTab="performance"
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Performance"
       title="Admin Performance Center"

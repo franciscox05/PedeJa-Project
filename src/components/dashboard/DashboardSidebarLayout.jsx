@@ -14,6 +14,9 @@ const ICON_PATHS = {
   store: "M4 6.5 5.6 3h12.8L20 6.5v2.2a2.2 2.2 0 0 1-1.4 2.06V20H5.4v-9.24A2.2 2.2 0 0 1 4 8.7Zm2.8-1.7-.8 1.7h12l-.8-1.7ZM7.4 11v7h8.8v-7Zm2 2.2h4.8v2H9.4Z",
   promotions: "m20 4-8.2 3.3H6.8A2.8 2.8 0 0 0 4 10.1v1.8a2.8 2.8 0 0 0 2.3 2.76l.9 4.15A1.5 1.5 0 0 0 8.66 20h1.58a1.5 1.5 0 0 0 1.46-1.86l-.7-3.2L20 18V4ZM6.8 9.3h4.2v5.4H6.8a.8.8 0 0 1-.8-.8v-3.8a.8.8 0 0 1 .8-.8Z",
   campaigns: "m20 4-8.2 3.3H6.8A2.8 2.8 0 0 0 4 10.1v1.8a2.8 2.8 0 0 0 2.3 2.76l.9 4.15A1.5 1.5 0 0 0 8.66 20h1.58a1.5 1.5 0 0 0 1.46-1.86l-.7-3.2L20 18V4ZM6.8 9.3h4.2v5.4H6.8a.8.8 0 0 1-.8-.8v-3.8a.8.8 0 0 1 .8-.8Z",
+  geoboard: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 3.06A9.01 9.01 0 0 0 12.94 3V1h-2v2A9.01 9.01 0 0 0 3 11.94H1v2h2A9.01 9.01 0 0 0 11.06 21v2h2v-2A9.01 9.01 0 0 0 21 12.94h2v-2ZM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z",
+  performance: "M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6Z",
+  receita: "M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4Z",
 };
 
 function SidebarIcon({ name }) {
@@ -25,6 +28,27 @@ function SidebarIcon({ name }) {
       <path d={path} />
     </svg>
   );
+}
+
+// Agrupa as tabs pela ordem em que as suas seccoes aparecem primeiro no
+// array -- opcional (campo `section`): quando nenhuma tab o define, cai num
+// so grupo sem cabecalho, igual ao comportamento antigo (usado por ex. pelo
+// dashboard do restaurante, que passa o seu proprio array sem seccoes).
+function groupTabsBySection(tabs) {
+  const groups = [];
+  const groupByLabel = new Map();
+
+  tabs.forEach((tab) => {
+    const label = tab.section || "";
+    if (!groupByLabel.has(label)) {
+      const group = { label, tabs: [] };
+      groupByLabel.set(label, group);
+      groups.push(group);
+    }
+    groupByLabel.get(label).tabs.push(tab);
+  });
+
+  return groups;
 }
 
 function getInitialCollapsedState(storageKey) {
@@ -49,6 +73,7 @@ export default function DashboardSidebarLayout({
   children,
 }) {
   const [collapsed, setCollapsed] = useState(() => getInitialCollapsedState(storageKey));
+  const tabGroups = groupTabsBySection(tabs);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { clearCart } = useCart();
@@ -99,41 +124,48 @@ export default function DashboardSidebarLayout({
           </div>
 
           <nav className="dashboard-sidebar-nav" aria-label="Dashboard sections">
-            {tabs.map((tab) => {
-              const isActive = tab.id === activeTab;
+            {tabGroups.map((group) => (
+              <div className="dashboard-sidebar-group" key={group.label || "default"}>
+                {group.label && !collapsed ? (
+                  <p className="dashboard-sidebar-section-label">{group.label}</p>
+                ) : null}
+                {group.tabs.map((tab) => {
+                  const isActive = tab.id === activeTab;
 
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`dashboard-sidebar-tab${isActive ? " is-active" : ""}`}
-                  onClick={() => onTabChange(tab.id)}
-                  title={collapsed ? tab.label : undefined}
-                >
-                  <span className="dashboard-sidebar-tab-icon">
-                    <SidebarIcon name={tab.icon || tab.id} />
-                  </span>
-                  {!collapsed ? (
-                    <span className="dashboard-sidebar-tab-text">
-                      <span className="dashboard-sidebar-tab-label-row">
-                        <span className="dashboard-sidebar-tab-label">
-                          {tab.label}
-                          {tab.route ? (
-                            <span className="dashboard-sidebar-tab-route-indicator" aria-hidden="true" title="Abre noutra pagina">↗</span>
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`dashboard-sidebar-tab${isActive ? " is-active" : ""}`}
+                      onClick={() => onTabChange(tab.id)}
+                      title={collapsed ? tab.label : undefined}
+                    >
+                      <span className="dashboard-sidebar-tab-icon">
+                        <SidebarIcon name={tab.icon || tab.id} />
+                      </span>
+                      {!collapsed ? (
+                        <span className="dashboard-sidebar-tab-text">
+                          <span className="dashboard-sidebar-tab-label-row">
+                            <span className="dashboard-sidebar-tab-label">
+                              {tab.label}
+                              {tab.route ? (
+                                <span className="dashboard-sidebar-tab-route-indicator" aria-hidden="true" title="Abre noutra pagina">↗</span>
+                              ) : null}
+                            </span>
+                            {typeof tab.badge === "number" && tab.badge > 0 ? (
+                              <span className="dashboard-sidebar-tab-badge">{tab.badge}</span>
+                            ) : null}
+                          </span>
+                          {tab.description ? (
+                            <span className="dashboard-sidebar-tab-description">{tab.description}</span>
                           ) : null}
                         </span>
-                        {typeof tab.badge === "number" && tab.badge > 0 ? (
-                          <span className="dashboard-sidebar-tab-badge">{tab.badge}</span>
-                        ) : null}
-                      </span>
-                      {tab.description ? (
-                        <span className="dashboard-sidebar-tab-description">{tab.description}</span>
                       ) : null}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
 
           {footer && !collapsed ? <div className="dashboard-sidebar-footer">{footer}</div> : null}

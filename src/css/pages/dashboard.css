@@ -1,3 +1,17 @@
+/* Tokens partilhados por todas as paginas de dashboard (admin, restaurante,
+   estafetas, categorias, banners, cupoes, promocoes). So cobrem o que ja
+   existia (mesmos valores, agora nomeados) -- nao mudam nenhuma cor/raio,
+   so criam uma fonte unica para o card family (.panel/.metric-card) que
+   antes repetia os mesmos numeros em regras separadas. */
+:root {
+  --dash-card-bg: #ffffff;
+  --dash-card-border: #e8edf7;
+  --dash-card-radius: 14px;
+  --dash-card-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+  --dash-card-shadow-hover: 0 18px 30px rgba(15, 23, 42, 0.12);
+  --dash-accent: #e62429;
+}
+
 .dashboard-shell {
   min-height: 100vh;
   background: #f5f5f5;
@@ -95,7 +109,7 @@
 
 .dashboard-sidebar-nav {
   display: grid;
-  gap: 20px;
+  gap: 18px;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -112,6 +126,20 @@
 .dashboard-sidebar-nav::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.32);
   border-radius: 999px;
+}
+
+.dashboard-sidebar-group {
+  display: grid;
+  gap: 6px;
+}
+
+.dashboard-sidebar-section-label {
+  margin: 4px 6px 2px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.55);
 }
 
 .dashboard-sidebar-tab {
@@ -448,10 +476,10 @@
 }
 
 .metric-card {
-  background: white;
-  border-radius: 14px;
+  background: var(--dash-card-bg);
+  border-radius: var(--dash-card-radius);
   padding: 16px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+  box-shadow: var(--dash-card-shadow);
 }
 
 .metric-card.premium {
@@ -468,7 +496,7 @@
 .metric-card.is-clickable:hover,
 .metric-card.is-clickable:focus-visible {
   transform: translateY(-2px);
-  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--dash-card-shadow-hover);
   border-color: rgba(230, 36, 41, 0.18);
 }
 
@@ -520,11 +548,11 @@
 }
 
 .panel {
-  background: white;
-  border-radius: 14px;
+  background: var(--dash-card-bg);
+  border-radius: var(--dash-card-radius);
   padding: 14px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
-  border: 1px solid #e8edf7;
+  box-shadow: var(--dash-card-shadow);
+  border: 1px solid var(--dash-card-border);
 }
 
 .panel h3 {
@@ -580,15 +608,57 @@ button.attention-chip--alert:not(:disabled):hover {
   font-weight: 600;
 }
 
-.restaurants-jump-nav {
+.restaurants-subtabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: 8px 0;
+  padding: 8px 0 14px;
   background: #f5f5f5;
+}
+
+.restaurants-subtab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--dash-card-border);
+  background: var(--dash-card-bg);
+  color: #475569;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.restaurants-subtab:hover {
+  border-color: rgba(230, 36, 41, 0.3);
+}
+
+.restaurants-subtab.is-active {
+  background: var(--dash-accent);
+  border-color: var(--dash-accent);
+  color: #ffffff;
+}
+
+.restaurants-subtab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 0.72rem;
+}
+
+.restaurants-subtab:not(.is-active) .restaurants-subtab-badge {
+  background: rgba(230, 36, 41, 0.12);
+  color: var(--dash-accent);
 }
 
 .restaurant-card-jump-nav {
@@ -855,6 +925,57 @@ button.attention-chip--alert:not(:disabled):hover {
   font-weight: 700;
 }
 
+.geo-map-fullscreen-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.94);
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+}
+
+.geo-map-fullscreen-btn:hover {
+  background: #ffffff;
+  border-color: rgba(230, 36, 41, 0.3);
+}
+
+.geo-map-fullscreen-btn .material-icons {
+  font-size: 19px;
+}
+
+/* Fullscreen: so muda o layout via CSS (o mapa nao sai da arvore do DOM,
+   so passa a ocupar o ecra todo), para nao ter de remontar a instancia do
+   Google Maps -- o JS trata do "resize" e reenquadramento do mapa. */
+.geo-canvas.geo-canvas-live-map.is-map-fullscreen {
+  position: fixed;
+  inset: 16px;
+  z-index: 1500;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.32);
+}
+
+.geo-canvas.geo-canvas-live-map.is-map-fullscreen .geo-map-fullscreen-btn {
+  top: 16px;
+  right: 16px;
+}
+
+.geo-map-fullscreen-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1490;
+  background: rgba(15, 23, 42, 0.55);
+}
+
 .live-board-header {
   display: flex;
   justify-content: space-between;
@@ -1019,7 +1140,8 @@ button.attention-chip--alert:not(:disabled):hover {
   }
 }
 
-.shipday-modal-backdrop {
+.shipday-modal-backdrop,
+.admin-modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.5);
@@ -1030,7 +1152,8 @@ button.attention-chip--alert:not(:disabled):hover {
   padding: 20px;
 }
 
-.shipday-modal-card {
+.shipday-modal-card,
+.admin-modal-card {
   width: min(620px, 96vw);
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -1041,14 +1164,16 @@ button.attention-chip--alert:not(:disabled):hover {
   gap: 12px;
 }
 
-.shipday-modal-header {
+.shipday-modal-header,
+.admin-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
 }
 
-.shipday-modal-header h3 {
+.shipday-modal-header h3,
+.admin-modal-header h3 {
   margin: 0;
 }
 
@@ -1061,14 +1186,16 @@ button.attention-chip--alert:not(:disabled):hover {
   justify-content: flex-end;
 }
 
-.shipday-carrier-list {
+.shipday-carrier-list,
+.admin-carrier-list {
   display: grid;
   gap: 10px;
   max-height: 360px;
   overflow: auto;
 }
 
-.shipday-carrier-card {
+.shipday-carrier-card,
+.admin-carrier-card {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 10px;
@@ -1079,7 +1206,8 @@ button.attention-chip--alert:not(:disabled):hover {
   background: #f8fafc;
 }
 
-.shipday-inline-error {
+.shipday-inline-error,
+.admin-inline-error {
   margin: 0;
   border: 1px solid #fecaca;
   background: #fff1f2;
@@ -1089,7 +1217,8 @@ button.attention-chip--alert:not(:disabled):hover {
   font-size: 0.9rem;
 }
 
-.shipday-inline-success {
+.shipday-inline-success,
+.admin-inline-success {
   margin: 0;
   border: 1px solid #bbf7d0;
   background: #f0fdf4;
@@ -1099,16 +1228,19 @@ button.attention-chip--alert:not(:disabled):hover {
   font-size: 0.9rem;
 }
 
-.shipday-modal-backdrop--tracking {
+.shipday-modal-backdrop--tracking,
+.admin-modal-backdrop--tracking {
   padding: 28px;
 }
 
-.shipday-modal-card--tracking {
+.shipday-modal-card--tracking,
+.admin-modal-card--tracking {
   width: min(1080px, 96vw);
   padding: 20px;
 }
 
-.shipday-tracking-frame-wrap {
+.shipday-tracking-frame-wrap,
+.admin-tracking-frame-wrap {
   border: 1px solid #d7dfef;
   border-radius: 14px;
   overflow: hidden;
@@ -1564,16 +1696,19 @@ button.attention-chip--alert:not(:disabled):hover {
     grid-template-columns: 52px 1fr 74px;
   }
 
-  .shipday-modal-backdrop--tracking {
+  .shipday-modal-backdrop--tracking,
+  .admin-modal-backdrop--tracking {
     padding: 14px;
   }
 
-  .shipday-modal-card--tracking {
+  .shipday-modal-card--tracking,
+  .admin-modal-card--tracking {
     padding: 14px;
   }
 
   .shipday-tracking-frame-wrap,
-  .shipday-tracking-frame {
+  .shipday-tracking-frame,
+  .admin-tracking-frame-wrap {
     min-height: 56vh;
     height: 56vh;
   }

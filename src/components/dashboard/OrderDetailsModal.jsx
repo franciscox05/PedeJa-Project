@@ -56,9 +56,9 @@ export default function OrderDetailsModal({
   const canAssignCarrier = Boolean(order) && estadoInterno === "aceite" && !driver?.name;
 
   return createPortal(
-    <div className="shipday-modal-backdrop" onClick={onClose}>
-      <div className="shipday-modal-card order-details-modal" onClick={(event) => event.stopPropagation()}>
-        <div className="shipday-modal-header">
+    <div className="admin-modal-backdrop" onClick={onClose}>
+      <div className="admin-modal-card order-details-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="admin-modal-header">
           <div>
             <p className="kicker">Pedido</p>
             <h3>{order ? `Detalhes do pedido #${order.id}` : "Detalhes do pedido"}</h3>
@@ -91,7 +91,7 @@ export default function OrderDetailsModal({
         </div>
 
         {loading ? <p className="muted">A carregar detalhes do pedido...</p> : null}
-        {!loading && error ? <p className="shipday-inline-error">{error}</p> : null}
+        {!loading && error ? <p className="admin-inline-error">{error}</p> : null}
 
         {!loading && !error && order ? (
           <div className="order-details-content">

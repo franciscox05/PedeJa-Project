@@ -7,7 +7,7 @@ import Restaurantes from "./pages/lojas";
 import Menus from "./pages/menus";
 import Carrinho from "./pages/carrinho";
 import PedidoConfirmado from "./pages/pedidoConfirmado";
-import DashboardAdmin from "./pages/dashboardAdmin";
+import DashboardAdmin from "./pages/adminDashboard";
 import DashboardGeoBoard from "./pages/dashboardGeoBoard";
 import DashboardEstafetas from "./pages/dashboardEstafetas";
 import DashboardPerformance from "./pages/dashboardPerformance";

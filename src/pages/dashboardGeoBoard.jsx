@@ -101,7 +101,7 @@ export default function DashboardGeoBoard() {
     setState((prev) => ({ ...prev, loading: true, error: "" }));
     try {
       const [dashboardData, estafetasData, activeData] = await Promise.all([
-        fetchAdminDashboard(dashboardInput),
+        fetchAdminDashboard(dashboardInput, { user }),
         listEstafetasForDispatch(callerUserId),
         listActiveAtribuicoes(callerUserId),
       ]);
@@ -126,7 +126,7 @@ export default function DashboardGeoBoard() {
         error: error?.message || "Nao foi possivel carregar o painel completo de geolocalizacao.",
       }));
     }
-  }, [callerUserId, dashboardInput]);
+  }, [callerUserId, dashboardInput, user]);
 
   useEffect(() => {
     load();
@@ -157,7 +157,7 @@ export default function DashboardGeoBoard() {
   return (
     <DashboardSidebarLayout
       tabs={ADMIN_DASHBOARD_TABS}
-      activeTab="dashboard"
+      activeTab="geoboard"
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Live Geo"
       title="Geo Board Expandido"
@@ -235,7 +235,7 @@ export default function DashboardGeoBoard() {
         )}
       />
 
-      {state.error ? <p className="shipday-inline-error">{state.error}</p> : null}
+      {state.error ? <p className="admin-inline-error">{state.error}</p> : null}
 
       <section className="dashboard-grid premium-grid">
         <article className="metric-card premium">

@@ -86,7 +86,7 @@ export default function DashboardRevenue() {
   return (
     <DashboardSidebarLayout
       tabs={ADMIN_DASHBOARD_TABS}
-      activeTab="dashboard"
+      activeTab="receita"
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Receita"
       title="PedeJa Control Center"

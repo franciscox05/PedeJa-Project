@@ -314,6 +314,7 @@ export default function LiveOperationsBoard({
   const [selectedPointKey, setSelectedPointKey] = useState("");
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState("");
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const mapElementRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -639,6 +640,45 @@ export default function LiveOperationsBoard({
     }
   }, [selectedPointKey]);
 
+  // O Google Maps nao deteta sozinho quando o contentor muda de tamanho (o
+  // toggle de fullscreen so muda CSS, nao remonta o mapa) -- tem de se pedir
+  // explicitamente um "resize" e reajustar o enquadramento depois do CSS
+  // aplicar o novo tamanho.
+  useEffect(() => {
+    if (!mapRef.current || typeof window === "undefined" || !window.google?.maps) return undefined;
+
+    const map = mapRef.current;
+    const timer = setTimeout(() => {
+      window.google.maps.event.trigger(map, "resize");
+      if (markersRef.current.length > 1) {
+        const bounds = new window.google.maps.LatLngBounds();
+        markersRef.current.forEach((entry) => bounds.extend(entry.marker.getPosition()));
+        map.fitBounds(bounds, 48);
+      } else if (markersRef.current.length === 1) {
+        map.setCenter(markersRef.current[0].marker.getPosition());
+      }
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [isMapFullscreen]);
+
+  useEffect(() => {
+    if (!isMapFullscreen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setIsMapFullscreen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMapFullscreen]);
+
   const selectedMeta = selectedPoint?.type === "carrier"
     ? getCarrierMeta(
       resolveCarrierStatus(selectedPoint?.payload?.status, selectedPoint?.payload?.orderEstado),
@@ -794,12 +834,25 @@ export default function LiveOperationsBoard({
         ) : null}
       </div>
 
-      <div className="geo-canvas geo-canvas-live-map">
+      {isMapFullscreen ? (
+        <div className="geo-map-fullscreen-backdrop" onClick={() => setIsMapFullscreen(false)} />
+      ) : null}
+      <div className={`geo-canvas geo-canvas-live-map${isMapFullscreen ? " is-map-fullscreen" : ""}`}>
         {(mapLoading || mapError) ? (
           <div className="geo-map-overlay">
             <span>{mapLoading ? "A carregar mapa em tempo real..." : mapError}</span>
           </div>
         ) : null}
+        <button
+          type="button"
+          className="geo-map-fullscreen-btn"
+          onClick={() => setIsMapFullscreen((prev) => !prev)}
+          title={isMapFullscreen ? "Fechar mapa em ecra completo" : "Expandir mapa em ecra completo"}
+        >
+          <span className="material-icons" aria-hidden="true">
+            {isMapFullscreen ? "close_fullscreen" : "open_in_full"}
+          </span>
+        </button>
         <div ref={mapElementRef} className="geo-map-target" />
       </div>
 
