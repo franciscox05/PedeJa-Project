@@ -533,6 +533,18 @@
   top: -20px;
 }
 
+/* Nas paginas de Receita/Performance o cartao "hero" ja tem um icone
+   colorido -- o blob rosa generico ficava desalinhado com essa cor, por
+   isso e substituido por um acento subtil na borda esquerda que usa a
+   mesma cor do icone (via --stat-accent, definido inline por cartao). */
+.metric-card.premium.stat-hero::after {
+  content: none;
+}
+
+.metric-card.stat-hero {
+  border-left: 3px solid var(--stat-accent, var(--dash-accent));
+}
+
 .metric-label {
   color: #64748b;
   font-size: 0.86rem;
@@ -782,6 +794,7 @@ button.attention-chip--alert:not(:disabled):hover {
 
 .insight-card {
   display: grid;
+  align-content: start;
   gap: 14px;
 }
 

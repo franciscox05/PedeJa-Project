@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
@@ -54,6 +67,22 @@ export default function DashboardRevenue() {
   const coverageTotal = Math.max(
     1,
     Number(coverage?.exactItems || 0) + Number(coverage?.estimatedItems || 0) + Number(coverage?.unresolvedItems || 0),
+  );
+
+  const typeSplitChartData = useMemo(
+    () => (revenueData?.collectiveByType || [])
+      .filter((entry) => Number(entry.grossRevenue || 0) > 0)
+      .map((entry) => ({ name: entry.label, value: Number(entry.grossRevenue || 0) })),
+    [revenueData],
+  );
+  const TYPE_SPLIT_COLORS = ["#e62429", "#2563eb", "#f59e0b", "#22c55e", "#7e22ce", "#0f172a"];
+
+  const topStoresChartData = useMemo(
+    () => (revenueData?.byStore || [])
+      .slice(0, 6)
+      .map((entry) => ({ name: entry.label, revenue: Number(entry.grossRevenue || 0) }))
+      .reverse(),
+    [revenueData],
   );
 
   const load = useCallback(async (days = periodDays) => {
@@ -149,7 +178,7 @@ export default function DashboardRevenue() {
         ) : revenueData ? (
           <>
             <section className="dashboard-grid premium-grid stat-hero-grid">
-              <article className="metric-card premium stat-hero">
+              <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
                 <div className="stat-hero-icon stat-hero-icon--green">
                   <span className="material-icons" aria-hidden="true">payments</span>
                 </div>
@@ -159,7 +188,7 @@ export default function DashboardRevenue() {
                   <div className="metric-foot">Valor bruto cobrado no periodo</div>
                 </div>
               </article>
-              <article className="metric-card premium stat-hero">
+              <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
                 <div className="stat-hero-icon stat-hero-icon--blue">
                   <span className="material-icons" aria-hidden="true">storefront</span>
                 </div>
@@ -169,7 +198,7 @@ export default function DashboardRevenue() {
                   <div className="metric-foot">Preco base estimado dos artigos</div>
                 </div>
               </article>
-              <article className="metric-card premium stat-hero">
+              <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#7e22ce" }}>
                 <div className="stat-hero-icon stat-hero-icon--purple">
                   <span className="material-icons" aria-hidden="true">percent</span>
                 </div>
@@ -179,7 +208,7 @@ export default function DashboardRevenue() {
                   <div className="metric-foot">Lucro estimado em markup/comissao</div>
                 </div>
               </article>
-              <article className="metric-card premium stat-hero">
+              <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#c2410c" }}>
                 <div className="stat-hero-icon stat-hero-icon--orange">
                   <span className="material-icons" aria-hidden="true">local_shipping</span>
                 </div>
@@ -189,6 +218,71 @@ export default function DashboardRevenue() {
                   <div className="metric-foot">Taxa cobrada ao cliente para entrega</div>
                 </div>
               </article>
+            </section>
+
+            <section className="panel-grid analytics-grid">
+              <DashboardPanel
+                className="chart-panel"
+                title={(
+                  <>
+                    <span className="material-icons panel-title-icon" aria-hidden="true">donut_large</span>
+                    Origem da receita por tipo
+                  </>
+                )}
+                description="Peso de cada categoria de negocio no total faturado."
+              >
+                {typeSplitChartData.length === 0 ? (
+                  <DashboardEmptyState label="Sem dados de receita para mostrar." />
+                ) : (
+                  <div className="chart-shell">
+                    <ResponsiveContainer width="100%" height={320}>
+                      <PieChart>
+                        <Pie
+                          data={typeSplitChartData}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={70}
+                          outerRadius={110}
+                          paddingAngle={2}
+                        >
+                          {typeSplitChartData.map((entry, index) => (
+                            <Cell key={entry.name} fill={TYPE_SPLIT_COLORS[index % TYPE_SPLIT_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => `${Number(value || 0).toFixed(2)} EUR`} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </DashboardPanel>
+
+              <DashboardPanel
+                className="chart-panel"
+                title={(
+                  <>
+                    <span className="material-icons panel-title-icon" aria-hidden="true">leaderboard</span>
+                    Top lojas por faturacao
+                  </>
+                )}
+                description="As lojas que mais faturaram no periodo selecionado."
+              >
+                {topStoresChartData.length === 0 ? (
+                  <DashboardEmptyState label="Sem lojas com receita para mostrar." />
+                ) : (
+                  <div className="chart-shell">
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={topStoresChartData} layout="vertical" margin={{ left: 20, right: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis type="number" stroke="#64748b" />
+                        <YAxis type="category" dataKey="name" width={120} stroke="#64748b" />
+                        <Tooltip formatter={(value) => `${Number(value || 0).toFixed(2)} EUR`} />
+                        <Bar dataKey="revenue" name="Faturado" fill="#e62429" radius={[0, 8, 8, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </DashboardPanel>
             </section>
 
             <section className="insight-grid">
@@ -275,11 +369,24 @@ export default function DashboardRevenue() {
                   </span>
                 )}
               >
-                <p className="muted">
-                  {collectiveRestaurants
-                    ? `As lojas do tipo restaurante faturaram ${formatMoney(collectiveRestaurants.grossRevenue)} no total, com ${formatMoney(collectiveRestaurants.commissionProfit)} de comissao estimada e ticket medio de ${formatMoney(collectiveRestaurants.avgOrderValue)}.`
-                    : "Sem movimento de restaurantes nesta janela."}
-                </p>
+                {collectiveRestaurants ? (
+                  <div className="coverage-grid">
+                    <div>
+                      <strong>{formatMoney(collectiveRestaurants.grossRevenue)}</strong>
+                      <span>Faturado no total</span>
+                    </div>
+                    <div>
+                      <strong>{formatMoney(collectiveRestaurants.commissionProfit)}</strong>
+                      <span>Comissao estimada</span>
+                    </div>
+                    <div>
+                      <strong>{formatMoney(collectiveRestaurants.avgOrderValue)}</strong>
+                      <span>Ticket medio</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="muted">Sem movimento de restaurantes nesta janela.</p>
+                )}
               </DashboardPanel>
             </section>
 

@@ -15,6 +15,7 @@ import {
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
 import DashboardPanel from "../components/dashboard/DashboardPanel";
+import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
 import DashboardLoadingState from "../components/dashboard/DashboardLoadingState";
 import DatePickerCustom from "../components/ui/DatePickerCustom";
 import "../css/pages/dashboard.css";
@@ -262,7 +263,7 @@ export default function DashboardPerformance() {
       ) : state.data ? (
         <div className="dashboard-stack">
           <section className="dashboard-grid premium-grid stat-hero-grid">
-            <article className="metric-card premium stat-hero">
+            <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
               <div className="stat-hero-icon stat-hero-icon--green">
                 <span className="material-icons" aria-hidden="true">payments</span>
               </div>
@@ -272,7 +273,7 @@ export default function DashboardPerformance() {
                 <div className="metric-foot">Periodo selecionado</div>
               </div>
             </article>
-            <article className="metric-card premium stat-hero">
+            <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#c2410c" }}>
               <div className="stat-hero-icon stat-hero-icon--orange">
                 <span className="material-icons" aria-hidden="true">local_shipping</span>
               </div>
@@ -282,7 +283,7 @@ export default function DashboardPerformance() {
                 <div className="metric-foot">Somatorio de taxas cobradas</div>
               </div>
             </article>
-            <article className="metric-card premium stat-hero">
+            <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
               <div className="stat-hero-icon stat-hero-icon--blue">
                 <span className="material-icons" aria-hidden="true">task_alt</span>
               </div>
@@ -292,7 +293,7 @@ export default function DashboardPerformance() {
                 <div className="metric-foot">Pedidos entregues</div>
               </div>
             </article>
-            <article className="metric-card premium stat-hero">
+            <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#7e22ce" }}>
               <div className="stat-hero-icon stat-hero-icon--purple">
                 <span className="material-icons" aria-hidden="true">schedule</span>
               </div>
@@ -315,19 +316,37 @@ export default function DashboardPerformance() {
               )}
               description={`Comparacao por ${granularity === "week" ? "semana" : "dia"}.`}
             >
+              {revenueSeries.length === 0 ? (
+                <DashboardEmptyState label="Sem pedidos nesta janela para desenhar a serie de faturacao." />
+              ) : (
               <div className="chart-shell">
                 <ResponsiveContainer width="100%" height={320}>
                   <LineChart data={revenueSeries}>
+                    <defs>
+                      <linearGradient id="performanceRevenueFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#e62429" stopOpacity={0.18} />
+                        <stop offset="100%" stopColor="#e62429" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="label" stroke="#64748b" />
                     <YAxis stroke="#64748b" />
                     <Tooltip formatter={(value) => `${Number(value || 0).toFixed(2)} EUR`} />
                     <Legend />
-                    <Line type="monotone" dataKey="revenue" name="Faturacao" stroke="#e62429" strokeWidth={3} />
-                    <Line type="monotone" dataKey="deliveryFees" name="Taxas entrega" stroke="#2563eb" strokeWidth={3} />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      name="Faturacao"
+                      stroke="#e62429"
+                      strokeWidth={3}
+                      dot={{ r: 3 }}
+                      fill="url(#performanceRevenueFill)"
+                    />
+                    <Line type="monotone" dataKey="deliveryFees" name="Taxas entrega" stroke="#2563eb" strokeWidth={3} dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+              )}
             </DashboardPanel>
 
             <DashboardPanel
@@ -340,6 +359,9 @@ export default function DashboardPerformance() {
               )}
               description={`Mais vendidos por quantidade. Lider atual: ${bestProductLabel}.`}
             >
+              {topProducts.length === 0 ? (
+                <DashboardEmptyState label="Sem produtos vendidos nesta janela." />
+              ) : (
               <div className="chart-shell">
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={topProducts} layout="vertical" margin={{ left: 20, right: 10 }}>
@@ -352,6 +374,7 @@ export default function DashboardPerformance() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              )}
             </DashboardPanel>
           </section>
 
@@ -365,18 +388,22 @@ export default function DashboardPerformance() {
             )}
             description={`Serie media por ${granularity === "week" ? "semana" : "dia"} com base nas entregas concluidas.`}
           >
-            <div className="chart-shell">
-              <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={deliveryPerformanceSeries}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="label" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip formatter={(value) => `${Number(value || 0).toFixed(1)} min`} />
-                  <Legend />
-                  <Bar dataKey="avgMinutes" name="Tempo medio" fill="#0f172a" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {deliveryPerformanceSeries.length === 0 ? (
+              <DashboardEmptyState label="Sem entregas com atribuicao e entrega registadas nesta janela para calcular o tempo medio." />
+            ) : (
+              <div className="chart-shell">
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={deliveryPerformanceSeries}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="label" stroke="#64748b" />
+                    <YAxis stroke="#64748b" />
+                    <Tooltip formatter={(value) => `${Number(value || 0).toFixed(1)} min`} />
+                    <Legend />
+                    <Bar dataKey="avgMinutes" name="Tempo medio" fill="#0f172a" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </DashboardPanel>
         </div>
       ) : null}
