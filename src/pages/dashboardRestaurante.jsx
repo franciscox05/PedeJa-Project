@@ -729,20 +729,18 @@ export default function DashboardRestaurante() {
 
       {activeTab === "restaurants" ? (
         <div className="dashboard-stack">
-          {!admin ? (
-            <DashboardPanel
-              title="Dados da loja"
-              description="Horario semanal, morada, contacto, NIF e imagens editam-se na pagina de perfil da loja."
+          <DashboardPanel
+            title="Dados da loja"
+            description="Horario semanal, morada, contacto, NIF e imagens editam-se na pagina de perfil da loja."
+          >
+            <button
+              type="button"
+              className="btn-dashboard small"
+              onClick={() => navigate(lojaId ? `/parceiros?edit=1&loja=${lojaId}` : "/parceiros?edit=1")}
             >
-              <button
-                type="button"
-                className="btn-dashboard small"
-                onClick={() => navigate(lojaId ? `/parceiros?edit=1&loja=${lojaId}` : "/parceiros?edit=1")}
-              >
-                Editar dados da loja
-              </button>
-            </DashboardPanel>
-          ) : null}
+              Editar dados da loja
+            </button>
+          </DashboardPanel>
 
           <RestaurantManagementPanel
             title="Gestao de Restaurantes"

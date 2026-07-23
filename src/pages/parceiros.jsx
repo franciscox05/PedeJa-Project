@@ -120,7 +120,11 @@ export default function Parceiros() {
   const isAdminRole = role === "admin";
   const editRequested = searchParams.get("edit") === "1";
   const queryLojaId = searchParams.get("loja") || "";
-  const isEditMode = isRestaurantRole && !!storeProfile;
+  // Admin tambem pode editar (nao so a propria conta de restaurante) --
+  // sem isto, o formulario carregava a loja certa via ?loja= mas ao gravar
+  // caia no ramo de "nova candidatura" (submitPartnerRequest) em vez de
+  // atualizar a loja (updateRestaurantProfile).
+  const isEditMode = (isRestaurantRole || isAdminRole) && !!storeProfile;
 
   useEffect(() => {
     const raw = localStorage.getItem("pedeja_user");
@@ -521,7 +525,7 @@ const handleSubmit = async (e) => {
   };
 
   const heroTitle = isEditMode
-    ? "Atualiza os dados da tua loja PedeJá"
+    ? (isAdminRole ? "Editar dados da loja" : "Atualiza os dados da tua loja PedeJá")
     : "Faz crescer o teu restaurante com PedeJá";
 
   const heroLead = isEditMode
