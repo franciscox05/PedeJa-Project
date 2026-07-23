@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
@@ -77,6 +77,15 @@ export default function DashboardSidebarLayout({
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { clearCart } = useCart();
+  const activeTabRef = useRef(null);
+
+  useEffect(() => {
+    // Cada pagina do dashboard monta este componente de raiz, por isso o
+    // scroll interno do menu (overflow-y: auto) comeca sempre no topo --
+    // sem isto, clicar numa opcao mais abaixo (ex: "Promocoes") fazia o
+    // menu "saltar" de volta para o topo em vez de ficar onde estava.
+    activeTabRef.current?.scrollIntoView({ block: "nearest" });
+  }, [activeTab]);
 
   const handleAccountLogout = () => {
     logout();
@@ -135,6 +144,7 @@ export default function DashboardSidebarLayout({
                   return (
                     <button
                       key={tab.id}
+                      ref={isActive ? activeTabRef : null}
                       type="button"
                       className={`dashboard-sidebar-tab${isActive ? " is-active" : ""}`}
                       onClick={() => onTabChange(tab.id)}
