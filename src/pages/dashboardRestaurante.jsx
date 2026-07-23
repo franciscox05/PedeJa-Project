@@ -144,22 +144,6 @@ function buildWindowInput({ rangeMode, periodDays, customRange }) {
   };
 }
 
-function buildPerformanceSearchParams({ periodDays, rangeMode, customRange, granularity = "day" }) {
-  const params = new URLSearchParams();
-  params.set("granularity", granularity);
-
-  if (rangeMode === "custom") {
-    params.set("mode", "custom");
-    if (customRange?.from) params.set("from", customRange.from);
-    if (customRange?.to) params.set("to", customRange.to);
-    params.set("days", String(periodDays));
-    return params.toString();
-  }
-
-  params.set("days", String(periodDays));
-  return params.toString();
-}
-
 const RESTAURANT_DASHBOARD_TABS = [
   { id: "dashboard", label: "Dashboard", description: "Fila de pedidos e entregas da loja", icon: "dashboard" },
   { id: "restaurants", label: "Gestao de Restaurantes", description: "Configuracao operacional da loja", icon: "restaurants" },
@@ -220,10 +204,6 @@ export default function DashboardRestaurante() {
   });
   const dashboardWindowInput = useMemo(
     () => buildWindowInput({ rangeMode, periodDays, customRange }),
-    [customRange, periodDays, rangeMode],
-  );
-  const performanceSearch = useMemo(
-    () => buildPerformanceSearchParams({ periodDays, rangeMode, customRange, granularity: "day" }),
     [customRange, periodDays, rangeMode],
   );
 
@@ -682,16 +662,6 @@ export default function DashboardRestaurante() {
               </div>
             ) : null}
             <button className="btn-dashboard" onClick={load}>Atualizar</button>
-            {(admin || fromAdmin) ? (
-              <button className="btn-dashboard secondary" onClick={() => navigate(`/dashboard/admin/performance?${performanceSearch}`)}>
-                Performance
-              </button>
-            ) : null}
-            {(admin || fromAdmin) ? (
-              <button className="btn-dashboard secondary" onClick={goToAdmin}>
-                Voltar ao admin
-              </button>
-            ) : null}
             <button className="btn-dashboard" onClick={() => navigate(`/menu-manager${scopedStoreId ? `?loja=${scopedStoreId}` : ""}`)}>
               Gerir menu
             </button>
@@ -700,12 +670,25 @@ export default function DashboardRestaurante() {
         )}
       />
 
+      {admin || fromAdmin ? (
+        <div className="admin-peek-banner">
+          <span className="material-icons" aria-hidden="true">admin_panel_settings</span>
+          <span>
+            Estás a gerir <strong>{storeName || "esta loja"}</strong> como administrador,
+            sem precisares da conta do restaurante.
+          </span>
+          <button type="button" className="btn-dashboard small" onClick={goToAdmin}>
+            Voltar ao admin
+          </button>
+        </div>
+      ) : null}
+
       {admin ? (
         <section className="panel store-access-panel">
           <div className="store-access-header">
             <div>
-              <h3>Loja em foco (modo admin)</h3>
-              <p className="muted">Seleciona pelo nome do restaurante e gere uma loja de cada vez.</p>
+              <h3>Trocar de loja</h3>
+              <p className="muted">Pesquisa por nome para veres o dashboard operacional de outro restaurante.</p>
             </div>
           </div>
 

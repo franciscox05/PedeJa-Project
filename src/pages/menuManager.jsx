@@ -24,6 +24,8 @@ import {
 import { resolveRestaurantStoreId } from "../services/opsDashboardService";
 import { supabase } from "../services/supabaseClient";
 import { extractRestaurantId, extractUserId, isAdmin } from "../utils/roles";
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import "../css/pages/dashboard.css";
 
 const STORE_MENU_CATEGORY_PREFIX = "__store_menu__";
@@ -100,6 +102,8 @@ export default function MenuManager() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const formPanelRef = useRef(null);
+  const { logout } = useAuth();
+  const { clearCart } = useCart();
   const userRaw = localStorage.getItem("pedeja_user");
   const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
   const admin = isAdmin(user);
@@ -289,9 +293,14 @@ export default function MenuManager() {
   const goToDashboard = () => admin ? navigate(`/dashboard/restaurante${scopedLoja ? `?loja=${scopedLoja}&from=admin` : ""}`) : navigate("/dashboard/restaurante");
   const goToWebsite = () => navigate("/");
   const handleLogout = () => {
-    localStorage.removeItem("pedeja_user");
-    localStorage.removeItem("pedeja_cart");
-    navigate("/", { replace: true });
+    logout();
+    clearCart();
+    // Navegacao "dura" (nao client-side): tal como em DashboardSidebarLayout,
+    // sair de uma rota protegida via navigate() deixa o ProtectedRoute reagir
+    // ao user=null antes do router assentar em "/", e a sessao antiga fica
+    // presa (o utilizador via aqui a app a "voltar" para o dashboard da loja
+    // com um aviso de sessao invalida em vez de sair mesmo).
+    window.location.href = "/";
   };
   const openModifierManager = (menuLike) => {
     const menuId = Number(menuLike?.idmenu || editingId);

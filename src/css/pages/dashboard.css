@@ -251,6 +251,23 @@
   margin-bottom: 0;
 }
 
+.dashboard-sidebar-footer-link {
+  display: inline-block;
+  margin-top: 8px;
+  border: none;
+  background: none;
+  padding: 0;
+  color: #f87171;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dashboard-sidebar-footer-link:hover {
+  color: #fca5a5;
+  text-decoration: underline;
+}
+
 .dashboard-sidebar-account {
   flex-shrink: 0;
   padding-top: 14px;
@@ -1953,6 +1970,40 @@ button.attention-chip--alert:not(:disabled):hover {
 
 .store-access-panel {
   margin-bottom: 14px;
+}
+
+.admin-peek-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(230, 36, 41, 0.08);
+  border: 1px solid rgba(230, 36, 41, 0.22);
+  color: #7f1d1d;
+  font-size: 0.88rem;
+  margin-bottom: 14px;
+}
+
+.admin-peek-banner .material-icons {
+  color: #e62429;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.admin-peek-banner span:nth-child(2) {
+  flex: 1 1 auto;
+}
+
+.admin-peek-banner .btn-dashboard {
+  flex-shrink: 0;
+  background: #e62429;
+  color: #fff;
+  border-color: #e62429;
+}
+
+.admin-peek-banner .btn-dashboard:hover {
+  background: #c81e22;
 }
 
 .menu-category-panel-grid {

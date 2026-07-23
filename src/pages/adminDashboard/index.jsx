@@ -838,15 +838,29 @@ export default function DashboardAdmin() {
         );
       }}
       storageKey="dashboard-admin-sidebar-collapsed"
-      footer={selectedStore ? (
-        <div>
-          <p className="muted dashboard-sidebar-footer-label">Loja em foco</p>
-          <strong>{selectedStore.nome}</strong>
-          <p className="muted dashboard-sidebar-footer-meta">#{selectedStore.idloja}</p>
-        </div>
-      ) : (
-        <p className="muted dashboard-sidebar-footer-meta">Sem loja selecionada.</p>
-      )}
+      // "Loja em foco" so faz sentido dentro de Gestao de Restaurantes -- e o
+      // estado usado para editar comissao/entrega/horarios de UMA loja de
+      // cada vez. Mostra-lo nos outros separadores (Dashboard, Clientes...)
+      // dava a ideia enganadora de que o dashboard inteiro estava limitado a
+      // essa loja, quando na verdade e sempre uma vista geral de tudo.
+      footer={activeTab === "restaurants" ? (
+        selectedStore ? (
+          <div>
+            <p className="muted dashboard-sidebar-footer-label">Loja em foco</p>
+            <strong>{selectedStore.nome}</strong>
+            <p className="muted dashboard-sidebar-footer-meta">#{selectedStore.idloja}</p>
+            <button
+              type="button"
+              className="dashboard-sidebar-footer-link"
+              onClick={() => openRestaurantDashboard()}
+            >
+              Abrir dashboard da loja →
+            </button>
+          </div>
+        ) : (
+          <p className="muted dashboard-sidebar-footer-meta">Sem loja selecionada.</p>
+        )
+      ) : null}
     >
       <DashboardPageHeader
         kicker="PedeJa Control Center"
