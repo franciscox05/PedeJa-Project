@@ -463,7 +463,7 @@ export default function MenuOptionBuilderModal({
     setSaving(true);
     setError("");
     try {
-      await deleteMenuOptionLibraryGroup(lojaId, groupId);
+      await deleteMenuOptionLibraryGroup(lojaId, groupId, callerUserId);
       if (String(editingGroupId || "") === String(groupId)) resetDraft();
       await loadGroups();
       await onSaved?.();
