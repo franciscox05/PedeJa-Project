@@ -8,6 +8,7 @@ import {
   deleteMenuOptionLibraryGroup,
   fetchMenuOptionLibrary,
   fetchMenus,
+  linkMenuOptionLibraryGroupToMenu,
   reorderMenuOptionLibraryGroups,
   toggleDisponivel,
   toggleVisibilidade,
@@ -54,6 +55,23 @@ const createEmptyLibraryOption = (index = 0) => ({
 });
 const createEmptyLibraryForm = () => ({ title: "", type: "extra", required: false, maxSelections: 1, options: [createEmptyLibraryOption(0)] });
 const getLibraryGroupKey = (group) => String(group?.library_group_id || group?.id || "");
+const validateLibraryGroupDraft = (draft, { hasStore }) => {
+  const title = String(draft?.title || "").trim();
+  const maxSelections = Number(draft?.maxSelections);
+  const validOptions = (draft?.options || [])
+    .map((option) => ({
+      ...option,
+      name: String(option.name || "").trim(),
+      price: Number(String(option.price ?? "").replace(",", ".")),
+    }))
+    .filter((option) => option.name);
+  if (!hasStore) return "Define a loja antes de gerir a biblioteca.";
+  if (title.length < 2) return "O grupo precisa de um titulo com pelo menos 2 caracteres.";
+  if (!Number.isFinite(maxSelections) || maxSelections < 1) return "O maximo de selecoes tem de ser pelo menos 1.";
+  if (validOptions.length === 0) return "Adiciona pelo menos um item ao grupo.";
+  if (validOptions.some((option) => !Number.isFinite(option.price) || option.price < 0)) return "Todos os itens precisam de um preco valido.";
+  return "";
+};
 const createEmptyForm = () => ({
   nome: "",
   desc: "",
@@ -132,6 +150,13 @@ export default function MenuManager() {
   const [libraryEditingId, setLibraryEditingId] = useState(null);
   const [libraryForm, setLibraryForm] = useState(createEmptyLibraryForm());
   const [modifierManagerTarget, setModifierManagerTarget] = useState(null);
+  const [quickGroupOpen, setQuickGroupOpen] = useState(false);
+  const [quickGroupSaving, setQuickGroupSaving] = useState(false);
+  const [quickGroupForm, setQuickGroupForm] = useState(createEmptyLibraryForm());
+  const [bulkApplyGroupId, setBulkApplyGroupId] = useState("");
+  const [bulkApplySelection, setBulkApplySelection] = useState(new Set());
+  const [bulkApplySearch, setBulkApplySearch] = useState("");
+  const [bulkApplySaving, setBulkApplySaving] = useState(false);
 
   useEffect(() => {
     if (!imageFile) {
@@ -278,6 +303,8 @@ export default function MenuManager() {
     setForm(createEmptyForm());
     setImageFile(null);
     setEditingId(null);
+    setQuickGroupOpen(false);
+    setQuickGroupForm(createEmptyLibraryForm());
   }, []);
   const resetLibraryForm = useCallback(() => {
     setLibraryEditingId(null);
@@ -429,12 +456,112 @@ export default function MenuManager() {
       setLibrarySaving(false);
     }
   };
+  // "Aplicar a mais pratos" -- resolve o caso encontrado na Pede MC: o grupo
+  // "Escolhe o tamanho/bebida" so estava ligado a 1 de 13 sanduiches
+  // parecidos, porque a unica forma de ligar um grupo a um prato era abrir
+  // cada prato um a um. Isto liga o mesmo grupo a varios pratos de uma vez.
+  const openBulkApply = (group) => {
+    const groupId = String(group?.library_group_id || group?.id || "");
+    if (!groupId) return;
+    setBulkApplyGroupId((prev) => (prev === groupId ? "" : groupId));
+    setBulkApplySelection(new Set());
+    setBulkApplySearch("");
+  };
+  const toggleBulkApplyDish = (idmenu) => setBulkApplySelection((prev) => {
+    const next = new Set(prev);
+    const key = String(idmenu);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
+  const handleBulkApplyGroup = async () => {
+    if (!bulkApplyGroupId || bulkApplySelection.size === 0) return;
+    setBulkApplySaving(true);
+    setError("");
+    try {
+      await Promise.all(
+        [...bulkApplySelection].map((idmenu) => linkMenuOptionLibraryGroupToMenu(idmenu, bulkApplyGroupId, extractUserId(user))),
+      );
+      await Promise.all([loadLibraryGroups(), loadMenus()]);
+      setBulkApplyGroupId("");
+      setBulkApplySelection(new Set());
+    } catch (err) {
+      setError(err.message || "Erro ao aplicar o grupo aos pratos selecionados.");
+    } finally {
+      setBulkApplySaving(false);
+    }
+  };
+
   const handleToggleLibraryGroupForMenu = (groupId) => setForm((prev) => {
     const current = new Set((prev.menu_option_group_ids || []).map(String));
     const normalized = String(groupId);
     current.has(normalized) ? current.delete(normalized) : current.add(normalized);
     return { ...prev, menu_option_group_ids: [...current] };
   });
+
+  // Criador rapido de um grupo de opcoes sem sair do formulario do prato --
+  // antes, a unica forma de criar um grupo novo era ir ao separador
+  // "Biblioteca de extras" (perdendo o rascunho do prato) ou, se o prato ja
+  // estivesse guardado, abrir o gestor avancado de modificadores. Isto
+  // resolve o caso mais comum (bebida, acompanhamento, tamanho) sem sair
+  // daqui, mesmo com o prato ainda por guardar.
+  const patchQuickGroupForm = (patch) => setQuickGroupForm((prev) => ({ ...prev, ...patch }));
+  const handleAddQuickGroupOption = () => setQuickGroupForm((prev) => ({
+    ...prev,
+    options: [...prev.options, createEmptyLibraryOption(prev.options.length)],
+  }));
+  const handleRemoveQuickGroupOption = (optionId) => setQuickGroupForm((prev) => {
+    const nextOptions = prev.options.filter((option) => option.id !== optionId);
+    return { ...prev, options: nextOptions.length > 0 ? nextOptions : [createEmptyLibraryOption(0)] };
+  });
+  const handleUpdateQuickGroupOption = (optionId, patch) => setQuickGroupForm((prev) => ({
+    ...prev,
+    options: prev.options.map((option) => option.id === optionId ? { ...option, ...patch } : option),
+  }));
+  const closeQuickGroupCreator = () => {
+    setQuickGroupOpen(false);
+    setQuickGroupForm(createEmptyLibraryForm());
+  };
+  const handleCreateQuickGroup = async () => {
+    const validationError = validateLibraryGroupDraft(quickGroupForm, { hasStore: Boolean(scopedLoja) });
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setQuickGroupSaving(true);
+    setError("");
+    try {
+      const payload = {
+        ...quickGroupForm,
+        title: String(quickGroupForm.title || "").trim(),
+        maxSelections: Math.max(1, Number(quickGroupForm.maxSelections) || 1),
+        options: (quickGroupForm.options || [])
+          .map((option) => ({
+            ...option,
+            name: String(option.name || "").trim(),
+            price: Number(String(option.price ?? "").replace(",", ".")),
+          }))
+          .filter((option) => option.name),
+      };
+      const created = await createMenuOptionLibraryGroup(scopedLoja, payload, extractUserId(user));
+      await loadLibraryGroups();
+
+      const newGroupId = String(created?.library_group_id || created?.id || "");
+      if (newGroupId) {
+        setForm((prev) => {
+          const current = new Set((prev.menu_option_group_ids || []).map(String));
+          current.add(newGroupId);
+          return { ...prev, menu_option_group_ids: [...current] };
+        });
+      }
+
+      closeQuickGroupCreator();
+    } catch (err) {
+      setError(err.message || "Erro ao criar grupo de opcoes.");
+    } finally {
+      setQuickGroupSaving(false);
+    }
+  };
 
   const ensureTipoMenuIdByLabel = async (categoryName) => {
     const cleanName = String(categoryName || "").trim();
@@ -472,23 +599,7 @@ export default function MenuManager() {
     return "";
   };
 
-  const validateLibraryForm = () => {
-    const title = String(libraryForm.title || "").trim();
-    const maxSelections = Number(libraryForm.maxSelections);
-    const validOptions = (libraryForm.options || [])
-      .map((option) => ({
-        ...option,
-        name: String(option.name || "").trim(),
-        price: Number(String(option.price ?? "").replace(",", ".")),
-      }))
-      .filter((option) => option.name);
-    if (!scopedLoja) return "Define a loja antes de gerir a biblioteca.";
-    if (title.length < 2) return "O grupo precisa de um titulo com pelo menos 2 caracteres.";
-    if (!Number.isFinite(maxSelections) || maxSelections < 1) return "O maximo de selecoes tem de ser pelo menos 1.";
-    if (validOptions.length === 0) return "Adiciona pelo menos um item ao grupo.";
-    if (validOptions.some((option) => !Number.isFinite(option.price) || option.price < 0)) return "Todos os itens precisam de um preco valido.";
-    return "";
-  };
+  const validateLibraryForm = () => validateLibraryGroupDraft(libraryForm, { hasStore: Boolean(scopedLoja) });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -888,29 +999,126 @@ export default function MenuManager() {
               <div className="menu-options-builder-head">
                 <div>
                   <span className="muted">Biblioteca global</span>
-                  <h4>Extras, complementares e sugestoes</h4>
-                  <p className="menu-builder-caption muted">Associa grupos globais ao prato. O preco vem sempre da biblioteca.</p>
+                  <h4>O cliente pode escolher algo neste prato?</h4>
+                  <p className="menu-builder-caption muted">
+                    Ex: bebida, acompanhamento ou tamanho num menu/combo. Cria um grupo de opcoes uma vez e reutiliza-o
+                    em varios pratos -- evita teres de criar um prato separado so para a batata frita ou a bebida.
+                  </p>
                 </div>
                 <div className="menu-card-actions">
+                  <button className="btn-dashboard small" type="button" onClick={() => setQuickGroupOpen((prev) => !prev)}>
+                    {quickGroupOpen ? "Fechar criador" : "+ Criar grupo de opcoes"}
+                  </button>
                   <button className="btn-dashboard secondary small" type="button" onClick={() => setActiveTab(MENU_MANAGER_TABS.LIBRARY)}>
                     Gerir biblioteca
                   </button>
                   <button className="btn-dashboard small" type="button" onClick={() => openModifierManager({ idmenu: editingId, nome: form.nome })} disabled={!editingId}>
-                    Gerir opcoes / modificadores
+                    Opcoes avancadas (condicionais)
                   </button>
                 </div>
               </div>
-              {!editingId && <p className="menu-builder-caption muted">Guarda primeiro o prato para abrir o gestor de modificadores por menu.</p>}
+              {!editingId && <p className="menu-builder-caption muted">As opcoes avancadas (com dependencias entre itens) só ficam disponiveis depois de guardares o prato -- o criador rapido acima funciona mesmo antes de guardar.</p>}
+
+              {quickGroupOpen ? (
+                <div className="menu-quick-group-creator">
+                  <div className="menu-form-row">
+                    <label>
+                      <span className="muted">Nome do grupo</span>
+                      <input
+                        type="text"
+                        placeholder="Ex: Escolhe a bebida"
+                        value={quickGroupForm.title}
+                        onChange={(e) => patchQuickGroupForm({ title: e.target.value })}
+                      />
+                    </label>
+                    <label>
+                      <span className="muted">Tipo</span>
+                      <select value={quickGroupForm.type} onChange={(e) => patchQuickGroupForm({ type: e.target.value })}>
+                        {LIBRARY_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="menu-form-row">
+                    <label className="menu-form-checkbox">
+                      <input type="checkbox" checked={quickGroupForm.required} onChange={(e) => patchQuickGroupForm({ required: e.target.checked })} />
+                      <span className="menu-form-checkbox-box">
+                        <strong>Escolha obrigatoria</strong>
+                        <small className="muted">Liga para combos onde o cliente tem mesmo de escolher (ex: a bebida do menu).</small>
+                      </span>
+                    </label>
+                    <label>
+                      <span className="muted">Maximo de selecoes</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={quickGroupForm.maxSelections}
+                        onChange={(e) => patchQuickGroupForm({ maxSelections: e.target.value })}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="menu-option-builder-list">
+                    {quickGroupForm.options.map((option, index) => (
+                      <div className="menu-quick-group-option-row" key={option.id}>
+                        <label>
+                          <span className="muted">Nome do item</span>
+                          <input
+                            type="text"
+                            placeholder={`Ex: ${index === 0 ? "Coca-Cola" : "Item " + (index + 1)}`}
+                            value={option.name}
+                            onChange={(e) => handleUpdateQuickGroupOption(option.id, { name: e.target.value })}
+                          />
+                        </label>
+                        <label>
+                          <span className="muted">Preco extra</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={option.price}
+                            onChange={(e) => handleUpdateQuickGroupOption(option.id, { price: e.target.value })}
+                          />
+                        </label>
+                        <div className="menu-option-builder-actions">
+                          <button className="btn-dashboard secondary small" type="button" onClick={() => handleRemoveQuickGroupOption(option.id)}>
+                            Remover
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="menu-card-actions">
+                    <button className="btn-dashboard secondary small" type="button" onClick={handleAddQuickGroupOption}>
+                      + Adicionar item
+                    </button>
+                  </div>
+
+                  <div className="menu-form-actions">
+                    <button className="btn-dashboard small" type="button" disabled={quickGroupSaving} onClick={handleCreateQuickGroup}>
+                      {quickGroupSaving ? "A criar..." : "Criar e associar a este prato"}
+                    </button>
+                    <button className="btn-dashboard secondary small" type="button" onClick={closeQuickGroupCreator} disabled={quickGroupSaving}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               {libraryLoading ? (
                 <p className="menu-builder-empty muted">A carregar grupos globais...</p>
               ) : libraryGroups.length === 0 ? (
-                <div className="menu-builder-empty">
-                  <p className="muted">Ainda nao existem grupos na biblioteca.</p>
-                  <button className="btn-dashboard secondary small" type="button" onClick={() => setActiveTab(MENU_MANAGER_TABS.LIBRARY)}>
-                    Criar primeiro grupo
-                  </button>
-                </div>
+                !quickGroupOpen && (
+                  <div className="menu-builder-empty">
+                    <p className="muted">Ainda nao existem grupos na biblioteca.</p>
+                    <button className="btn-dashboard secondary small" type="button" onClick={() => setQuickGroupOpen(true)}>
+                      Criar primeiro grupo
+                    </button>
+                  </div>
+                )
               ) : (
                 <>
                   <div className="menu-library-selection-summary">
@@ -1310,7 +1518,71 @@ export default function MenuManager() {
                       Duplicar
                     </button>
                     <button className="btn-dashboard small secondary" type="button" onClick={() => handleDeleteLibraryGroup(group)}>Apagar grupo</button>
+                    <button
+                      className="btn-dashboard small secondary"
+                      type="button"
+                      onClick={() => openBulkApply(group)}
+                    >
+                      {bulkApplyGroupId === String(group.library_group_id || group.id) ? "Fechar" : "Aplicar a mais pratos"}
+                    </button>
                   </div>
+
+                  {bulkApplyGroupId === String(group.library_group_id || group.id) ? (
+                    <div className="menu-quick-group-creator">
+                      {(() => {
+                        const groupIdStr = String(group.library_group_id || group.id);
+                        const search = sanitizeSearch(bulkApplySearch);
+                        const candidates = (menus || [])
+                          .filter((item) => !(item.menu_option_group_ids || []).includes(groupIdStr))
+                          .filter((item) => !search || String(item.nome || "").toLowerCase().includes(search));
+
+                        return (
+                          <>
+                            <p className="muted">
+                              Escolhe outros pratos que devem ter este mesmo grupo de opcoes (ex: os restantes menus/combos parecidos).
+                            </p>
+                            <input
+                              type="text"
+                              placeholder="Pesquisar prato..."
+                              value={bulkApplySearch}
+                              onChange={(e) => setBulkApplySearch(e.target.value)}
+                            />
+                            {candidates.length === 0 ? (
+                              <p className="muted">
+                                {(menus || []).length === 0 ? "Sem pratos nesta loja." : "Todos os pratos ja tem este grupo, ou nenhum corresponde a pesquisa."}
+                              </p>
+                            ) : (
+                              <div className="menu-category-list-grid">
+                                {candidates.map((item) => (
+                                  <label key={item.idmenu} className="menu-form-checkbox">
+                                    <input
+                                      type="checkbox"
+                                      checked={bulkApplySelection.has(String(item.idmenu))}
+                                      onChange={() => toggleBulkApplyDish(item.idmenu)}
+                                    />
+                                    <span className="menu-form-checkbox-box">
+                                      <strong>{item.nome}</strong>
+                                      <small className="muted">{formatCurrency(item.preco)}</small>
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                            <div className="menu-form-actions">
+                              <button
+                                className="btn-dashboard small"
+                                type="button"
+                                disabled={bulkApplySaving || bulkApplySelection.size === 0}
+                                onClick={handleBulkApplyGroup}
+                              >
+                                {bulkApplySaving ? "A ligar..." : `Ligar a ${bulkApplySelection.size} prato(s)`}
+                              </button>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : null}
                 </article>
               );
             })}

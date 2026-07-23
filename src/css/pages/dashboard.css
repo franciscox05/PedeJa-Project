@@ -2917,6 +2917,35 @@ button.attention-chip--alert:not(:disabled):hover {
   justify-content: flex-start;
 }
 
+/* Criador rapido de um grupo de opcoes embutido no formulario do prato --
+   propositadamente mais destacado (borda a vermelho) para ficar obvio que
+   e um painel a abrir/fechar dentro do form, nao mais um campo normal. */
+.menu-quick-group-creator {
+  border: 1px dashed var(--dash-accent, #e62429);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  background: rgba(230, 36, 41, 0.03);
+}
+
+.menu-quick-group-option-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(100px, 0.7fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+@media (max-width: 720px) {
+  .menu-quick-group-option-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .menu-library-layout {
   align-items: start;
 }
