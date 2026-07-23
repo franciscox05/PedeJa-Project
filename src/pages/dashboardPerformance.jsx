@@ -261,33 +261,58 @@ export default function DashboardPerformance() {
         </DashboardPanel>
       ) : state.data ? (
         <div className="dashboard-stack">
-          <section className="dashboard-grid premium-grid">
-            <article className="metric-card premium">
-              <div className="metric-label">Faturacao total</div>
-              <div className="metric-value">{formatMoney(overview?.totalRevenue)}</div>
-              <div className="metric-foot">Periodo selecionado</div>
+          <section className="dashboard-grid premium-grid stat-hero-grid">
+            <article className="metric-card premium stat-hero">
+              <div className="stat-hero-icon stat-hero-icon--green">
+                <span className="material-icons" aria-hidden="true">payments</span>
+              </div>
+              <div className="stat-hero-body">
+                <div className="metric-label">Faturacao total</div>
+                <div className="metric-value">{formatMoney(overview?.totalRevenue)}</div>
+                <div className="metric-foot">Periodo selecionado</div>
+              </div>
             </article>
-            <article className="metric-card premium">
-              <div className="metric-label">Taxas de entrega</div>
-              <div className="metric-value">{formatMoney(overview?.totalDeliveryFees)}</div>
-              <div className="metric-foot">Somatorio de taxas cobradas</div>
+            <article className="metric-card premium stat-hero">
+              <div className="stat-hero-icon stat-hero-icon--orange">
+                <span className="material-icons" aria-hidden="true">local_shipping</span>
+              </div>
+              <div className="stat-hero-body">
+                <div className="metric-label">Taxas de entrega</div>
+                <div className="metric-value">{formatMoney(overview?.totalDeliveryFees)}</div>
+                <div className="metric-foot">Somatorio de taxas cobradas</div>
+              </div>
             </article>
-            <article className="metric-card premium">
-              <div className="metric-label">Entregas concluidas</div>
-              <div className="metric-value">{overview?.deliveredOrders || 0}</div>
-              <div className="metric-foot">Pedidos entregues</div>
+            <article className="metric-card premium stat-hero">
+              <div className="stat-hero-icon stat-hero-icon--blue">
+                <span className="material-icons" aria-hidden="true">task_alt</span>
+              </div>
+              <div className="stat-hero-body">
+                <div className="metric-label">Entregas concluidas</div>
+                <div className="metric-value">{overview?.deliveredOrders || 0}</div>
+                <div className="metric-foot">Pedidos entregues</div>
+              </div>
             </article>
-            <article className="metric-card premium">
-              <div className="metric-label">Tempo medio</div>
-              <div className="metric-value">{Number(overview?.averageAssignToDeliveredMinutes || 0).toFixed(1)} min</div>
-              <div className="metric-foot">Da atribuicao ate entrega</div>
+            <article className="metric-card premium stat-hero">
+              <div className="stat-hero-icon stat-hero-icon--purple">
+                <span className="material-icons" aria-hidden="true">schedule</span>
+              </div>
+              <div className="stat-hero-body">
+                <div className="metric-label">Tempo medio</div>
+                <div className="metric-value">{Number(overview?.averageAssignToDeliveredMinutes || 0).toFixed(1)} min</div>
+                <div className="metric-foot">Da atribuicao ate entrega</div>
+              </div>
             </article>
           </section>
 
           <section className="panel-grid analytics-grid">
             <DashboardPanel
               className="chart-panel"
-              title="Faturacao vs. taxas de entrega"
+              title={(
+                <>
+                  <span className="material-icons panel-title-icon" aria-hidden="true">show_chart</span>
+                  Faturacao vs. taxas de entrega
+                </>
+              )}
               description={`Comparacao por ${granularity === "week" ? "semana" : "dia"}.`}
             >
               <div className="chart-shell">
@@ -307,7 +332,12 @@ export default function DashboardPerformance() {
 
             <DashboardPanel
               className="chart-panel"
-              title="Top 5 produtos"
+              title={(
+                <>
+                  <span className="material-icons panel-title-icon" aria-hidden="true">emoji_events</span>
+                  Top 5 produtos
+                </>
+              )}
               description={`Mais vendidos por quantidade. Lider atual: ${bestProductLabel}.`}
             >
               <div className="chart-shell">
@@ -327,7 +357,12 @@ export default function DashboardPerformance() {
 
           <DashboardPanel
             className="chart-panel"
-            title="Tempo medio entre atribuicao e entrega"
+            title={(
+              <>
+                <span className="material-icons panel-title-icon" aria-hidden="true">timer</span>
+                Tempo medio entre atribuicao e entrega
+              </>
+            )}
             description={`Serie media por ${granularity === "week" ? "semana" : "dia"} com base nas entregas concluidas.`}
           >
             <div className="chart-shell">

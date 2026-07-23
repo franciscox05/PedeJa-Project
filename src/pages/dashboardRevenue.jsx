@@ -37,6 +37,25 @@ export default function DashboardRevenue() {
     [revenueData],
   );
 
+  const maxTypeRevenue = useMemo(
+    () => Math.max(1, ...(revenueData?.collectiveByType || []).map((entry) => Number(entry.grossRevenue || 0))),
+    [revenueData],
+  );
+  const maxStoreRevenue = useMemo(
+    () => Math.max(1, ...(revenueData?.byStore || []).map((entry) => Number(entry.grossRevenue || 0))),
+    [revenueData],
+  );
+  const maxDriverValue = useMemo(
+    () => Math.max(1, ...(revenueData?.byDriver || []).map((entry) => Number(entry.ordersValue || 0))),
+    [revenueData],
+  );
+
+  const coverage = revenueData?.commissionCoverage;
+  const coverageTotal = Math.max(
+    1,
+    Number(coverage?.exactItems || 0) + Number(coverage?.estimatedItems || 0) + Number(coverage?.unresolvedItems || 0),
+  );
+
   const load = useCallback(async (days = periodDays) => {
     setState((prev) => ({ ...prev, loading: true, error: "" }));
 
@@ -129,31 +148,61 @@ export default function DashboardRevenue() {
           </DashboardPanel>
         ) : revenueData ? (
           <>
-            <section className="dashboard-grid premium-grid">
-              <article className="metric-card premium">
-                <div className="metric-label">Faturado ao cliente</div>
-                <div className="metric-value">{formatMoney(revenueData.overview.totalGrossRevenue)}</div>
-                <div className="metric-foot">Valor bruto cobrado no periodo</div>
+            <section className="dashboard-grid premium-grid stat-hero-grid">
+              <article className="metric-card premium stat-hero">
+                <div className="stat-hero-icon stat-hero-icon--green">
+                  <span className="material-icons" aria-hidden="true">payments</span>
+                </div>
+                <div className="stat-hero-body">
+                  <div className="metric-label">Faturado ao cliente</div>
+                  <div className="metric-value">{formatMoney(revenueData.overview.totalGrossRevenue)}</div>
+                  <div className="metric-foot">Valor bruto cobrado no periodo</div>
+                </div>
               </article>
-              <article className="metric-card premium">
-                <div className="metric-label">Base das lojas</div>
-                <div className="metric-value">{formatMoney(revenueData.overview.totalBaseValue)}</div>
-                <div className="metric-foot">Preco base estimado dos artigos</div>
+              <article className="metric-card premium stat-hero">
+                <div className="stat-hero-icon stat-hero-icon--blue">
+                  <span className="material-icons" aria-hidden="true">storefront</span>
+                </div>
+                <div className="stat-hero-body">
+                  <div className="metric-label">Base das lojas</div>
+                  <div className="metric-value">{formatMoney(revenueData.overview.totalBaseValue)}</div>
+                  <div className="metric-foot">Preco base estimado dos artigos</div>
+                </div>
               </article>
-              <article className="metric-card premium">
-                <div className="metric-label">Comissao PedeJa</div>
-                <div className="metric-value">{formatMoney(revenueData.overview.totalCommissionProfit)}</div>
-                <div className="metric-foot">Lucro estimado em markup/comissao</div>
+              <article className="metric-card premium stat-hero">
+                <div className="stat-hero-icon stat-hero-icon--purple">
+                  <span className="material-icons" aria-hidden="true">percent</span>
+                </div>
+                <div className="stat-hero-body">
+                  <div className="metric-label">Comissao PedeJa</div>
+                  <div className="metric-value">{formatMoney(revenueData.overview.totalCommissionProfit)}</div>
+                  <div className="metric-foot">Lucro estimado em markup/comissao</div>
+                </div>
               </article>
-              <article className="metric-card premium">
-                <div className="metric-label">Taxas de entrega</div>
-                <div className="metric-value">{formatMoney(revenueData.overview.totalDeliveryFees)}</div>
-                <div className="metric-foot">Taxa cobrada ao cliente para entrega</div>
+              <article className="metric-card premium stat-hero">
+                <div className="stat-hero-icon stat-hero-icon--orange">
+                  <span className="material-icons" aria-hidden="true">local_shipping</span>
+                </div>
+                <div className="stat-hero-body">
+                  <div className="metric-label">Taxas de entrega</div>
+                  <div className="metric-value">{formatMoney(revenueData.overview.totalDeliveryFees)}</div>
+                  <div className="metric-foot">Taxa cobrada ao cliente para entrega</div>
+                </div>
               </article>
             </section>
 
             <section className="insight-grid">
-              <DashboardPanel className="insight-card" title="Leitura geral">
+              <DashboardPanel
+                className="insight-card"
+                title={(
+                  <span className="insight-card-header">
+                    <span className="insight-card-icon">
+                      <span className="material-icons" aria-hidden="true">insights</span>
+                    </span>
+                    Leitura geral
+                  </span>
+                )}
+              >
                 <p className="muted">
                   O valor de <strong>{formatMoney(revenueData.overview.totalGrossRevenue)}</strong> inclui o preco final dos artigos
                   com markup e a taxa de entrega. A base das lojas representa o preco original estimado do menu, e a diferenca fica
@@ -165,28 +214,67 @@ export default function DashboardRevenue() {
                 </div>
               </DashboardPanel>
 
-              <DashboardPanel className="insight-card" title="Qualidade da leitura da comissao">
+              <DashboardPanel
+                className="insight-card"
+                title={(
+                  <span className="insight-card-header">
+                    <span className="insight-card-icon insight-card-icon--amber">
+                      <span className="material-icons" aria-hidden="true">verified</span>
+                    </span>
+                    Qualidade da leitura da comissao
+                  </span>
+                )}
+              >
                 <p className="muted">
                   Quando o prato ainda existe no catalogo, a leitura usa o preco base atual. Caso contrario, a comissao e inferida
                   pela configuracao ativa da loja, para te dar uma explicacao util de onde vem o valor faturado.
                 </p>
+                <div className="coverage-bar">
+                  <span
+                    className="coverage-bar-segment exact"
+                    style={{ width: `${(Number(coverage?.exactItems || 0) / coverageTotal) * 100}%` }}
+                  />
+                  <span
+                    className="coverage-bar-segment estimated"
+                    style={{ width: `${(Number(coverage?.estimatedItems || 0) / coverageTotal) * 100}%` }}
+                  />
+                  <span
+                    className="coverage-bar-segment unresolved"
+                    style={{ width: `${(Number(coverage?.unresolvedItems || 0) / coverageTotal) * 100}%` }}
+                  />
+                </div>
+                <div className="coverage-legend">
+                  <span className="coverage-legend-item"><span className="coverage-legend-dot exact" />Exatos</span>
+                  <span className="coverage-legend-item"><span className="coverage-legend-dot estimated" />Estimados</span>
+                  <span className="coverage-legend-item"><span className="coverage-legend-dot unresolved" />Sem detalhe</span>
+                </div>
                 <div className="coverage-grid">
                   <div>
-                    <strong>{revenueData.commissionCoverage.exactItems}</strong>
+                    <strong>{coverage?.exactItems || 0}</strong>
                     <span>Itens lidos diretamente do catalogo</span>
                   </div>
                   <div>
-                    <strong>{revenueData.commissionCoverage.estimatedItems}</strong>
+                    <strong>{coverage?.estimatedItems || 0}</strong>
                     <span>Itens inferidos pela comissao atual</span>
                   </div>
                   <div>
-                    <strong>{revenueData.commissionCoverage.unresolvedItems}</strong>
+                    <strong>{coverage?.unresolvedItems || 0}</strong>
                     <span>Itens sem detalhe suficiente</span>
                   </div>
                 </div>
               </DashboardPanel>
 
-              <DashboardPanel className="insight-card" title="Restaurantes em conjunto">
+              <DashboardPanel
+                className="insight-card"
+                title={(
+                  <span className="insight-card-header">
+                    <span className="insight-card-icon insight-card-icon--purple">
+                      <span className="material-icons" aria-hidden="true">restaurant</span>
+                    </span>
+                    Restaurantes em conjunto
+                  </span>
+                )}
+              >
                 <p className="muted">
                   {collectiveRestaurants
                     ? `As lojas do tipo restaurante faturaram ${formatMoney(collectiveRestaurants.grossRevenue)} no total, com ${formatMoney(collectiveRestaurants.commissionProfit)} de comissao estimada e ticket medio de ${formatMoney(collectiveRestaurants.avgOrderValue)}.`
@@ -196,7 +284,12 @@ export default function DashboardRevenue() {
             </section>
 
             <DashboardPanel
-              title="Receita por tipo de loja"
+              title={(
+                <>
+                  <span className="material-icons panel-title-icon" aria-hidden="true">category</span>
+                  Receita por tipo de loja
+                </>
+              )}
               description="Coletivo por categoria de negocio: restaurantes e restantes tipos de loja."
             >
               <div className="table-wrap">
@@ -215,9 +308,23 @@ export default function DashboardRevenue() {
                   <tbody>
                     {revenueData.collectiveByType.map((entry) => (
                       <tr key={entry.label}>
-                        <td>{entry.label}</td>
+                        <td>
+                          <span className={`tag ${/restaur/i.test(String(entry.label || "")) ? "ok" : "neutral"}`}>
+                            {entry.label}
+                          </span>
+                        </td>
                         <td>{entry.orders}</td>
-                        <td>{formatMoney(entry.grossRevenue)}</td>
+                        <td>
+                          <div className="value-bar-cell">
+                            <span className="value-bar-amount">{formatMoney(entry.grossRevenue)}</span>
+                            <span className="value-bar-track">
+                              <span
+                                className="value-bar-fill"
+                                style={{ width: `${(Number(entry.grossRevenue || 0) / maxTypeRevenue) * 100}%` }}
+                              />
+                            </span>
+                          </div>
+                        </td>
                         <td>{formatMoney(entry.baseValue)}</td>
                         <td>{formatMoney(entry.commissionProfit)}</td>
                         <td>{formatMoney(entry.deliveryFees)}</td>
@@ -233,7 +340,12 @@ export default function DashboardRevenue() {
             </DashboardPanel>
 
             <DashboardPanel
-              title="Receita por loja"
+              title={(
+                <>
+                  <span className="material-icons panel-title-icon" aria-hidden="true">store</span>
+                  Receita por loja
+                </>
+              )}
               description="Vista individual por loja, para comparar faturacao, base e lucro real de comissao."
             >
               <div className="table-wrap">
@@ -250,12 +362,27 @@ export default function DashboardRevenue() {
                     </tr>
                   </thead>
                   <tbody>
-                    {revenueData.byStore.map((entry) => (
+                    {revenueData.byStore.map((entry, index) => (
                       <tr key={entry.lojaId}>
-                        <td>{entry.label}</td>
-                        <td>{entry.storeTypeLabel}</td>
+                        <td>
+                          <span className="entity-cell">
+                            <span className={`rank-badge${index < 3 ? ` rank-${index + 1}` : ""}`}>{index + 1}</span>
+                            {entry.label}
+                          </span>
+                        </td>
+                        <td><span className="tag neutral">{entry.storeTypeLabel}</span></td>
                         <td>{entry.orders}</td>
-                        <td>{formatMoney(entry.grossRevenue)}</td>
+                        <td>
+                          <div className="value-bar-cell">
+                            <span className="value-bar-amount">{formatMoney(entry.grossRevenue)}</span>
+                            <span className="value-bar-track">
+                              <span
+                                className="value-bar-fill"
+                                style={{ width: `${(Number(entry.grossRevenue || 0) / maxStoreRevenue) * 100}%` }}
+                              />
+                            </span>
+                          </div>
+                        </td>
                         <td>{formatMoney(entry.baseValue)}</td>
                         <td>{formatMoney(entry.commissionProfit)}</td>
                         <td>{formatMoney(entry.deliveryFees)}</td>
@@ -270,7 +397,12 @@ export default function DashboardRevenue() {
             </DashboardPanel>
 
             <DashboardPanel
-              title="Estafetas"
+              title={(
+                <>
+                  <span className="material-icons panel-title-icon" aria-hidden="true">two_wheeler</span>
+                  Estafetas
+                </>
+              )}
               description="Valor de pedidos e taxas de entrega movimentadas por estafeta nesta janela."
             >
               <div className="table-wrap">
@@ -285,12 +417,27 @@ export default function DashboardRevenue() {
                     </tr>
                   </thead>
                   <tbody>
-                    {revenueData.byDriver.map((entry) => (
+                    {revenueData.byDriver.map((entry, index) => (
                       <tr key={entry.key}>
-                        <td>{entry.name}</td>
+                        <td>
+                          <span className="entity-cell">
+                            <span className={`rank-badge${index < 3 ? ` rank-${index + 1}` : ""}`}>{index + 1}</span>
+                            {entry.name}
+                          </span>
+                        </td>
                         <td>{entry.phone || "-"}</td>
                         <td>{entry.deliveries}</td>
-                        <td>{formatMoney(entry.ordersValue)}</td>
+                        <td>
+                          <div className="value-bar-cell">
+                            <span className="value-bar-amount">{formatMoney(entry.ordersValue)}</span>
+                            <span className="value-bar-track">
+                              <span
+                                className="value-bar-fill"
+                                style={{ width: `${(Number(entry.ordersValue || 0) / maxDriverValue) * 100}%` }}
+                              />
+                            </span>
+                          </div>
+                        </td>
                         <td>{formatMoney(entry.deliveryFees)}</td>
                       </tr>
                     ))}
