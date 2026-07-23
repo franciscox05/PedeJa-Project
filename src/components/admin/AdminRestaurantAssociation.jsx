@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   associateRestaurantToUser,
+  fetchStoreAssociation,
+  removeRestaurantAssociation,
   searchUsersForRestaurantAssociation,
 } from "../../services/rbacAdminService";
 import { useAuth } from "../../context/AuthContext";
@@ -16,12 +18,38 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
   const [selectedStoreId, setSelectedStoreId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [association, setAssociation] = useState(null);
+  const [associationLoading, setAssociationLoading] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (!selectedStoreId && stores.length > 0) {
       setSelectedStoreId(String(stores[0].idloja));
     }
   }, [selectedStoreId, stores]);
+
+  const loadAssociation = async (lojaId) => {
+    if (!lojaId) {
+      setAssociation(null);
+      return;
+    }
+
+    setAssociationLoading(true);
+    try {
+      const result = await fetchStoreAssociation({ callerUserId: extractUserId(user), lojaId });
+      setAssociation(result);
+    } catch (err) {
+      setAssociation(null);
+      setError(err.message || "Falha ao consultar a associacao atual da loja.");
+    } finally {
+      setAssociationLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAssociation(selectedStoreId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStoreId]);
 
   const selectedUser = useMemo(
     () => users.find((candidate) => String(candidate.idutilizador) === String(selectedUserId)) || null,
@@ -71,10 +99,15 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
         lojaId: selectedStoreId,
       });
 
-      setSuccess(`Utilizador ${result.user.username} associado a ${result.store.nome}.`);
+      setSuccess(
+        result.alreadyAssociated
+          ? `${result.user.username} ja estava associado a ${result.store.nome} -- nada mudou.`
+          : `Utilizador ${result.user.username} associado a ${result.store.nome}.`,
+      );
 
       const refreshed = await searchUsersForRestaurantAssociation(search, 20, extractUserId(user));
       setUsers(refreshed);
+      await loadAssociation(selectedStoreId);
 
       if (onLinked) {
         await onLinked();
@@ -83,6 +116,28 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
       setError(err.message || "Falha ao associar utilizador ao restaurante.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!selectedStoreId) return;
+
+    setRemoving(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await removeRestaurantAssociation({ callerUserId: extractUserId(user), lojaId: selectedStoreId });
+      setSuccess("Associacao removida. Podes agora associar outra conta a esta loja.");
+      await loadAssociation(selectedStoreId);
+
+      if (onLinked) {
+        await onLinked();
+      }
+    } catch (err) {
+      setError(err.message || "Falha ao remover a associacao da loja.");
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -124,6 +179,27 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
             </select>
           </label>
         </div>
+
+        {associationLoading ? (
+          <p className="muted">A verificar associacao atual...</p>
+        ) : association?.associated ? (
+          <div className="admin-inline-warning">
+            <p>
+              Esta loja ja esta associada a <strong>{association.user?.username}</strong>
+              {" "}({association.user?.email || "sem email"}).
+            </p>
+            <button
+              type="button"
+              className="btn-dashboard small secondary"
+              disabled={removing}
+              onClick={handleRemove}
+            >
+              {removing ? "A remover..." : "Remover associacao"}
+            </button>
+          </div>
+        ) : selectedStoreId ? (
+          <p className="muted">Esta loja ainda nao tem nenhuma conta associada.</p>
+        ) : null}
       </section>
 
       <section className="restaurant-settings-card">

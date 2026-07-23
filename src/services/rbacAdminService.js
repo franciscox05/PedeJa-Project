@@ -43,5 +43,50 @@ export async function associateRestaurantToUser({ callerUserId, userId, lojaId }
       loja_id: normalizedLojaId,
     },
     store: data.store,
+    alreadyAssociated: data.already_associated === true,
   };
+}
+
+export async function fetchStoreAssociation({ callerUserId, lojaId }) {
+  const normalizedCallerId = Number(callerUserId);
+  const normalizedLojaId = Number(lojaId);
+
+  if (!Number.isFinite(normalizedCallerId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente.");
+  }
+  if (!Number.isFinite(normalizedLojaId)) {
+    throw new Error("Loja invalida para associacao.");
+  }
+
+  const { data, error } = await supabase.rpc("admin_get_store_association", {
+    caller_user_id: normalizedCallerId,
+    loja_id_input: normalizedLojaId,
+  });
+
+  if (error) throw error;
+
+  return data?.associated
+    ? { associated: true, user: data.user }
+    : { associated: false, user: null };
+}
+
+export async function removeRestaurantAssociation({ callerUserId, lojaId }) {
+  const normalizedCallerId = Number(callerUserId);
+  const normalizedLojaId = Number(lojaId);
+
+  if (!Number.isFinite(normalizedCallerId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente.");
+  }
+  if (!Number.isFinite(normalizedLojaId)) {
+    throw new Error("Loja invalida para associacao.");
+  }
+
+  const { data, error } = await supabase.rpc("admin_remove_restaurant_association", {
+    caller_user_id: normalizedCallerId,
+    loja_id_input: normalizedLojaId,
+  });
+
+  if (error) throw error;
+
+  return data;
 }
