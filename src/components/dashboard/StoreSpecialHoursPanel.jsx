@@ -63,6 +63,7 @@ export default function StoreSpecialHoursPanel({
   loading = false,
   canEdit = true,
   onSaveScheduleSettings,
+  onEditWeeklySchedule = null,
 }) {
   const navigate = useNavigate();
   const [drafts, setDrafts] = useState({});
@@ -171,7 +172,10 @@ export default function StoreSpecialHoursPanel({
       <div className="restaurant-settings-header">
         <div>
           <h3>Horarios especiais</h3>
-          <p className="muted">Define ferias, folgas excecionais ou aberturas especiais sem mexer no horario semanal base.</p>
+          <p className="muted">
+            Ferias, folgas excecionais ou aberturas especiais para datas concretas. O horario
+            semanal normal (os dias e turnos habituais) edita-se em "Dados da Loja".
+          </p>
         </div>
       </div>
 
@@ -198,10 +202,14 @@ export default function StoreSpecialHoursPanel({
                     <button
                       type="button"
                       className="restaurant-card-jump-link restaurant-card-jump-link--inline"
-                      onClick={() => navigate(`/parceiros?edit=1&loja=${store.idloja}`)}
+                      onClick={() => (onEditWeeklySchedule
+                        ? onEditWeeklySchedule(store)
+                        : navigate(`/parceiros?edit=1&loja=${store.idloja}`))}
                     >
                       Editar horario semanal
-                      <span className="material-icons" aria-hidden="true">open_in_new</span>
+                      <span className="material-icons" aria-hidden="true">
+                        {onEditWeeklySchedule ? "arrow_forward" : "open_in_new"}
+                      </span>
                     </button>
                   </p>
                 </div>

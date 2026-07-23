@@ -14,7 +14,7 @@ const SUB_TABS = [
   { id: "profile", label: "Dados da Loja" },
   { id: "commission", label: "Comissao" },
   { id: "delivery", label: "Entrega" },
-  { id: "hours", label: "Horarios" },
+  { id: "hours", label: "Horarios Especiais" },
   { id: "performance", label: "Performance" },
   { id: "approvals", label: "Aprovacoes" },
   { id: "association", label: "Associar Utilizador" },
@@ -210,6 +210,7 @@ export default function RestaurantsTab({
           loading={loading}
           canEdit
           onSaveScheduleSettings={onSaveScheduleSettings}
+          onEditWeeklySchedule={() => setSection("profile")}
         />
       ) : null}
 
