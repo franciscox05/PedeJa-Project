@@ -45,6 +45,17 @@ import OverviewTab from "./OverviewTab";
 import CustomersTab from "./CustomersTab";
 import RestaurantsTab from "./RestaurantsTab";
 import CarrierAssignModal from "./modals/CarrierAssignModal";
+import { useAlert } from "../../context/AlertContext";
+
+// Este dashboard tem varias fatias de estado independentes, cada uma com o
+// seu proprio campo `error` (pedidos, comissao global, entrega global,
+// clientes, etc). Este hook evita repetir o mesmo useEffect para cada uma --
+// so dispara o alerta global quando a mensagem muda para um valor nao vazio.
+function useErrorAlert(message, showError) {
+  useEffect(() => {
+    if (message) showError(message);
+  }, [message, showError]);
+}
 
 export default function DashboardAdmin() {
   const navigate = useNavigate();
@@ -142,6 +153,15 @@ export default function DashboardAdmin() {
     customers: [],
   });
   const [commissionEarned, setCommissionEarned] = useState({ loading: true, error: "", value: 0 });
+  const { showError } = useAlert();
+  useErrorAlert(state.error, showError);
+  useErrorAlert(orderDetailModal.error, showError);
+  useErrorAlert(globalDeliveryPricing.error, showError);
+  useErrorAlert(globalAutoAssign.error, showError);
+  useErrorAlert(globalCommission.error, showError);
+  useErrorAlert(carrierModal.error, showError);
+  useErrorAlert(customerInsights.error, showError);
+  useErrorAlert(commissionEarned.error, showError);
   const dashboardWindowInput = useMemo(
     () => buildWindowInput({ rangeMode, periodDays, customRange }),
     [customRange, periodDays, rangeMode],
@@ -594,7 +614,7 @@ export default function DashboardAdmin() {
       await load();
       toast.success(status === "APPROVED" ? "Pedido aprovado com sucesso." : "Pedido rejeitado com sucesso.");
     } catch (error) {
-      toast.error(`Falha na revisao: ${error.message}`);
+      showError(`Falha na revisao: ${error.message}`);
     } finally {
       setReviewingId("");
     }
@@ -793,7 +813,7 @@ export default function DashboardAdmin() {
 
       await load();
     } catch (error) {
-      toast.error(`Falha a atualizar estado: ${error.message}`);
+      showError(`Falha a atualizar estado: ${error.message}`);
     } finally {
       setUpdatingOrderId("");
     }

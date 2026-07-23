@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchAllCategories, fetchStoreCategoryIds, setStoreCategories } from "../../services/storeCategoriesService";
+import { useAlert } from "../../context/AlertContext";
 
 export default function StoreCategoriesPicker({ lojaId, callerUserId, onSaved = null }) {
+  const { showError } = useAlert();
   const [allCategories, setAllCategories] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [initialIds, setInitialIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [success, setSuccess] = useState("");
 
   const load = useCallback(async () => {
@@ -28,7 +34,7 @@ export default function StoreCategoriesPicker({ lojaId, callerUserId, onSaved = 
     } finally {
       setLoading(false);
     }
-  }, [lojaId]);
+  }, [lojaId, setError]);
 
   useEffect(() => {
     load();

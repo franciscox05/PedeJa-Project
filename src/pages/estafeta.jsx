@@ -25,12 +25,14 @@ import {
 import { useEstafetaLocationPing } from "../hooks/useEstafetaLocationPing";
 import { useEstafetaOrderAlert } from "../hooks/useEstafetaOrderAlert";
 import { useEstafetaPushSubscription } from "../hooks/useEstafetaPushSubscription";
+import { useAlert } from "../context/AlertContext";
 
 const STATE_POLL_INTERVAL_MS = 8000;
 
 export default function EstafetaDashboard() {
   const { user, logout } = useAuth();
   const { clearCart } = useCart();
+  const { showError } = useAlert();
   const callerUserId = user?.idutilizador || null;
 
   const handleLogout = () => {
@@ -131,7 +133,7 @@ export default function EstafetaDashboard() {
       toast.success(nextOnline ? "Ficaste online." : "Ficaste offline.");
       await loadState();
     } catch (error) {
-      toast.error(error?.message || "Não foi possível atualizar o estado.");
+      showError(error?.message || "Não foi possível atualizar o estado.");
     } finally {
       setBusy(false);
     }
@@ -144,7 +146,7 @@ export default function EstafetaDashboard() {
       toast.success("Pedido aceite!");
       await loadState();
     } catch (error) {
-      toast.error(error?.message || "Não foi possível aceitar o pedido.");
+      showError(error?.message || "Não foi possível aceitar o pedido.");
     } finally {
       setBusy(false);
     }
@@ -157,7 +159,7 @@ export default function EstafetaDashboard() {
       toast("Pedido rejeitado. Volta a ficar disponível para novos pedidos.");
       await loadState();
     } catch (error) {
-      toast.error(error?.message || "Não foi possível rejeitar o pedido.");
+      showError(error?.message || "Não foi possível rejeitar o pedido.");
     } finally {
       setBusy(false);
     }
@@ -170,7 +172,7 @@ export default function EstafetaDashboard() {
       toast.success("Estado atualizado.");
       await loadState();
     } catch (error) {
-      toast.error(error?.message || "Não foi possível atualizar o estado do pedido.");
+      showError(error?.message || "Não foi possível atualizar o estado do pedido.");
     } finally {
       setBusy(false);
     }
@@ -183,7 +185,7 @@ export default function EstafetaDashboard() {
       toast.success("Estado revertido.");
       await loadState();
     } catch (error) {
-      toast.error(error?.message || "Não foi possível voltar atrás no estado do pedido.");
+      showError(error?.message || "Não foi possível voltar atrás no estado do pedido.");
     } finally {
       setBusy(false);
     }
@@ -220,7 +222,7 @@ export default function EstafetaDashboard() {
       handleCloseProofModal();
       await loadState();
     } catch (error) {
-      toast.error(error?.message || "Não foi possível confirmar a entrega.");
+      showError(error?.message || "Não foi possível confirmar a entrega.");
     } finally {
       setBusy(false);
     }
@@ -236,7 +238,7 @@ export default function EstafetaDashboard() {
       setCancelReason("");
       await loadState();
     } catch (error) {
-      toast.error(error?.message || "Não foi possível cancelar a entrega.");
+      showError(error?.message || "Não foi possível cancelar a entrega.");
     } finally {
       setBusy(false);
     }
@@ -250,7 +252,7 @@ export default function EstafetaDashboard() {
       await loadState();
       return true;
     } catch (error) {
-      toast.error(error?.message || "Não foi possível alterar a password.");
+      showError(error?.message || "Não foi possível alterar a password.");
       return false;
     } finally {
       setBusy(false);

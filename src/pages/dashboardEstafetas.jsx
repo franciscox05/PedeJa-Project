@@ -32,6 +32,7 @@ import {
   reassignDeliveryToEstafeta,
 } from "../services/estafetaService";
 import { fetchAdminDashboard } from "../services/opsDashboardService";
+import { useAlert } from "../context/AlertContext";
 
 const POLL_INTERVAL_MS = 20000;
 
@@ -57,7 +58,12 @@ export default function DashboardEstafetas() {
   const [unassignedOrders, setUnassignedOrders] = useState([]);
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { showError } = useAlert();
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [busyKey, setBusyKey] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState({ nome: "", email: "", telemovel: "", veiculo: "mota" });
@@ -66,6 +72,9 @@ export default function DashboardEstafetas() {
   const [reassignSelection, setReassignSelection] = useState("");
   const [payoutModal, setPayoutModal] = useState({ open: false, estafeta: null, pending: null, history: [], loading: false });
   const [opsReport, setOpsReport] = useState({ loading: true, error: "", data: null });
+  useEffect(() => {
+    if (opsReport.error) showError(opsReport.error);
+  }, [opsReport.error, showError]);
 
   const load = useCallback(async () => {
     if (!Number.isFinite(callerUserId)) return;
@@ -112,7 +121,7 @@ export default function DashboardEstafetas() {
     } finally {
       setLoading(false);
     }
-  }, [callerUserId, user]);
+  }, [callerUserId, user, setError]);
 
   useEffect(() => {
     load();
@@ -158,7 +167,7 @@ export default function DashboardEstafetas() {
   const handleAssign = async (orderId) => {
     const estafetaId = assignSelection[orderId];
     if (!estafetaId) {
-      toast.error("Escolhe um estafeta primeiro.");
+      showError("Escolhe um estafeta primeiro.");
       return;
     }
     const key = `assign-${orderId}`;
@@ -168,7 +177,7 @@ export default function DashboardEstafetas() {
       toast.success("Estafeta atribuido.");
       await load();
     } catch (assignError) {
-      toast.error(assignError?.message || "Nao foi possivel atribuir o estafeta.");
+      showError(assignError?.message || "Nao foi possivel atribuir o estafeta.");
     } finally {
       setBusyKey("");
     }
@@ -176,7 +185,7 @@ export default function DashboardEstafetas() {
 
   const handleReassignConfirm = async () => {
     if (!reassignTarget || !reassignSelection) {
-      toast.error("Escolhe o novo estafeta.");
+      showError("Escolhe o novo estafeta.");
       return;
     }
     const key = `reassign-${reassignTarget}`;
@@ -188,7 +197,7 @@ export default function DashboardEstafetas() {
       setReassignSelection("");
       await load();
     } catch (reassignError) {
-      toast.error(reassignError?.message || "Não foi possível reatribuir a entrega.");
+      showError(reassignError?.message || "Não foi possível reatribuir a entrega.");
     } finally {
       setBusyKey("");
     }
@@ -203,7 +212,7 @@ export default function DashboardEstafetas() {
       toast.success("Entrega marcada como concluída.");
       await load();
     } catch (forceError) {
-      toast.error(forceError?.message || "Não foi possível concluir a entrega.");
+      showError(forceError?.message || "Não foi possível concluir a entrega.");
     } finally {
       setBusyKey("");
     }
@@ -217,7 +226,7 @@ export default function DashboardEstafetas() {
       toast.success(!estafeta.ativo ? "Estafeta ativado." : "Estafeta desativado.");
       await load();
     } catch (toggleError) {
-      toast.error(toggleError?.message || "Nao foi possivel atualizar o estafeta.");
+      showError(toggleError?.message || "Nao foi possivel atualizar o estafeta.");
     } finally {
       setBusyKey("");
     }
@@ -234,7 +243,7 @@ export default function DashboardEstafetas() {
       );
       await load();
     } catch (resetError) {
-      toast.error(resetError?.message || "Nao foi possivel repor a password.");
+      showError(resetError?.message || "Nao foi possivel repor a password.");
     } finally {
       setBusyKey("");
     }
@@ -249,7 +258,7 @@ export default function DashboardEstafetas() {
       ]);
       setPayoutModal({ open: true, estafeta, pending, history, loading: false });
     } catch (payoutError) {
-      toast.error(payoutError?.message || "Nao foi possivel carregar os pagamentos deste estafeta.");
+      showError(payoutError?.message || "Nao foi possivel carregar os pagamentos deste estafeta.");
       setPayoutModal({ open: false, estafeta: null, pending: null, history: [], loading: false });
     }
   };
@@ -266,7 +275,7 @@ export default function DashboardEstafetas() {
       toast.success(`Pagamento registado para ${payoutModal.estafeta.nome}.`);
       await handleOpenPayoutModal(payoutModal.estafeta);
     } catch (payoutError) {
-      toast.error(payoutError?.message || "Nao foi possivel registar o pagamento.");
+      showError(payoutError?.message || "Nao foi possivel registar o pagamento.");
     } finally {
       setBusyKey("");
     }
@@ -285,7 +294,7 @@ export default function DashboardEstafetas() {
       setShowCreateForm(false);
       await load();
     } catch (createError) {
-      toast.error(createError?.message || "Nao foi possivel criar o estafeta.");
+      showError(createError?.message || "Nao foi possivel criar o estafeta.");
     } finally {
       setBusyKey("");
     }

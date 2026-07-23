@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   associateRestaurantToUser,
   fetchStoreAssociation,
@@ -7,16 +7,22 @@ import {
 } from "../../services/rbacAdminService";
 import { useAuth } from "../../context/AuthContext";
 import { extractUserId } from "../../utils/roles";
+import { useAlert } from "../../context/AlertContext";
 
 export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
   const { user } = useAuth();
+  const { showError } = useAlert();
   const [search, setSearch] = useState("");
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedStoreId, setSelectedStoreId] = useState("");
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [success, setSuccess] = useState("");
   const [association, setAssociation] = useState(null);
   const [associationLoading, setAssociationLoading] = useState(false);

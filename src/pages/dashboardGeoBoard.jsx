@@ -17,6 +17,7 @@ import { getEstadoInternoLabelPt, getEstadoInternoTagClass, resolveOrderEstadoIn
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 import { useAuth } from "../context/AuthContext";
 import { extractUserId } from "../utils/roles";
+import { useAlert } from "../context/AlertContext";
 
 function normalizeSearchWindow(searchParams) {
   const mode = String(searchParams.get("mode") || "preset");
@@ -70,6 +71,10 @@ export default function DashboardGeoBoard() {
     deliveries: [],
     metrics: { totalOrders: 0, activeDeliveries: 0 },
   });
+  const { showError } = useAlert();
+  useEffect(() => {
+    if (state.error) showError(state.error);
+  }, [state.error, showError]);
   const [estafetas, setEstafetas] = useState([]);
   const [activeAtribuicoes, setActiveAtribuicoes] = useState([]);
 

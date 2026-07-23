@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { sanitizeCommissionConfig } from "../../services/pricingService";
+import { useAlert } from "../../context/AlertContext";
 import {
   AUTO_ASSIGN_CRITERIA_OPTIONS,
   criteriaSummaryText,
@@ -150,6 +151,10 @@ export default function RestaurantManagementPanel({
   const [savedGlobalAutoAssign, setSavedGlobalAutoAssign] = useState(false);
   const [savedGlobalCommission, setSavedGlobalCommission] = useState(false);
   const [feedback, setFeedback] = useState({ tone: "", message: "" });
+  const { showError } = useAlert();
+  useEffect(() => {
+    if (feedback.tone === "error" && feedback.message) showError(feedback.message);
+  }, [feedback, showError]);
   const commissionUiEnabled = Boolean(isAdmin && showCommissions && showCommissionSettings);
   const operationalUiEnabled = Boolean(showOperationalSettings);
 

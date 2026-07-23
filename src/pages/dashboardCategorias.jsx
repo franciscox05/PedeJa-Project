@@ -11,6 +11,7 @@ import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDa
 import { fetchCategories, createCategory, updateCategory, deleteCategory } from "../services/adminCategoriesService";
 import { fetchCategoryUsageCounts } from "../services/storeCategoriesService";
 import { extractUserId } from "../utils/roles";
+import { useAlert } from "../context/AlertContext";
 
 function parseSessionUser(raw) {
   try {
@@ -26,10 +27,15 @@ export default function DashboardCategorias() {
   const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
   const callerUserId = extractUserId(user);
 
+  const { showError } = useAlert();
   const [categories, setCategories] = useState([]);
   const [usageCounts, setUsageCounts] = useState(new Map());
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -51,7 +57,7 @@ export default function DashboardCategorias() {
     } finally {
       setLoading(false);
     }
-  }, [callerUserId]);
+  }, [callerUserId, setError]);
 
   useEffect(() => {
     load();
@@ -67,7 +73,7 @@ export default function DashboardCategorias() {
       toast.success("Categoria criada.");
       await load();
     } catch (err) {
-      toast.error(err?.message || "Nao foi possivel criar a categoria.");
+      showError(err?.message || "Nao foi possivel criar a categoria.");
     } finally {
       setCreating(false);
     }
@@ -93,7 +99,7 @@ export default function DashboardCategorias() {
       cancelEdit();
       await load();
     } catch (err) {
-      toast.error(err?.message || "Nao foi possivel atualizar a categoria.");
+      showError(err?.message || "Nao foi possivel atualizar a categoria.");
     } finally {
       setBusyId(null);
     }
@@ -113,7 +119,7 @@ export default function DashboardCategorias() {
       toast.success("Categoria eliminada.");
       await load();
     } catch (err) {
-      toast.error(err?.message || "Nao foi possivel eliminar a categoria.");
+      showError(err?.message || "Nao foi possivel eliminar a categoria.");
     } finally {
       setBusyId(null);
     }

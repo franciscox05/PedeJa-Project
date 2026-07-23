@@ -14,6 +14,7 @@ import {
   toggleFavoriteStore,
 } from "../services/favoriteStoresService";
 import { resolveUserRole } from "../utils/roles";
+import { useAlert } from "../context/AlertContext";
 
 import "../css/index.css";
 
@@ -29,6 +30,7 @@ function normalizeText(value) {
 
 export default function Restaurantes() {
   const { city, category } = useParams();
+  const { showError } = useAlert();
   const [restaurantes, setRestaurantes] = useState([]);
   const [user, setUser] = useState(null);
   const [favoriteStoreIds, setFavoriteStoreIds] = useState([]);
@@ -182,7 +184,7 @@ export default function Restaurantes() {
       });
       window.dispatchEvent(new Event("pedeja-favorites-updated"));
     } catch (error) {
-      alert(error?.message || "Nao foi possivel atualizar os favoritos.");
+      showError(error?.message || "Nao foi possivel atualizar os favoritos.");
     } finally {
       setFavoriteBusyId("");
     }

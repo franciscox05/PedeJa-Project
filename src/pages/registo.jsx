@@ -1,14 +1,20 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 import "../css/components/LoginInterfaces.css";
 import { supabase } from "../services/supabaseClient.js";
 import { syncAuthUserForEmail } from "../services/passwordResetService";
+import { useAlert } from "../context/AlertContext";
 
 export default function RegistoPage() {
   const navigate = useNavigate();
+  const { showError } = useAlert();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     username: "",

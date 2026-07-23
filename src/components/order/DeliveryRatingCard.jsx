@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchMyDeliveryRating, rateDelivery } from "../../services/estafetaService";
+import { useAlert } from "../../context/AlertContext";
 
 const STARS = [1, 2, 3, 4, 5];
 
 export default function DeliveryRatingCard({ orderId, callerUserId, driverName }) {
+  const { showError } = useAlert();
   const [loading, setLoading] = useState(true);
   const [existingRating, setExistingRating] = useState(null);
   const [hoverValue, setHoverValue] = useState(0);
@@ -42,7 +44,7 @@ export default function DeliveryRatingCard({ orderId, callerUserId, driverName }
 
   const handleSubmit = async () => {
     if (!selectedValue) {
-      toast.error("Escolhe de 1 a 5 estrelas antes de enviar.");
+      showError("Escolhe de 1 a 5 estrelas antes de enviar.");
       return;
     }
 
@@ -52,7 +54,7 @@ export default function DeliveryRatingCard({ orderId, callerUserId, driverName }
       setExistingRating(result);
       toast.success("Obrigado pela tua avaliacao!");
     } catch (error) {
-      toast.error(error?.message || "Nao foi possivel enviar a avaliacao.");
+      showError(error?.message || "Nao foi possivel enviar a avaliacao.");
     } finally {
       setSubmitting(false);
     }

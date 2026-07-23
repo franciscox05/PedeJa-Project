@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import toast from "react-hot-toast";
 import { supabase } from "../../services/supabaseClient.js";
 import { useAuth } from "../../context/AuthContext";
 import { extractUserId } from "../../utils/roles";
+import { useAlert } from "../../context/AlertContext";
 
 function normalizeRpcPayload(payload) {
   if (Array.isArray(payload)) return payload[0] || null;
@@ -12,6 +14,7 @@ function normalizeRpcPayload(payload) {
 export default function ProfileDados() {
   const { user } = useOutletContext();
   const { updateUser } = useAuth();
+  const { showError } = useAlert();
   const userId = extractUserId(user);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,11 +53,11 @@ export default function ProfileDados() {
       if (error) throw error;
 
       updateUser(normalizeRpcPayload(data) || formData);
-      alert("Dados atualizados com sucesso!");
+      toast.success("Dados atualizados com sucesso!");
       setEditing(false);
     } catch (error) {
       console.error("Erro ao atualizar dados:", error);
-      alert(`Erro ao atualizar perfil: ${error.message}`);
+      showError(`Erro ao atualizar perfil: ${error.message}`);
     } finally {
       setLoading(false);
     }

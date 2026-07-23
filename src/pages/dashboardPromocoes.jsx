@@ -16,6 +16,7 @@ import {
   fetchStoreOptionsForPromotions,
 } from "../services/adminPromotionsService";
 import { extractUserId } from "../utils/roles";
+import { useAlert } from "../context/AlertContext";
 
 function parseSessionUser(raw) {
   try {
@@ -51,10 +52,15 @@ export default function DashboardPromocoes() {
   const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
   const callerUserId = extractUserId(user);
 
+  const { showError } = useAlert();
   const [promotions, setPromotions] = useState([]);
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -75,7 +81,7 @@ export default function DashboardPromocoes() {
     } finally {
       setLoading(false);
     }
-  }, [callerUserId]);
+  }, [callerUserId, setError]);
 
   useEffect(() => {
     load();
@@ -108,7 +114,7 @@ export default function DashboardPromocoes() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.title.trim()) {
-      toast.error("Titulo da promocao e obrigatorio.");
+      showError("Titulo da promocao e obrigatorio.");
       return;
     }
 
@@ -136,7 +142,7 @@ export default function DashboardPromocoes() {
       resetForm();
       await load();
     } catch (err) {
-      toast.error(err?.message || "Nao foi possivel guardar a promocao.");
+      showError(err?.message || "Nao foi possivel guardar a promocao.");
     } finally {
       setSaving(false);
     }
@@ -152,7 +158,7 @@ export default function DashboardPromocoes() {
       toast.success("Promocao eliminada.");
       await load();
     } catch (err) {
-      toast.error(err?.message || "Nao foi possivel eliminar a promocao.");
+      showError(err?.message || "Nao foi possivel eliminar a promocao.");
     } finally {
       setBusyId(null);
     }

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import toast from "react-hot-toast";
 import { supabase } from "../../services/supabaseClient.js";
 import { useAuth } from "../../context/AuthContext";
 import { extractUserId } from "../../utils/roles";
+import { useAlert } from "../../context/AlertContext";
 
 function normalizeRpcPayload(payload) {
   if (Array.isArray(payload)) return payload[0] || null;
@@ -12,6 +14,7 @@ function normalizeRpcPayload(payload) {
 export default function ProfileSeguranca() {
   const { user } = useOutletContext();
   const { updateUser } = useAuth();
+  const { showError } = useAlert();
   const userId = extractUserId(user);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ senhaAtual: "", novaSenha: "", confirmarSenha: "" });
@@ -24,22 +27,22 @@ export default function ProfileSeguranca() {
     e.preventDefault();
 
     if (!formData.senhaAtual) {
-      alert("Introduz a tua password atual para confirmar a alteracao.");
+      showError("Introduz a tua password atual para confirmar a alteracao.");
       return;
     }
 
     if (!formData.novaSenha || !formData.confirmarSenha) {
-      alert("Preenche os dois campos de nova password.");
+      showError("Preenche os dois campos de nova password.");
       return;
     }
 
     if (formData.novaSenha.length < 6) {
-      alert("A nova password deve ter pelo menos 6 caracteres.");
+      showError("A nova password deve ter pelo menos 6 caracteres.");
       return;
     }
 
     if (formData.novaSenha !== formData.confirmarSenha) {
-      alert("As novas passwords nao coincidem!");
+      showError("As novas passwords nao coincidem!");
       return;
     }
 
@@ -59,11 +62,11 @@ export default function ProfileSeguranca() {
       if (error) throw error;
 
       updateUser(normalizeRpcPayload(data) || {});
-      alert("Password atualizada com sucesso!");
+      toast.success("Password atualizada com sucesso!");
       setFormData({ senhaAtual: "", novaSenha: "", confirmarSenha: "" });
     } catch (error) {
       console.error("Erro ao atualizar password:", error);
-      alert(`Erro ao atualizar password: ${error.message}`);
+      showError(`Erro ao atualizar password: ${error.message}`);
     } finally {
       setLoading(false);
     }

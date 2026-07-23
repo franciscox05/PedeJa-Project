@@ -10,6 +10,7 @@ import { searchAddressSuggestions } from "../../services/addressService";
 import { geocodeAddressWithGoogle } from "../../services/googleMapsService";
 import LocationPickerModal from "../LocationPickerModal";
 import StoreCategoriesPicker from "./StoreCategoriesPicker";
+import { useAlert } from "../../context/AlertContext";
 import {
   DAYS,
   DAY_PRESETS,
@@ -40,6 +41,10 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
   const [storeTypes, setStoreTypes] = useState([]);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
+  const { showError } = useAlert();
+  useEffect(() => {
+    if (status.type === "error" && status.message) showError(status.message);
+  }, [status, showError]);
 
   const [form, setForm] = useState({ nome: "", nif: "", telefone: "", idtipoloja: "" });
   const [scheduleBlocks, setScheduleBlocks] = useState([createBlock(1)]);

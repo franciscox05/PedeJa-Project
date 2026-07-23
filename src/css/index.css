@@ -1576,3 +1576,109 @@ img {
   }
 }
 
+/* Alertas globais de erro/aviso -- aparecem sempre por cima de toda a app,
+   centrados, com fundo esbatido (like um modal leve). Existem para que um
+   erro nunca fique escondido dentro de uma pagina com scroll (era o caso
+   dos antigos <p class="...-inline-error">, que so apareciam se o
+   utilizador estivesse no topo da pagina). Z-index acima de qualquer outro
+   elemento da app (o mais alto anterior era 99999, no ecra de login). */
+.global-alert-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(1px);
+  animation: global-alert-fade-in 0.15s ease;
+}
+
+@keyframes global-alert-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.global-alert-stack {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+  margin-top: 6vh;
+}
+
+.global-alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  font-size: 0.98rem;
+  line-height: 1.4;
+  animation: global-alert-pop-in 0.18s ease;
+}
+
+@keyframes global-alert-pop-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.global-alert-card--error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #7f1d1d;
+}
+
+.global-alert-card--warning {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #78350f;
+}
+
+.global-alert-icon {
+  flex-shrink: 0;
+  font-size: 24px;
+  margin-top: 1px;
+}
+
+.global-alert-card--error .global-alert-icon {
+  color: #dc2626;
+}
+
+.global-alert-card--warning .global-alert-icon {
+  color: #d97706;
+}
+
+.global-alert-message {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.global-alert-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.06);
+  color: inherit;
+  cursor: pointer;
+}
+
+.global-alert-close:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.global-alert-close .material-icons {
+  font-size: 18px;
+}
+

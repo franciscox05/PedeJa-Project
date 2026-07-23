@@ -32,6 +32,7 @@ import ProtectedRoute from "./components/routes/ProtectedRoute";
 import PageErrorBoundary from "./components/routes/PageErrorBoundary";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
+import { AlertProvider } from "./context/AlertContext";
 import LoginPage from "./pages/login";
 import RegistoPage from "./pages/registo";
 import RecuperarPasswordPage from "./pages/recuperarPassword";
@@ -109,6 +110,7 @@ export default function App() {
   }, [isDashboardRoute, location.pathname, location.search, navigate]);
 
   return (
+    <AlertProvider>
     <AuthProvider>
       <CartProvider>
       <Toaster
@@ -293,5 +295,6 @@ export default function App() {
       </main>
       </CartProvider>
     </AuthProvider>
+    </AlertProvider>
   );
 }

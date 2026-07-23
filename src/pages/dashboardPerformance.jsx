@@ -22,6 +22,7 @@ import "../css/pages/dashboard.css";
 import { fetchAdminPerformanceData } from "../services/adminPerformanceService";
 import { extractUserId } from "../utils/roles";
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
+import { useAlert } from "../context/AlertContext";
 
 function parseSessionUser(raw) {
   try {
@@ -68,6 +69,10 @@ export default function DashboardPerformance() {
     [searchParams],
   );
   const [state, setState] = useState({ loading: true, error: "", data: null });
+  const { showError } = useAlert();
+  useEffect(() => {
+    if (state.error) showError(state.error);
+  }, [state.error, showError]);
 
   const updateSearchFilters = useCallback((next) => {
     const params = new URLSearchParams();

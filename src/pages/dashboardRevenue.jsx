@@ -22,6 +22,7 @@ import DashboardLoadingState from "../components/dashboard/DashboardLoadingState
 import { fetchAdminRevenueBreakdown } from "../services/adminRevenueService";
 import { extractUserId } from "../utils/roles";
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
+import { useAlert } from "../context/AlertContext";
 
 function parseSessionUser(raw) {
   try {
@@ -43,6 +44,10 @@ export default function DashboardRevenue() {
   const queryDays = Number(searchParams.get("days") || 7);
   const periodDays = [7, 30, 90].includes(queryDays) ? queryDays : 7;
   const [state, setState] = useState({ loading: true, error: "", data: null });
+  const { showError } = useAlert();
+  useEffect(() => {
+    if (state.error) showError(state.error);
+  }, [state.error, showError]);
 
   const revenueData = state.data;
   const collectiveRestaurants = useMemo(

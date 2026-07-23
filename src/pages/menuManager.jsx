@@ -25,6 +25,7 @@ import { resolveRestaurantStoreId } from "../services/opsDashboardService";
 import { supabase } from "../services/supabaseClient";
 import { extractRestaurantId, extractUserId, isAdmin } from "../utils/roles";
 import { useAuth } from "../context/AuthContext";
+import { useAlert } from "../context/AlertContext";
 import { useCart } from "../context/CartContext";
 import "../css/pages/dashboard.css";
 
@@ -102,7 +103,12 @@ export default function MenuManager() {
   const [tiposMenu, setTiposMenu] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const { showError } = useAlert();
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(createEmptyForm());
   const [imageFile, setImageFile] = useState(null);
@@ -239,7 +245,7 @@ export default function MenuManager() {
     } finally {
       setLoading(false);
     }
-  }, [scopedLoja]);
+  }, [scopedLoja, setError]);
 
   const loadLibraryGroups = useCallback(async () => {
     if (!scopedLoja) {
@@ -262,7 +268,7 @@ export default function MenuManager() {
     } finally {
       setLibraryLoading(false);
     }
-  }, [scopedLoja]);
+  }, [scopedLoja, setError]);
 
   useEffect(() => { loadAdminStores(); }, [loadAdminStores]);
   useEffect(() => { loadTiposMenu(); }, [loadTiposMenu]);

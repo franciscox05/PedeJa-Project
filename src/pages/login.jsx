@@ -1,17 +1,23 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 import "../css/components/LoginInterfaces.css";
 import { useAuth } from "../context/AuthContext";
 import { getDefaultPathByRole, resolveUserRole } from "../utils/roles";
+import { useAlert } from "../context/AlertContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const { showError } = useAlert();
   const [formData, setFormData] = useState({ identifier: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
 
   const redirectTarget = location.state?.from?.pathname;
 

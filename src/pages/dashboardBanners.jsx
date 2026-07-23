@@ -10,6 +10,7 @@ import DashboardLoadingState from "../components/dashboard/DashboardLoadingState
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 import { fetchBanners, createBanner, updateBanner, deleteBanner } from "../services/adminBannersService";
 import { extractUserId } from "../utils/roles";
+import { useAlert } from "../context/AlertContext";
 
 function parseSessionUser(raw) {
   try {
@@ -45,9 +46,14 @@ export default function DashboardBanners() {
   const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
   const callerUserId = extractUserId(user);
 
+  const { showError } = useAlert();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -64,7 +70,7 @@ export default function DashboardBanners() {
     } finally {
       setLoading(false);
     }
-  }, [callerUserId]);
+  }, [callerUserId, setError]);
 
   useEffect(() => {
     load();
@@ -94,7 +100,7 @@ export default function DashboardBanners() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.image_url.trim()) {
-      toast.error("Imagem do banner e obrigatoria.");
+      showError("Imagem do banner e obrigatoria.");
       return;
     }
 
@@ -120,7 +126,7 @@ export default function DashboardBanners() {
       resetForm();
       await load();
     } catch (err) {
-      toast.error(err?.message || "Nao foi possivel guardar o banner.");
+      showError(err?.message || "Nao foi possivel guardar o banner.");
     } finally {
       setSaving(false);
     }
@@ -136,7 +142,7 @@ export default function DashboardBanners() {
       toast.success("Banner eliminado.");
       await load();
     } catch (err) {
-      toast.error(err?.message || "Nao foi possivel eliminar o banner.");
+      showError(err?.message || "Nao foi possivel eliminar o banner.");
     } finally {
       setBusyId(null);
     }

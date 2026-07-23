@@ -10,6 +10,7 @@ import DashboardLoadingState from "../components/dashboard/DashboardLoadingState
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 import { fetchCouponsAdmin, createCoupon, updateCoupon, deleteCoupon } from "../services/couponsService";
 import { extractUserId } from "../utils/roles";
+import { useAlert } from "../context/AlertContext";
 
 function parseSessionUser(raw) {
   try {
@@ -54,9 +55,14 @@ export default function DashboardCupoes() {
   const user = useMemo(() => parseSessionUser(userRaw), [userRaw]);
   const callerUserId = extractUserId(user);
 
+  const { showError } = useAlert();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -73,7 +79,7 @@ export default function DashboardCupoes() {
     } finally {
       setLoading(false);
     }
-  }, [callerUserId]);
+  }, [callerUserId, setError]);
 
   useEffect(() => {
     load();
@@ -111,7 +117,7 @@ export default function DashboardCupoes() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.code.trim() || !form.discount_value) {
-      toast.error("Codigo e valor de desconto sao obrigatorios.");
+      showError("Codigo e valor de desconto sao obrigatorios.");
       return;
     }
 
@@ -139,7 +145,7 @@ export default function DashboardCupoes() {
       resetForm();
       await load();
     } catch (err) {
-      toast.error(err?.message || "Nao foi possivel guardar o cupao.");
+      showError(err?.message || "Nao foi possivel guardar o cupao.");
     } finally {
       setSaving(false);
     }
@@ -155,7 +161,7 @@ export default function DashboardCupoes() {
       toast.success("Cupao eliminado.");
       await load();
     } catch (err) {
-      toast.error(err?.message || "Nao foi possivel eliminar o cupao.");
+      showError(err?.message || "Nao foi possivel eliminar o cupao.");
     } finally {
       setBusyId(null);
     }

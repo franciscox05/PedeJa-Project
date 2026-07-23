@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import Logo from "../components/Logo";
 import "../css/components/LoginInterfaces.css";
 import { requestPasswordReset } from "../services/passwordResetService";
+import { useAlert } from "../context/AlertContext";
 
 export default function RecuperarPasswordPage() {
+  const { showError } = useAlert();
   const [identifier, setIdentifier] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e) => {

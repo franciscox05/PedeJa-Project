@@ -11,6 +11,7 @@ import {
   updateOrderWorkflowStatus,
 } from "../services/opsDashboardService";
 import { extractRestaurantId, extractUserId, isAdmin } from "../utils/roles";
+import { useAlert } from "../context/AlertContext";
 import TrendBars from "../components/dashboard/TrendBars";
 import LiveOperationsBoard from "../components/dashboard/LiveOperationsBoard";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
@@ -181,6 +182,13 @@ export default function DashboardRestaurante() {
   const [storeSettingsError, setStoreSettingsError] = useState("");
   const [liveEstafetas, setLiveEstafetas] = useState([]);
   const [liveAtribuicoes, setLiveAtribuicoes] = useState([]);
+  const { showError } = useAlert();
+  useEffect(() => {
+    if (orderDetailModal.error) showError(orderDetailModal.error);
+  }, [orderDetailModal.error, showError]);
+  useEffect(() => {
+    if (storeSettingsError) showError(storeSettingsError);
+  }, [storeSettingsError, showError]);
   const [state, setState] = useState({
     orders: [],
     immediateOrders: [],
@@ -202,6 +210,9 @@ export default function DashboardRestaurante() {
     loading: true,
     error: "",
   });
+  useEffect(() => {
+    if (state.error) showError(state.error);
+  }, [state.error, showError]);
   const dashboardWindowInput = useMemo(
     () => buildWindowInput({ rangeMode, periodDays, customRange }),
     [customRange, periodDays, rangeMode],
@@ -529,7 +540,7 @@ export default function DashboardRestaurante() {
 
       await load();
     } catch (error) {
-      toast.error(`Falha a atualizar estado: ${error.message}`);
+      showError(`Falha a atualizar estado: ${error.message}`);
     } finally {
       setUpdatingOrderId("");
     }

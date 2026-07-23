@@ -6,6 +6,7 @@ import {
   formatDeliveryFee,
   sanitizeDeliveryPricingConfig,
 } from "../../services/deliveryZoneService";
+import { useAlert } from "../../context/AlertContext";
 
 function buildConfigDraft(config = null) {
   const resolved = sanitizeDeliveryPricingConfig(config, DEFAULT_PER_KM_DELIVERY_CONFIG.base_fee)
@@ -71,6 +72,10 @@ export default function StoreDeliveryPricingPanel({
   const [savingKey, setSavingKey] = useState("");
   const [savedMap, setSavedMap] = useState({});
   const [feedback, setFeedback] = useState({ tone: "", message: "" });
+  const { showError } = useAlert();
+  useEffect(() => {
+    if (feedback.tone === "error" && feedback.message) showError(feedback.message);
+  }, [feedback, showError]);
 
   useEffect(() => {
     setGlobalDraft(buildConfigDraft(globalConfig));

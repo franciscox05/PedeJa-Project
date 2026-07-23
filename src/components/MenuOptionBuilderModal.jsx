@@ -10,6 +10,7 @@ import {
   updateMenuOptionLibraryGroup,
 } from "../services/menuManagerService";
 import { describeMenuOptionSelectionMode } from "../services/menuOptionsService";
+import { useAlert } from "../context/AlertContext";
 import "../css/components/MenuOptionBuilderModal.css";
 
 const formatCurrency = (value) => `${Number(value || 0).toFixed(2)}EUR`;
@@ -162,7 +163,12 @@ export default function MenuOptionBuilderModal({
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const { showError } = useAlert();
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [editingGroupId, setEditingGroupId] = useState(null);
   const [draft, setDraft] = useState(createEmptyDraftGroup());
   const [orderingInProgress, setOrderingInProgress] = useState(false);
@@ -223,7 +229,7 @@ export default function MenuOptionBuilderModal({
     } finally {
       setLoading(false);
     }
-  }, [isOpen, lojaId, menuId]);
+  }, [isOpen, lojaId, menuId, setError]);
 
   const resetDraft = useCallback(() => {
     setEditingGroupId(null);
@@ -396,7 +402,7 @@ export default function MenuOptionBuilderModal({
     setGroupOrderDirty(false);
     if (!silent) setError("");
     return true;
-  }, [groupOrderDraft, groupOrderDirty, menuId, callerUserId]);
+  }, [groupOrderDraft, groupOrderDirty, menuId, callerUserId, setError]);
 
   const handleSaveGroup = async (event) => {
     event.preventDefault();

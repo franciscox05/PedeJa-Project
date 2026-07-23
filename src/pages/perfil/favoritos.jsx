@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { fetchFavoriteStores, toggleFavoriteStore } from "../../services/favoriteStoresService";
+import { useAlert } from "../../context/AlertContext";
 
 export default function ProfileFavoritos() {
   const { user } = useOutletContext();
   const navigate = useNavigate();
+  const { showError } = useAlert();
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState("");
@@ -45,7 +47,7 @@ export default function ProfileFavoritos() {
       setStores((prev) => prev.filter((store) => String(store.id) !== String(storeId)));
       window.dispatchEvent(new Event("pedeja-favorites-updated"));
     } catch (error) {
-      alert(error?.message || "Nao foi possivel atualizar os favoritos.");
+      showError(error?.message || "Nao foi possivel atualizar os favoritos.");
     } finally {
       setBusyId("");
     }

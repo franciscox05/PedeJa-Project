@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
+import { useAlert } from "../context/AlertContext";
 import { useNavigate } from "react-router-dom";
 import { criarPedidoCheckout } from "../services/checkoutService";
 import {
@@ -50,9 +51,14 @@ function isFiniteCoordinate(value) {
 export default function Carrinho() {
   const { cart, removeFromCart, addToCart, decreaseQuantity, clearCart } = useCart();
   const navigate = useNavigate();
+  const { showError } = useAlert();
 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutError, setCheckoutErrorState] = useState("");
+  const setCheckoutError = useCallback((message) => {
+    setCheckoutErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
 
   const [user, setUser] = useState(null);
   const [addresses, setAddresses] = useState([]);
@@ -101,7 +107,11 @@ export default function Carrinho() {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponChecking, setCouponChecking] = useState(false);
-  const [couponError, setCouponError] = useState("");
+  const [couponError, setCouponErrorState] = useState("");
+  const setCouponError = useCallback((message) => {
+    setCouponErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
 
   const selectedAddress = useMemo(
     () => addresses.find((item) => String(item.id) === String(selectedAddressId)) || null,
@@ -408,7 +418,7 @@ export default function Carrinho() {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [subtotal, appliedCouponCode, user]);
+  }, [subtotal, appliedCouponCode, user, setCouponError]);
 
   const handleAddressSelect = (e) => {
     const addressId = e.target.value;

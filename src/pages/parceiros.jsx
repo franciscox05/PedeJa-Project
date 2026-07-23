@@ -14,6 +14,7 @@ import { searchAddressSuggestions } from "../services/addressService";
 import LocationPickerModal from "../components/LocationPickerModal";
 import { geocodeAddressWithGoogle } from "../services/googleMapsService";
 import { extractRestaurantId, extractUserId, resolveUserRole } from "../utils/roles";
+import { useAlert } from "../context/AlertContext";
 import {
   DAYS,
   DAY_PRESETS,
@@ -46,6 +47,10 @@ export default function Parceiros() {
   const [storeTypes, setStoreTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
+  const { showError } = useAlert();
+  useEffect(() => {
+    if (status.type === "error" && status.message) showError(status.message);
+  }, [status, showError]);
 
   const [form, setForm] = useState({
     restauranteNome: "",

@@ -11,6 +11,7 @@ import { computeBarcelosDeliveryQuote } from "../services/deliveryZoneService";
 import { geocodeAddressWithGoogle } from "../services/googleMapsService";
 import { fetchGlobalDeliveryPricingConfig } from "../services/supabaseClient";
 import LocationPickerModal from "./LocationPickerModal";
+import { useAlert } from "../context/AlertContext";
 
 function isFiniteCoordinate(value) {
   const parsed = Number(value);
@@ -27,6 +28,7 @@ function normalizeAddressIdentity(value) {
 }
 
 export default function AddressManager({ userId, onDefaultAddressChange }) {
+  const { showError } = useAlert();
   const formRef = useRef(null);
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -196,7 +198,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
 
     const finalLabel = resolveLabel();
     if (!finalLabel) {
-      alert("Indica o nome da etiqueta quando escolhes Outro.");
+      showError("Indica o nome da etiqueta quando escolhes Outro.");
       return;
     }
 
@@ -251,7 +253,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
       setSuggestions([]);
       await loadAddresses();
     } catch (error) {
-      alert(`Falha ao ${editAddress ? "atualizar" : "guardar"} morada: ${error.message}`);
+      showError(`Falha ao ${editAddress ? "atualizar" : "guardar"} morada: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -262,7 +264,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
       await setDefaultAddress(userId, addressId);
       await loadAddresses();
     } catch (error) {
-      alert(`Falha ao definir morada principal: ${error.message}`);
+      showError(`Falha ao definir morada principal: ${error.message}`);
     }
   };
 
@@ -278,7 +280,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
     const activeAddress = editAddress;
     const baseAddressLine = form.address_line || activeAddress?.address_line || "";
     if (!baseAddressLine.trim()) {
-      alert("Escreve primeiro a morada antes de ajustares o ponto no mapa.");
+      showError("Escreve primeiro a morada antes de ajustares o ponto no mapa.");
       return;
     }
 
@@ -297,7 +299,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
       }
       setShowMapPicker(true);
     } catch (error) {
-      alert(`Nao foi possivel abrir o editor de mapa: ${error.message}`);
+      showError(`Nao foi possivel abrir o editor de mapa: ${error.message}`);
     } finally {
       setRowLoadingId(null);
     }
@@ -312,7 +314,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
       await deleteUserAddress(userId, address.id);
       await loadAddresses();
     } catch (error) {
-      alert(`Falha ao apagar morada: ${error.message}`);
+      showError(`Falha ao apagar morada: ${error.message}`);
     } finally {
       setRowLoadingId(null);
     }

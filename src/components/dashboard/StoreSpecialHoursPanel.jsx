@@ -6,6 +6,7 @@ import {
   formatScheduleLabel,
   sanitizeScheduleWithExceptions,
 } from "../../utils/storeHours";
+import { useAlert } from "../../context/AlertContext";
 
 function createEmptyException() {
   const today = new Date().toISOString().slice(0, 10);
@@ -70,6 +71,10 @@ export default function StoreSpecialHoursPanel({
   const [savingStoreId, setSavingStoreId] = useState("");
   const [savedStoreMap, setSavedStoreMap] = useState({});
   const [feedback, setFeedback] = useState({ tone: "", message: "" });
+  const { showError } = useAlert();
+  useEffect(() => {
+    if (feedback.tone === "error" && feedback.message) showError(feedback.message);
+  }, [feedback, showError]);
 
   useEffect(() => {
     const nextDrafts = {};

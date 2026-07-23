@@ -13,6 +13,7 @@ import { updateOrderWorkflowStatus } from "../services/opsDashboardService";
 import { fetchOrderDetails, getStatusTone } from "../services/orderDetailsService";
 import { extractUserId, resolveUserRole } from "../utils/roles";
 import { useCustomerPushSubscription } from "../hooks/useCustomerPushSubscription";
+import { useAlert } from "../context/AlertContext";
 import "../css/pages/pedidoDetalhe.css";
 
 const CUSTOMER_CANCEL_WINDOW_MS = 5 * 60 * 1000;
@@ -107,12 +108,17 @@ export default function PedidoConfirmado() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { showError } = useAlert();
   const [user, setUser] = useState(() => readSessionUser());
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [cancelTick, setCancelTick] = useState(() => Date.now());
 
   const allowGuestState = Boolean(location.state?.allow_guest_access);
@@ -159,7 +165,7 @@ export default function PedidoConfirmado() {
       if (!silent) setLoading(false);
       if (silent) setRefreshing(false);
     }
-  }, [allowGuestState, orderId, user]);
+  }, [allowGuestState, orderId, user, setError]);
 
   useEffect(() => {
     loadOrder({ silent: false });
@@ -216,12 +222,12 @@ export default function PedidoConfirmado() {
 
     const remainingMs = getCustomerCancelRemainingMs(details.order, Date.now());
     if (remainingMs <= 0) {
-      toast.error("A janela de cancelamento de 5 minutos ja terminou.");
+      showError("A janela de cancelamento de 5 minutos ja terminou.");
       return;
     }
 
     if (!CUSTOMER_CANCELABLE_ESTADOS.has(customerOrderEstadoInterno)) {
-      toast.error("Este pedido ja avancou demasiado para ser cancelado pelo cliente.");
+      showError("Este pedido ja avancou demasiado para ser cancelado pelo cliente.");
       return;
     }
 
@@ -239,11 +245,11 @@ export default function PedidoConfirmado() {
 
       await loadOrder({ silent: false });
     } catch (cancelError) {
-      toast.error(cancelError?.message || "Nao foi possivel cancelar o pedido.");
+      showError(cancelError?.message || "Nao foi possivel cancelar o pedido.");
     } finally {
       setCancelling(false);
     }
-  }, [customerOrderEstadoInterno, details?.order, loadOrder, user]);
+  }, [customerOrderEstadoInterno, details?.order, loadOrder, user, showError]);
 
   return (
     <main className="pedido-detalhe-main">

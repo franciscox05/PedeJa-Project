@@ -1,14 +1,20 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 import "../css/components/LoginInterfaces.css";
 import { syncPasswordWithCustomAuthTable, updateAuthPassword } from "../services/passwordResetService";
+import { useAlert } from "../context/AlertContext";
 
 export default function NovaPasswordPage() {
   const navigate = useNavigate();
+  const { showError } = useAlert();
   const [formData, setFormData] = useState({ senha: "", confirmacaoSenha: "" });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState("");
+  const setError = useCallback((message) => {
+    setErrorState(message);
+    if (message) showError(message);
+  }, [showError]);
   const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
