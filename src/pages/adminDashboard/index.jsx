@@ -7,8 +7,10 @@ import {
   fetchAdminCustomerInsights,
   fetchGlobalAutoAssignSettings,
   fetchGlobalDeliveryPricingSettings,
+  fetchGlobalCommissionSettings,
   saveGlobalDeliveryPricingSettings,
   saveGlobalAutoAssignSettings,
+  saveGlobalCommissionSettings,
   fetchStoreCommissionCatalog,
   updateRestaurantAdminSettings,
   updateRestaurantSignupRequest,
@@ -81,6 +83,12 @@ export default function DashboardAdmin() {
   const [globalAutoAssign, setGlobalAutoAssign] = useState({
     enabled: false,
     criteria: sanitizeAutoAssignConfig(null, false).criteria,
+    updated_at: null,
+    loading: false,
+    error: "",
+  });
+  const [globalCommission, setGlobalCommission] = useState({
+    percent: 0,
     updated_at: null,
     loading: false,
     error: "",
@@ -324,6 +332,7 @@ export default function DashboardAdmin() {
         error: "",
       }));
       const shouldLoadDeliveryPricing = activeTab === "restaurants";
+      const shouldLoadCommission = activeTab === "restaurants";
 
       if (shouldLoadDeliveryPricing) {
         setGlobalDeliveryPricing((prev) => ({
@@ -333,10 +342,19 @@ export default function DashboardAdmin() {
         }));
       }
 
+      if (shouldLoadCommission) {
+        setGlobalCommission((prev) => ({
+          ...prev,
+          loading: true,
+          error: "",
+        }));
+      }
+
       try {
-        const [deliverySettings, autoAssignSettings] = await Promise.all([
+        const [deliverySettings, autoAssignSettings, commissionSettings] = await Promise.all([
           shouldLoadDeliveryPricing ? fetchGlobalDeliveryPricingSettings() : Promise.resolve(null),
           fetchGlobalAutoAssignSettings(),
+          shouldLoadCommission ? fetchGlobalCommissionSettings() : Promise.resolve(null),
         ]);
         if (!active) return;
 
@@ -344,6 +362,15 @@ export default function DashboardAdmin() {
           setGlobalDeliveryPricing({
             config: deliverySettings?.config || null,
             updated_at: deliverySettings?.updated_at || null,
+            loading: false,
+            error: "",
+          });
+        }
+
+        if (shouldLoadCommission) {
+          setGlobalCommission({
+            percent: Number(commissionSettings?.percent || 0),
+            updated_at: commissionSettings?.updated_at || null,
             loading: false,
             error: "",
           });
@@ -364,6 +391,14 @@ export default function DashboardAdmin() {
             ...prev,
             loading: false,
             error: error?.message || "Nao foi possivel carregar a configuracao global de entrega.",
+          }));
+        }
+
+        if (shouldLoadCommission) {
+          setGlobalCommission((prev) => ({
+            ...prev,
+            loading: false,
+            error: error?.message || "Nao foi possivel carregar a comissao base da plataforma.",
           }));
         }
 
@@ -733,6 +768,19 @@ export default function DashboardAdmin() {
     });
   };
 
+  const handleSaveGlobalCommissionSettings = async (percent) => {
+    const settings = await saveGlobalCommissionSettings(percent, extractUserId(user));
+    setGlobalCommission({
+      percent: Number(settings?.percent || 0),
+      updated_at: settings?.updated_at || null,
+      loading: false,
+      error: "",
+    });
+    // Lojas sem override proprio mostram o valor efetivo calculado no
+    // servidor -- recarregar para essas lojas refletirem o novo valor.
+    await load();
+  };
+
   const handleAdminOrderAction = async (order, toEstado) => {
     setUpdatingOrderId(String(order?.id || ""));
 
@@ -920,11 +968,13 @@ export default function DashboardAdmin() {
           loading={state.loading}
           globalAutoAssign={globalAutoAssign}
           globalDeliveryPricing={globalDeliveryPricing}
+          globalCommission={globalCommission}
           commissionCatalogByStore={commissionCatalogByStore}
           catalogLoadingByStore={catalogLoadingByStore}
           catalogErrorByStore={catalogErrorByStore}
           onToggleGlobalAutoAssign={handleToggleGlobalAutoAssign}
           onSaveGlobalAutoAssignSettings={handleSaveGlobalAutoAssignSettings}
+          onSaveGlobalCommissionSettings={handleSaveGlobalCommissionSettings}
           onToggleAutoAccept={handleToggleAutoAccept}
           onToggleAutoAssign={handleToggleAutoAssign}
           onSaveAutoAssignConfig={handleSaveAutoAssignConfig}

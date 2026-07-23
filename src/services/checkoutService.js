@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { getStoreScheduleStatus, isStoreOpenAt } from "../utils/storeHours";
-import { resolveDisplayPrice } from "./pricingService";
+import { normalizePricedItem } from "./pricingService";
 import { buildSupabaseFunctionHeaders, getSupabaseFunctionUrl } from "./supabaseClient";
 
 function parseJsonSafely(rawText) {
@@ -66,12 +66,22 @@ function normalizeItems(cart, storePricingSource = null) {
       ]
       : selectedOptions;
 
+    // normalizePricedItem calcula preco final e preco base (com o mesmo
+    // arredondamento) numa so passagem -- preco_base_unitario fica guardado
+    // no pedido para os relatorios de comissao deixarem de ter de adivinhar
+    // (e de errar as opcoes pagas) a partir da configuracao atual.
+    const priced = normalizePricedItem(item, storePricingSource);
+    const precoUnitario = priced.preco_cliente_total;
+    const precoBaseUnitario = Number((priced.preco_base + priced.selected_options_total_base).toFixed(2));
+
     return {
       menu_id: item.idmenu,
       nome: item.nome,
-      preco_unitario: resolveDisplayPrice(item, storePricingSource),
+      preco_unitario: precoUnitario,
+      preco_base_unitario: precoBaseUnitario,
+      comissao_percent_aplicada: priced.comissao_pedeja_percent_aplicada,
       quantidade: Number(item.qtd || 1),
-      subtotal: resolveDisplayPrice(item, storePricingSource) * Number(item.qtd || 1),
+      subtotal: precoUnitario * Number(item.qtd || 1),
       opcoes_selecionadas: optionsWithInstructions,
       instrucoes_especiais: specialInstructions || null,
     };

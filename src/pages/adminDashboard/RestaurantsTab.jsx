@@ -36,11 +36,13 @@ export default function RestaurantsTab({
   loading,
   globalAutoAssign,
   globalDeliveryPricing,
+  globalCommission,
   commissionCatalogByStore,
   catalogLoadingByStore,
   catalogErrorByStore,
   onToggleGlobalAutoAssign,
   onSaveGlobalAutoAssignSettings,
+  onSaveGlobalCommissionSettings,
   onToggleAutoAccept,
   onToggleAutoAssign,
   onSaveAutoAssignConfig,
@@ -143,11 +145,14 @@ export default function RestaurantsTab({
           globalAutoAssignEnabled={globalAutoAssign.enabled}
           globalAutoAssignConfig={globalAutoAssign}
           globalAutoAssignLoading={globalAutoAssign.loading}
+          platformCommissionPercent={globalCommission.percent}
+          platformCommissionLoading={globalCommission.loading}
           commissionCatalogByStore={commissionCatalogByStore}
           catalogLoadingByStore={catalogLoadingByStore}
           catalogErrorByStore={catalogErrorByStore}
           onToggleGlobalAutoAssign={onToggleGlobalAutoAssign}
           onSaveGlobalAutoAssignSettings={onSaveGlobalAutoAssignSettings}
+          onSaveGlobalCommissionSettings={onSaveGlobalCommissionSettings}
           onToggleAutoAccept={onToggleAutoAccept}
           onToggleAutoAssign={onToggleAutoAssign}
           onSaveAutoAssignConfig={onSaveAutoAssignConfig}

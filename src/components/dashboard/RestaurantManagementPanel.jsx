@@ -27,7 +27,12 @@ function parseCommissionValue(value, { allowBlank = false } = {}) {
 }
 
 function buildDraftFromStore(store, catalog) {
-  const config = sanitizeCommissionConfig(store?.configuracoes_comissao, store?.comissao_pedeja_percent);
+  // comissao_pedeja_percent null = a loja nunca definiu comissao propria e
+  // herda a da plataforma; comissao_pedeja_percent_efetiva (calculado no
+  // servico) e o valor realmente aplicado (o proprio, ou o da plataforma).
+  const hasOwnOverride = store?.comissao_pedeja_percent !== null && store?.comissao_pedeja_percent !== undefined;
+  const effectivePercent = store?.comissao_pedeja_percent_efetiva ?? store?.comissao_pedeja_percent ?? 0;
+  const config = sanitizeCommissionConfig(store?.configuracoes_comissao, effectivePercent);
   const categoryValues = {};
   const itemValues = {};
 
@@ -46,7 +51,8 @@ function buildDraftFromStore(store, catalog) {
   });
 
   return {
-    globalPercent: formatCommissionDraft(config.global_percent ?? store?.comissao_pedeja_percent ?? 0),
+    hasOwnOverride,
+    globalPercent: formatCommissionDraft(config.global_percent ?? effectivePercent),
     mode: config.mode || "global",
     categoryValues,
     itemValues,
@@ -74,7 +80,9 @@ function buildCommissionPayload(draft, catalog) {
   });
 
   return {
-    comissao_pedeja_percent: globalPercent,
+    // Sem override proprio -> grava null explicitamente para a loja voltar a
+    // herdar a comissao base da plataforma.
+    comissao_pedeja_percent: draft?.hasOwnOverride ? globalPercent : null,
     configuracoes_comissao: {
       mode: draft?.mode || "global",
       global_percent: globalPercent,
@@ -114,11 +122,14 @@ export default function RestaurantManagementPanel({
   globalAutoAssignEnabled = false,
   globalAutoAssignLoading = false,
   globalAutoAssignConfig = null,
+  platformCommissionPercent = 0,
+  platformCommissionLoading = false,
   commissionCatalogByStore = {},
   catalogLoadingByStore = {},
   catalogErrorByStore = {},
   onToggleGlobalAutoAssign = null,
   onSaveGlobalAutoAssignSettings = null,
+  onSaveGlobalCommissionSettings = null,
   onToggleAutoAccept,
   onToggleAutoAssign,
   onSaveAutoAssignConfig = null,
@@ -129,12 +140,15 @@ export default function RestaurantManagementPanel({
   const [globalAutoAssignDraft, setGlobalAutoAssignDraft] = useState(
     sanitizeAutoAssignConfig(globalAutoAssignConfig, Boolean(globalAutoAssignEnabled)),
   );
+  const [globalCommissionDraft, setGlobalCommissionDraft] = useState(formatCommissionDraft(platformCommissionPercent));
   const [togglingStoreId, setTogglingStoreId] = useState("");
   const [savingStoreId, setSavingStoreId] = useState("");
   const [savingAutoAssignId, setSavingAutoAssignId] = useState("");
+  const [savingGlobalCommission, setSavingGlobalCommission] = useState(false);
   const [savedStoreMap, setSavedStoreMap] = useState({});
   const [savedAutoAssignMap, setSavedAutoAssignMap] = useState({});
   const [savedGlobalAutoAssign, setSavedGlobalAutoAssign] = useState(false);
+  const [savedGlobalCommission, setSavedGlobalCommission] = useState(false);
   const [feedback, setFeedback] = useState({ tone: "", message: "" });
   const commissionUiEnabled = Boolean(isAdmin && showCommissions && showCommissionSettings);
   const operationalUiEnabled = Boolean(showOperationalSettings);
@@ -182,6 +196,10 @@ export default function RestaurantManagementPanel({
   useEffect(() => {
     setGlobalAutoAssignDraft(sanitizeAutoAssignConfig(globalAutoAssignConfig, Boolean(globalAutoAssignEnabled)));
   }, [globalAutoAssignConfig, globalAutoAssignEnabled]);
+
+  useEffect(() => {
+    setGlobalCommissionDraft(formatCommissionDraft(platformCommissionPercent));
+  }, [platformCommissionPercent]);
 
   const markCommissionRowDirty = (rowKey) => {
     setSavedStoreMap((prev) => ({
@@ -336,6 +354,31 @@ export default function RestaurantManagementPanel({
     }
   };
 
+  const handleSaveGlobalCommission = async () => {
+    if (!canEdit || !isAdmin || !onSaveGlobalCommissionSettings) return;
+
+    setFeedback({ tone: "", message: "" });
+    setSavingGlobalCommission(true);
+
+    try {
+      const parsedPercent = parseCommissionValue(globalCommissionDraft);
+      await onSaveGlobalCommissionSettings(parsedPercent);
+      setSavedGlobalCommission(true);
+      setFeedback({
+        tone: "success",
+        message: "Comissao base da plataforma atualizada.",
+      });
+    } catch (saveError) {
+      setSavedGlobalCommission(false);
+      setFeedback({
+        tone: "error",
+        message: saveError?.message || "Nao foi possivel guardar a comissao base da plataforma.",
+      });
+    } finally {
+      setSavingGlobalCommission(false);
+    }
+  };
+
   return (
     <article className="panel restaurant-settings-panel">
       <div className="restaurant-settings-header">
@@ -448,6 +491,51 @@ export default function RestaurantManagementPanel({
         </section>
       ) : null}
 
+      {isAdmin && commissionUiEnabled && typeof onSaveGlobalCommissionSettings === "function" ? (
+        <section className="restaurant-settings-card restaurant-settings-card--global">
+          <div className="restaurant-settings-card-top">
+            <div>
+              <p className="kicker">Configuracao da plataforma · afeta todas as lojas</p>
+              <h4>Comissao base da plataforma</h4>
+              <p className="muted">
+                Aplica-se a qualquer loja que ainda nao tenha uma comissao propria definida.
+                Lojas com override proprio (por loja, categoria ou prato) nao sao afetadas.
+              </p>
+            </div>
+          </div>
+
+          <div className="restaurant-settings-controls">
+            <div className="restaurant-setting-field">
+              <span className="restaurant-setting-label">Comissao base (%)</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                className="dashboard-number-input"
+                value={globalCommissionDraft}
+                disabled={!canEdit || loading || platformCommissionLoading}
+                onChange={(event) => {
+                  setGlobalCommissionDraft(event.target.value);
+                  setSavedGlobalCommission(false);
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="restaurant-settings-actions">
+            <button
+              type="button"
+              className={`btn-dashboard${savedGlobalCommission ? " success" : ""}`}
+              disabled={!canEdit || loading || platformCommissionLoading || savingGlobalCommission}
+              onClick={handleSaveGlobalCommission}
+            >
+              {savingGlobalCommission ? "A guardar..." : savedGlobalCommission ? "Guardado" : "Guardar comissao base"}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       {(stores || []).length === 0 && !loading ? (
         <p className="muted">{emptyText}</p>
       ) : null}
@@ -552,6 +640,31 @@ export default function RestaurantManagementPanel({
 
                   {commissionUiEnabled ? (
                     <div className="restaurant-setting-field">
+                      <span className="restaurant-setting-label">Comissao propria desta loja</span>
+                      <label className={`dashboard-switch${!canEdit ? " is-disabled" : ""}`}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(draft.hasOwnOverride)}
+                          disabled={!canEdit || rowBusy || loading}
+                          onChange={() => updateCommissionDraft(rowKey, (prev) => ({
+                            ...prev,
+                            hasOwnOverride: !prev.hasOwnOverride,
+                          }))}
+                        />
+                        <span className="dashboard-switch-track">
+                          <span className="dashboard-switch-thumb" />
+                        </span>
+                        <span className="dashboard-switch-text">
+                          {draft.hasOwnOverride
+                            ? "Valor proprio"
+                            : `A usar ${formatCommissionDraft(platformCommissionPercent)}% da plataforma`}
+                        </span>
+                      </label>
+                    </div>
+                  ) : null}
+
+                  {commissionUiEnabled ? (
+                    <div className="restaurant-setting-field">
                       <span className="restaurant-setting-label">Comissao global (%)</span>
                       <input
                         type="number"
@@ -560,7 +673,7 @@ export default function RestaurantManagementPanel({
                         step="0.1"
                         className="dashboard-number-input"
                         value={draft.globalPercent}
-                        disabled={!canEdit || rowBusy || loading}
+                        disabled={!canEdit || rowBusy || loading || !draft.hasOwnOverride}
                         onChange={(event) => updateCommissionDraft(rowKey, (prev) => ({
                           ...prev,
                           globalPercent: event.target.value,

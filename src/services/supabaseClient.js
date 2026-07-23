@@ -11,6 +11,7 @@ import {
   buildMenuOptionGroupFromLibraryRecord,
   mergeMenuOptionConfigurations,
 } from "./menuOptionsService";
+import { normalizeCommissionPercent } from "./pricingService";
 
 const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
 const supabaseAnonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || "");
@@ -21,6 +22,7 @@ export const supabaseConfig = Object.freeze({
   anonKey: supabaseAnonKey,
 });
 export const GLOBAL_DELIVERY_PRICING_SETTING_KEY = "delivery_pricing_default";
+export const GLOBAL_COMMISSION_DEFAULT_SETTING_KEY = "comissao_global_default";
 
 export function isSupabaseConfigured() {
   return Boolean(supabaseConfig.url && supabaseConfig.anonKey);
@@ -122,6 +124,42 @@ export async function fetchGlobalDeliveryPricingConfig() {
     updated_at: data?.updated_at || null,
     source: data?.valor ? "database" : "fallback_default",
     hasCustomValue: Boolean(data?.valor),
+  };
+}
+
+// Comissao base da plataforma -- usada como fallback para lojas que nunca
+// definiram a sua propria comissao (comissao_pedeja_percent = null). Leitura
+// publica (sem gate de admin), tal como a config de entrega acima, porque o
+// menu do cliente precisa dela para marcar os precos corretamente.
+export async function fetchGlobalCommissionDefaultConfig() {
+  const fallbackPercent = 0;
+
+  const { data, error } = await supabase
+    .from("configuracoes_plataforma")
+    .select("valor, updated_at")
+    .eq("chave", GLOBAL_COMMISSION_DEFAULT_SETTING_KEY)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingPlatformSettingsTableError(error)) {
+      return {
+        key: GLOBAL_COMMISSION_DEFAULT_SETTING_KEY,
+        percent: fallbackPercent,
+        updated_at: null,
+        source: "fallback_default",
+      };
+    }
+
+    throw error;
+  }
+
+  return {
+    key: GLOBAL_COMMISSION_DEFAULT_SETTING_KEY,
+    percent: Number.isFinite(Number(data?.valor?.percent))
+      ? normalizeCommissionPercent(data.valor.percent)
+      : fallbackPercent,
+    updated_at: data?.updated_at || null,
+    source: data?.valor ? "database" : "fallback_default",
   };
 }
 
@@ -407,7 +445,10 @@ async function syncStoresAvailability(lojas = []) {
 
 export async function buscarLojasService(mainCategorySlug) {
   try {
-    const globalDeliveryPricing = await fetchGlobalDeliveryPricingConfig();
+    const [globalDeliveryPricing, globalCommissionDefault] = await Promise.all([
+      fetchGlobalDeliveryPricingConfig(),
+      fetchGlobalCommissionDefaultConfig(),
+    ]);
     let response = await supabase
       .from("lojas")
       .select(`
@@ -480,7 +521,7 @@ export async function buscarLojasService(mainCategorySlug) {
         taxaentrega: resolveMinimumDeliveryFee(configuracaoEntrega, loja.taxaentrega),
         configuracao_entrega: configuracaoEntrega,
         raioentrega_km: resolveDeliveryPricingMaxKm(configuracaoEntrega),
-        comissao_pedeja_percent: Number(loja.comissao_pedeja_percent || 0),
+        comissao_pedeja_percent: Number(loja.comissao_pedeja_percent ?? globalCommissionDefault.percent),
         configuracoes_comissao: loja.configuracoes_comissao || null,
         morada: loja.morada_completa || null,
         horario_funcionamento: loja.horario_funcionamento || null,
@@ -555,7 +596,10 @@ export async function buscarMenusService(idloja) {
 
 export async function buscarDadosLojaService(idloja) {
   try {
-    const globalDeliveryPricing = await fetchGlobalDeliveryPricingConfig();
+    const [globalDeliveryPricing, globalCommissionDefault] = await Promise.all([
+      fetchGlobalDeliveryPricingConfig(),
+      fetchGlobalCommissionDefaultConfig(),
+    ]);
     let response = await supabase
       .from("lojas")
       .select(`
@@ -619,7 +663,7 @@ export async function buscarDadosLojaService(idloja) {
       taxaentrega: resolveMinimumDeliveryFee(configuracaoEntrega, store.taxaentrega),
       configuracao_entrega: configuracaoEntrega,
       raioentrega_km: resolveDeliveryPricingMaxKm(configuracaoEntrega),
-      comissao_pedeja_percent: Number(store.comissao_pedeja_percent || 0),
+      comissao_pedeja_percent: Number(store.comissao_pedeja_percent ?? globalCommissionDefault.percent),
       configuracoes_comissao: store.configuracoes_comissao || null,
       horario_funcionamento: store.horario_funcionamento || null,
       subCategorias: buildStoreSubCategories(store),

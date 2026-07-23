@@ -69,7 +69,15 @@ function inferOrderItemFinancials(orderItem, menuRecord, storeRecord) {
   let baseUnit = null;
   let source = "unresolved";
 
-  if (menuRecord && Number.isFinite(Number(menuRecord.preco))) {
+  // Pedidos feitos depois da migracao da comissao guardam o preco base real
+  // (opcoes pagas incluidas) no momento da compra -- usar isto diretamente
+  // em vez de tentar adivinhar evita tanto a deriva retroativa (a comissao
+  // de pedidos antigos mudar sozinha quando a config atual muda) como o erro
+  // de contar opcoes pagas como se fossem comissao.
+  if (Number.isFinite(Number(orderItem?.preco_base_unitario))) {
+    baseUnit = toNumber(orderItem.preco_base_unitario, finalUnit);
+    source = "stored";
+  } else if (menuRecord && Number.isFinite(Number(menuRecord.preco))) {
     baseUnit = toNumber(menuRecord.preco, 0);
     source = "catalog";
   } else {
@@ -229,7 +237,7 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
       orderBaseValue += itemFinancials.baseSubtotal;
       orderCommissionProfit += itemFinancials.commissionSubtotal;
 
-      if (itemFinancials.source === "catalog") {
+      if (itemFinancials.source === "stored" || itemFinancials.source === "catalog") {
         commissionCoverage.exactItems += 1;
       } else if (itemFinancials.source === "config" || itemFinancials.source === "no_markup") {
         commissionCoverage.estimatedItems += 1;

@@ -317,6 +317,22 @@ async function insertOrderItemsWithCompatibility(
       .insert(fallbackPayload);
   }
 
+  if (
+    response.error
+    && (
+      isMissingOrderItemsColumnError(response.error, "preco_base_unitario")
+      || isMissingOrderItemsColumnError(response.error, "comissao_percent_aplicada")
+    )
+  ) {
+    console.warn("create-order commission snapshot columns missing, retrying insert without them");
+    const fallbackPayload = orderItemsPayload.map(
+      ({ preco_base_unitario, comissao_percent_aplicada, ...item }) => item,
+    );
+    response = await supabase
+      .from("order_items")
+      .insert(fallbackPayload);
+  }
+
   return response;
 }
 
@@ -636,6 +652,8 @@ serve(async (req) => {
       quantidade: toNumber(item.quantidade, 1),
       preco_unitario: toNumber(item.preco_unitario, 0),
       subtotal: toNumber(item.subtotal, 0),
+      preco_base_unitario: toNullableNumber(item.preco_base_unitario),
+      comissao_percent_aplicada: toNullableNumber(item.comissao_percent_aplicada),
       opcoes_selecionadas: Array.isArray(item?.opcoes_selecionadas) ? item.opcoes_selecionadas : [],
     }));
 

@@ -8,7 +8,7 @@ import { extractRestaurantId, extractUserId } from "../utils/roles";
 import { DEFAULT_PER_KM_DELIVERY_CONFIG, sanitizeDeliveryPricingConfig } from "./deliveryZoneService";
 import { isStoreOpenNow, sanitizeScheduleWithExceptions } from "../utils/storeHours";
 import { mapEstadoInternoToLegacyStatus, mapLegacyStatusToEstadoInterno, resolveOrderEstadoInterno } from "./orderStatusMapper";
-import { sanitizeCommissionConfig } from "./pricingService";
+import { sanitizeCommissionConfig, normalizeCommissionPercent } from "./pricingService";
 import { sanitizeAutoAssignConfig } from "./autoAssignConfig";
 
 const STORE_SELECT_WITH_SETTINGS = "idloja, nome, ativo, taxaentrega, latitude, longitude, aceitacao_automatica_pedidos, atribuicao_automatica_estafeta, configuracao_auto_assign, comissao_pedeja_percent, configuracoes_comissao, configuracao_entrega, horario_funcionamento, dispatch_interno_ativo";
@@ -18,6 +18,7 @@ const SCHEDULED_RELEASE_WINDOW_MS = 30 * 60 * 1000;
 const SCHEDULED_PREPARING_WINDOW_MS = 60 * 60 * 1000;
 const PLATFORM_SETTINGS_SELECT = "chave, valor, updated_at";
 const GLOBAL_AUTO_ASSIGN_SETTING_KEY = "auto_assign_carriers_default";
+const GLOBAL_COMMISSION_DEFAULT_SETTING_KEY = "comissao_global_default";
 const COMMISSION_MENU_SELECT = `
   idmenu,
   idloja,
@@ -91,10 +92,15 @@ function isMissingPlatformSettingsTableError(error) {
     );
 }
 
-function withStoreSettingsCompatibility(rows = []) {
+// platformDefaultCommissionPercent: usado so como fallback de exibicao
+// (config.global_percent) quando a loja nao tem override proprio -- o
+// comissao_pedeja_percent em si mantem-se null nesse caso, para o admin
+// conseguir distinguir "sem override" (herda a plataforma) de "0% proprio".
+function withStoreSettingsCompatibility(rows = [], platformDefaultCommissionPercent = 0) {
   return (rows || []).map((store) => {
     const commission = Number(store?.comissao_pedeja_percent);
-    const normalizedCommission = Number.isFinite(commission) ? commission : 0;
+    const hasOwnCommission = store?.comissao_pedeja_percent !== null && Number.isFinite(commission);
+    const effectiveCommission = hasOwnCommission ? commission : platformDefaultCommissionPercent;
 
     return {
       ...store,
@@ -107,8 +113,9 @@ function withStoreSettingsCompatibility(rows = []) {
         store?.configuracao_auto_assign,
         Boolean(store?.atribuicao_automatica_estafeta),
       ),
-      comissao_pedeja_percent: normalizedCommission,
-      configuracoes_comissao: sanitizeCommissionConfig(store?.configuracoes_comissao, normalizedCommission),
+      comissao_pedeja_percent: hasOwnCommission ? commission : null,
+      comissao_pedeja_percent_efetiva: effectiveCommission,
+      configuracoes_comissao: sanitizeCommissionConfig(store?.configuracoes_comissao, effectiveCommission),
       configuracao_entrega: sanitizeDeliveryPricingConfig(store?.configuracao_entrega, store?.taxaentrega),
       horario_funcionamento: store?.horario_funcionamento || null,
       dispatch_interno_ativo: Boolean(store?.dispatch_interno_ativo),
@@ -334,7 +341,11 @@ function normalizeLojaId(value) {
   return Number.isFinite(parsed) ? parsed : String(value).trim();
 }
 
+// null = a loja deixa de ter override proprio e passa a herdar a comissao
+// base da plataforma -- acao explicita do admin, distinta de "0% proprio".
 function normalizeCommissionValue(value) {
+  if (value === null) return null;
+
   const parsed = Number(String(value).replace(",", "."));
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
     throw new Error("A comissao PedeJa deve estar entre 0 e 100.");
@@ -413,7 +424,8 @@ export async function fetchStoresWithAdminSettings({ lojaId = null } = {}) {
 
   if (response.error) throw response.error;
 
-  return withStoreSettingsCompatibility(response.data || []);
+  const globalCommission = await fetchGlobalCommissionSettings();
+  return withStoreSettingsCompatibility(response.data || [], globalCommission.percent);
 }
 
 export async function updateRestaurantAdminSettings(lojaId, patch = {}, callerUserId = null) {
@@ -510,7 +522,8 @@ export async function updateRestaurantAdminSettings(lojaId, patch = {}, callerUs
     throw error;
   }
 
-  return withStoreSettingsCompatibility(data ? [data] : [])[0] || null;
+  const globalCommission = await fetchGlobalCommissionSettings();
+  return withStoreSettingsCompatibility(data ? [data] : [], globalCommission.percent)[0] || null;
 }
 
 export async function fetchGlobalDeliveryPricingSettings() {
@@ -614,6 +627,68 @@ export async function saveGlobalAutoAssignSettings(value, callerUserId) {
     key: GLOBAL_AUTO_ASSIGN_SETTING_KEY,
     enabled: Boolean(data?.valor?.enabled),
     criteria: sanitizeAutoAssignConfig(data?.valor, Boolean(data?.valor?.enabled)).criteria,
+    updated_at: data?.updated_at || null,
+    source: "database",
+  };
+}
+
+export async function fetchGlobalCommissionSettings() {
+  const { data, error } = await supabase
+    .from("configuracoes_plataforma")
+    .select(PLATFORM_SETTINGS_SELECT)
+    .eq("chave", GLOBAL_COMMISSION_DEFAULT_SETTING_KEY)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingPlatformSettingsTableError(error)) {
+      return {
+        key: GLOBAL_COMMISSION_DEFAULT_SETTING_KEY,
+        percent: 0,
+        updated_at: null,
+        source: "fallback_default",
+      };
+    }
+
+    throw error;
+  }
+
+  return {
+    key: GLOBAL_COMMISSION_DEFAULT_SETTING_KEY,
+    percent: Number.isFinite(Number(data?.valor?.percent))
+      ? normalizeCommissionPercent(data.valor.percent)
+      : 0,
+    updated_at: data?.updated_at || null,
+    source: data?.valor ? "database" : "fallback_default",
+  };
+}
+
+export async function saveGlobalCommissionSettings(percent, callerUserId) {
+  const normalizedPercent = normalizeCommissionPercent(percent);
+
+  const normalizedCallerUserId = Number(callerUserId);
+  if (!Number.isFinite(normalizedCallerUserId)) {
+    throw new Error("Sessao invalida: inicia sessao novamente para atualizar configuracoes globais.");
+  }
+
+  const { data, error } = await supabase.rpc("admin_upsert_platform_setting", {
+    caller_user_id: normalizedCallerUserId,
+    chave_input: GLOBAL_COMMISSION_DEFAULT_SETTING_KEY,
+    valor_input: { percent: normalizedPercent },
+  });
+
+  if (error) {
+    if (isMissingPlatformSettingsTableError(error)) {
+      throw new Error("A tabela de configuracoes globais ainda nao existe. Executa a migration mais recente da plataforma.");
+    }
+
+    throw error;
+  }
+
+  return {
+    key: GLOBAL_COMMISSION_DEFAULT_SETTING_KEY,
+    percent: Number.isFinite(Number(data?.valor?.percent))
+      ? normalizeCommissionPercent(data.valor.percent)
+      : normalizedPercent,
     updated_at: data?.updated_at || null,
     source: "database",
   };
