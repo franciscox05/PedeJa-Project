@@ -9,6 +9,7 @@ import {
 import { searchAddressSuggestions } from "../../services/addressService";
 import { geocodeAddressWithGoogle } from "../../services/googleMapsService";
 import LocationPickerModal from "../LocationPickerModal";
+import StoreCategoriesPicker from "./StoreCategoriesPicker";
 import {
   DAYS,
   DAY_PRESETS,
@@ -328,7 +329,8 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
   }
 
   return (
-    <form className="store-profile-editor" onSubmit={handleSubmit}>
+    <div className="store-profile-editor">
+      <form onSubmit={handleSubmit}>
       {status.message ? (
         <p className={status.type === "error" ? "admin-inline-error" : "admin-inline-success"}>{status.message}</p>
       ) : null}
@@ -508,6 +510,20 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
           {saving ? "A guardar..." : "Guardar dados da loja"}
         </button>
       </div>
+      </form>
+
+      <section className="restaurant-settings-card store-profile-categories-section">
+        <div className="restaurant-settings-card-top">
+          <div>
+            <h4>Categorias da loja</h4>
+            <p className="muted">
+              Tags usadas nos filtros do site para os clientes encontrarem esta loja (ex: "Sushi", "Pizza").
+              Nao confundir com as categorias do menu (Entradas, Principais...), essas gerem-se na gestao do menu.
+            </p>
+          </div>
+        </div>
+        <StoreCategoriesPicker lojaId={lojaId} callerUserId={callerUserId} />
+      </section>
 
       <LocationPickerModal
         isOpen={showMapPicker}
@@ -533,6 +549,6 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
           });
         }}
       />
-    </form>
+    </div>
   );
 }

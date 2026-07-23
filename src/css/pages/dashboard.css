@@ -1245,6 +1245,17 @@ button.attention-chip--alert:not(:disabled):hover {
   white-space: nowrap;
 }
 
+.category-chip-name-stack {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.category-chip-usage {
+  font-size: 0.72rem;
+}
+
 .category-chip-input {
   flex: 1;
   min-width: 0;
@@ -1290,6 +1301,35 @@ button.attention-chip--alert:not(:disabled):hover {
 
 .category-chip-icon-btn .material-icons {
   font-size: 16px;
+}
+
+/* Selecionador de tags de classificacao de loja (categorias/categoriaslojas)
+   usado na "Dados da Loja" do admin e no perfil da loja para o restaurante.
+   Reutiliza o visual do .category-chip mas como toggle clicavel. */
+.store-categories-picker-grid {
+  margin-bottom: 12px;
+}
+
+.store-categories-picker-chip {
+  cursor: pointer;
+  user-select: none;
+}
+
+.store-categories-picker-chip input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--dash-accent);
+  flex-shrink: 0;
+}
+
+.store-categories-picker-chip.is-selected {
+  border-color: var(--dash-accent);
+  background: rgba(230, 36, 41, 0.06);
+}
+
+.store-categories-picker-actions {
+  justify-content: flex-start;
+  margin-top: 0;
 }
 
 .panel.empty-state-panel {

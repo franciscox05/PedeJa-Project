@@ -213,15 +213,6 @@ function normalizeText(value) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function stripScopedMenuCategoryName(value) {
-  const raw = String(value || "").trim();
-  const match = raw.match(/^__store_menu__(\d+)::(.+)$/);
-  if (!match) return raw;
-
-  const label = String(match[2] || "").trim();
-  return label || raw;
-}
-
 function extractStoreTypeSlug(loja) {
   const relation = loja?.tiposloja;
   if (Array.isArray(relation)) {
@@ -552,30 +543,16 @@ export async function buscarMenusService(idloja) {
 
     return (data || []).filter((prato) => prato?.visivel !== false).reduce((acc, prato) => {
       const relacao = prato.tiposmenu;
-      const rawCategoria = (Array.isArray(relacao) ? relacao[0]?.tipomenu : relacao?.tipomenu) || "Geral";
-      const nomeCategoria = stripScopedMenuCategoryName(rawCategoria) || "Geral";
+      const nomeCategoria = String((Array.isArray(relacao) ? relacao[0]?.tipomenu : relacao?.tipomenu) || "Geral").trim() || "Geral";
 
       if (!acc[nomeCategoria]) {
         acc[nomeCategoria] = [];
       }
 
-      const normalizedRelation = Array.isArray(relacao)
-        ? relacao.map((item) => ({
-          ...item,
-          tipomenu: stripScopedMenuCategoryName(item?.tipomenu),
-        }))
-        : relacao
-          ? {
-            ...relacao,
-            tipomenu: stripScopedMenuCategoryName(relacao?.tipomenu),
-          }
-          : relacao;
-
       const normalizedPrato = {
         ...prato,
         desc: prato?.desc ?? prato?.descricao ?? prato?.desricao ?? null,
         categoria_menu: nomeCategoria,
-        tiposmenu: normalizedRelation,
         visivel: prato?.visivel !== false,
         configuracao_opcoes: mergeMenuOptionConfigurations(
           (libraryDataset.linksByMenuId.get(String(prato?.idmenu || "")) || [])

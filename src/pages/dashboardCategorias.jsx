@@ -9,6 +9,7 @@ import DashboardEmptyState from "../components/dashboard/DashboardEmptyState";
 import DashboardLoadingState from "../components/dashboard/DashboardLoadingState";
 import { ADMIN_DASHBOARD_TABS, resolveAdminTabRoute } from "../constants/adminDashboardTabs";
 import { fetchCategories, createCategory, updateCategory, deleteCategory } from "../services/adminCategoriesService";
+import { fetchCategoryUsageCounts } from "../services/storeCategoriesService";
 import { extractUserId } from "../utils/roles";
 
 function parseSessionUser(raw) {
@@ -26,6 +27,7 @@ export default function DashboardCategorias() {
   const callerUserId = extractUserId(user);
 
   const [categories, setCategories] = useState([]);
+  const [usageCounts, setUsageCounts] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newName, setNewName] = useState("");
@@ -38,8 +40,12 @@ export default function DashboardCategorias() {
     setLoading(true);
     setError("");
     try {
-      const rows = await fetchCategories(callerUserId);
+      const [rows, counts] = await Promise.all([
+        fetchCategories(callerUserId),
+        fetchCategoryUsageCounts(),
+      ]);
       setCategories(rows);
+      setUsageCounts(counts);
     } catch (err) {
       setError(err?.message || "Nao foi possivel carregar as categorias.");
     } finally {
@@ -94,7 +100,11 @@ export default function DashboardCategorias() {
   };
 
   const handleDelete = async (category) => {
-    const confirmed = window.confirm(`Eliminar a categoria "${category.categoria}"? Esta acao nao pode ser desfeita.`);
+    const usage = usageCounts.get(Number(category.idcategoria)) || 0;
+    const usageWarning = usage > 0
+      ? ` Esta categoria esta atribuida a ${usage} loja${usage === 1 ? "" : "s"} -- essa atribuicao tambem sera removida.`
+      : "";
+    const confirmed = window.confirm(`Eliminar a categoria "${category.categoria}"? Esta acao nao pode ser desfeita.${usageWarning}`);
     if (!confirmed) return;
 
     setBusyId(category.idcategoria);
@@ -123,7 +133,12 @@ export default function DashboardCategorias() {
         <DashboardPageHeader
           kicker="Catalogo"
           title="Categorias"
-          subtitle="Cria, edita e remove categorias de lojas. A atribuicao de categorias a lojas especificas continua a ser feita na gestao de cada loja."
+          subtitle={(
+            <>
+              Cria, edita e remove categorias (tags de classificacao, ex: "Sushi", "Pizza") usadas nos filtros do site.
+              A atribuicao a lojas especificas faz-se em "Gestao de Restaurantes {'>'} Dados da Loja".
+            </>
+          )}
         />
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
@@ -200,7 +215,12 @@ export default function DashboardCategorias() {
                         autoFocus
                       />
                     ) : (
-                      <span className="category-chip-name" title={category.categoria}>{category.categoria}</span>
+                      <span className="category-chip-name-stack">
+                        <span className="category-chip-name" title={category.categoria}>{category.categoria}</span>
+                        <span className="muted category-chip-usage">
+                          {usageCounts.get(Number(category.idcategoria)) || 0} loja(s)
+                        </span>
+                      </span>
                     )}
                     <span className="category-chip-actions">
                       {isEditing ? (

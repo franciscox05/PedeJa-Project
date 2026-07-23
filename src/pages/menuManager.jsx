@@ -28,7 +28,6 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import "../css/pages/dashboard.css";
 
-const STORE_MENU_CATEGORY_PREFIX = "__store_menu__";
 const MENU_MANAGER_TABS = { CATALOG: "pratos", LIBRARY: "biblioteca" };
 const LIBRARY_TYPE_OPTIONS = [
   { value: "extra", label: "Extra" },
@@ -38,7 +37,6 @@ const LIBRARY_TYPE_OPTIONS = [
 
 const formatCurrency = (value) => `${Number(value || 0).toFixed(2)}EUR`;
 const sanitizeSearch = (value) => String(value || "").trim().toLowerCase();
-const normalizeText = (value) => String(value || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const parseSessionUser = (raw) => { try { return raw ? JSON.parse(raw) : null; } catch { return null; } };
 const parseCategoryValue = (value) => {
   const raw = String(value || "");
@@ -46,24 +44,7 @@ const parseCategoryValue = (value) => {
   const numeric = Number(raw);
   return Number.isFinite(numeric) ? { kind: "id", id: numeric } : { kind: "empty", id: null };
 };
-const parseScopedMenuCategory = (rawName) => {
-  const raw = String(rawName || "").trim();
-  if (!raw.startsWith(STORE_MENU_CATEGORY_PREFIX)) return { scoped: false, storeId: null, label: raw };
-  const rest = raw.slice(STORE_MENU_CATEGORY_PREFIX.length);
-  const separator = rest.indexOf("::");
-  if (separator < 0) return { scoped: false, storeId: null, label: raw };
-  const storeId = Number(rest.slice(0, separator));
-  const label = rest.slice(separator + 2).trim();
-  if (!Number.isFinite(storeId) || !label) return { scoped: false, storeId: null, label: raw };
-  return { scoped: true, storeId, label };
-};
-const displayMenuCategoryLabel = (rawName) => parseScopedMenuCategory(rawName).label || String(rawName || "").trim();
 const sortCategoryOptions = (list = []) => [...list].sort((a, b) => String(a?.label || "").localeCompare(String(b?.label || ""), "pt", { sensitivity: "base" }));
-const mergeTiposMenu = (current = [], nextItem = null) => {
-  const map = new Map();
-  [...current, ...(nextItem ? [nextItem] : [])].forEach((item) => item?.idtipomenu && map.set(String(item.idtipomenu), item));
-  return [...map.values()].sort((a, b) => String(a?.tipomenu || "").localeCompare(String(b?.tipomenu || ""), "pt", { sensitivity: "base" }));
-};
 const createEmptyLibraryOption = (index = 0) => ({
   id: `local-option-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
   name: "",
@@ -229,9 +210,17 @@ export default function MenuManager() {
   }, [admin, queryStoreId]);
 
   const loadTiposMenu = useCallback(async () => {
-    const { data, error: tiposError } = await supabase.from("tiposmenu").select("idtipomenu, tipomenu").order("idtipomenu", { ascending: true });
+    if (!scopedLoja) {
+      setTiposMenu([]);
+      return;
+    }
+    const { data, error: tiposError } = await supabase
+      .from("tiposmenu")
+      .select("idtipomenu, tipomenu")
+      .eq("idloja", Number(scopedLoja))
+      .order("tipomenu", { ascending: true });
     setTiposMenu(tiposError ? [] : (data || []));
-  }, []);
+  }, [scopedLoja]);
 
   const loadMenus = useCallback(async () => {
     if (!scopedLoja) {
@@ -441,20 +430,10 @@ export default function MenuManager() {
     return { ...prev, menu_option_group_ids: [...current] };
   });
 
-  const ensureScopedTipoMenuIdByLabel = async (categoryName) => {
+  const ensureTipoMenuIdByLabel = async (categoryName) => {
     const cleanName = String(categoryName || "").trim();
     const normalizedStoreId = Number(scopedLoja);
     if (!cleanName || !Number.isFinite(normalizedStoreId)) throw new Error("Sem loja ativa para gerir categorias.");
-
-    const existingOption = storeCategoryOptions.find((option) => normalizeText(option.label) === normalizeText(cleanName));
-    const parsedExisting = parseCategoryValue(existingOption?.value);
-    if (parsedExisting.kind === "id" && Number.isFinite(parsedExisting.id)) return Number(parsedExisting.id);
-
-    const existingScoped = (tiposMenu || []).find((item) => {
-      const parsed = parseScopedMenuCategory(item?.tipomenu);
-      return parsed.scoped && parsed.storeId === normalizedStoreId && normalizeText(parsed.label) === normalizeText(cleanName);
-    });
-    if (existingScoped?.idtipomenu) return Number(existingScoped.idtipomenu);
 
     const { data, error: insertError } = await supabase.rpc("menu_manager_upsert_category", {
       caller_user_id: extractUserId(user),
@@ -465,7 +444,7 @@ export default function MenuManager() {
 
     if (insertError) throw insertError;
     if (data?.idtipomenu) {
-      setTiposMenu((prev) => mergeTiposMenu(prev, data));
+      await loadTiposMenu();
       return Number(data.idtipomenu);
     }
     return null;
@@ -605,10 +584,9 @@ export default function MenuManager() {
     setCreatingCategory(true);
     setError("");
     try {
-      const idtipomenu = await ensureScopedTipoMenuIdByLabel(cleanName);
+      const idtipomenu = await ensureTipoMenuIdByLabel(cleanName);
       if (idtipomenu) setForm((prev) => ({ ...prev, idtipomenu: String(idtipomenu) }));
       setNewCategoryName("");
-      await loadTiposMenu();
     } catch (err) {
       setError(err.message || "Nao foi possivel criar categoria.");
     } finally {
@@ -639,14 +617,6 @@ export default function MenuManager() {
       return;
     }
 
-    const duplicated = storeCategoryOptions.find(
-      (item) => String(item.value) !== String(sourceOption.value) && normalizeText(item.label) === normalizeText(cleanName),
-    );
-    if (duplicated) {
-      setError("Ja existe uma categoria com esse nome nesta loja.");
-      return;
-    }
-
     const sourceId = Number(sourceOption.value);
     if (!Number.isFinite(sourceId)) {
       setError("Categoria invalida.");
@@ -656,38 +626,13 @@ export default function MenuManager() {
     setCategoryActionId(String(categoryValue));
     setError("");
     try {
-      const normalizedStoreId = Number(scopedLoja);
-      const sourceRow = (tiposMenu || []).find((item) => Number(item.idtipomenu) === sourceId);
-      const parsedSource = parseScopedMenuCategory(sourceRow?.tipomenu || "");
-      let newTipoId = sourceId;
-
-      if (parsedSource.scoped && parsedSource.storeId === normalizedStoreId) {
-        const { error: updateError } = await supabase.rpc("menu_manager_upsert_category", {
-          caller_user_id: extractUserId(user),
-          loja_id_input: normalizedStoreId,
-          tipo_id_input: sourceId,
-          label: cleanName,
-        });
-        if (updateError) throw updateError;
-      } else {
-        newTipoId = await ensureScopedTipoMenuIdByLabel(cleanName);
-        if (Number.isFinite(newTipoId) && newTipoId !== sourceId) {
-          const { error: remapError } = await supabase.rpc("menu_manager_reassign_category", {
-            caller_user_id: extractUserId(user),
-            loja_id_input: normalizedStoreId,
-            old_idtipomenu: sourceId,
-            new_idtipomenu: Number(newTipoId),
-          });
-          if (remapError) throw remapError;
-        }
-      }
-
-      if (String(form.idtipomenu || "") === String(sourceId)) {
-        setForm((prev) => ({ ...prev, idtipomenu: Number.isFinite(newTipoId) ? String(newTipoId) : "" }));
-      }
-      if (String(categoryFilter || "") === String(sourceId) && Number.isFinite(newTipoId) && newTipoId !== sourceId) {
-        setCategoryFilter("ALL");
-      }
+      const { error: updateError } = await supabase.rpc("menu_manager_upsert_category", {
+        caller_user_id: extractUserId(user),
+        loja_id_input: Number(scopedLoja),
+        tipo_id_input: sourceId,
+        label: cleanName,
+      });
+      if (updateError) throw updateError;
 
       cancelCategoryEdit();
       await Promise.all([loadTiposMenu(), loadMenus()]);
@@ -790,27 +735,11 @@ export default function MenuManager() {
     }
   };
 
-  const tipoLookup = useMemo(() => new Map((tiposMenu || []).map((tipo) => [String(tipo.idtipomenu), displayMenuCategoryLabel(tipo.tipomenu)])), [tiposMenu]);
-  const menuCategoryOptions = useMemo(() => sortCategoryOptions(
-    Array.from(new Set((menus || []).map((item) => item.idtipomenu).filter((id) => id !== null && id !== undefined && id !== "")))
-      .map((id) => ({ value: String(id), label: tipoLookup.get(String(id)) || `Categoria ${id}` })),
-  ), [menus, tipoLookup]);
-  const scopedPresetCategoryOptions = useMemo(() => {
-    const normalizedStoreId = Number(scopedLoja);
-    if (!Number.isFinite(normalizedStoreId)) return [];
-    return sortCategoryOptions((tiposMenu || []).filter((item) => {
-      const parsed = parseScopedMenuCategory(item?.tipomenu);
-      return parsed.scoped && parsed.storeId === normalizedStoreId;
-    }).map((tipo) => ({ value: String(tipo.idtipomenu), label: displayMenuCategoryLabel(tipo.tipomenu) })));
-  }, [tiposMenu, scopedLoja]);
-  const storeCategoryOptions = useMemo(() => {
-    const map = new Map();
-    [...scopedPresetCategoryOptions, ...menuCategoryOptions].forEach((option) => {
-      const key = normalizeText(option.label);
-      if (key && !map.has(key)) map.set(key, option);
-    });
-    return sortCategoryOptions([...map.values()]);
-  }, [menuCategoryOptions, scopedPresetCategoryOptions]);
+  const tipoLookup = useMemo(() => new Map((tiposMenu || []).map((tipo) => [String(tipo.idtipomenu), String(tipo.tipomenu || "").trim()])), [tiposMenu]);
+  const storeCategoryOptions = useMemo(() => sortCategoryOptions(
+    (tiposMenu || []).map((tipo) => ({ value: String(tipo.idtipomenu), label: tipoLookup.get(String(tipo.idtipomenu)) })),
+  ), [tiposMenu, tipoLookup]);
+  const menuCategoryOptions = storeCategoryOptions;
   useEffect(() => {
     if (categoryFilter !== "ALL" && !menuCategoryOptions.some((option) => option.value === categoryFilter)) {
       setCategoryFilter("ALL");
