@@ -1112,6 +1112,186 @@ button.attention-chip--alert:not(:disabled):hover {
   opacity: 0.8;
 }
 
+/* Formularios de criacao/edicao das paginas de Conteudo (Categorias,
+   Banners, Cupoes, Promocoes). Antes usavam classes de perfil.css, que
+   nunca esta importado nestas paginas -- os campos apareciam sem estilo
+   nenhum (input em bruto do browser). Estas classes sao o equivalente,
+   com o mesmo tema visual do resto do dashboard admin. */
+.dashboard-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.dashboard-form-field {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.dashboard-form-field--full {
+  grid-column: 1 / -1;
+}
+
+.dashboard-form-field > span:first-child {
+  font-weight: 700;
+  color: #334155;
+  font-size: 0.86rem;
+}
+
+.dashboard-form-field input,
+.dashboard-form-field select,
+.dashboard-form-field textarea {
+  width: 100%;
+  border: 1px solid #d9dde6;
+  background: #fff;
+  border-radius: 10px;
+  min-height: 42px;
+  padding: 9px 12px;
+  font-size: 0.94rem;
+  color: #111827;
+  outline: none;
+  font-family: inherit;
+}
+
+.dashboard-form-field textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.dashboard-form-field input:focus,
+.dashboard-form-field select:focus,
+.dashboard-form-field textarea:focus {
+  border-color: var(--dash-accent);
+  box-shadow: 0 0 0 3px rgba(230, 36, 41, 0.12);
+}
+
+.dashboard-form-field--checkbox {
+  flex-direction: row;
+}
+
+.dashboard-form-field--checkbox > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.dashboard-form-field--checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  accent-color: var(--dash-accent);
+}
+
+.dashboard-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+/* Grelha de "chips" usada na pagina de Categorias -- uma lista plana de
+   nomes fica mais legivel como chips do que como tabela de duas colunas. */
+.category-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.category-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--dash-card-border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: var(--dash-card-bg);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.category-chip.is-editing {
+  border-color: var(--dash-accent);
+  box-shadow: 0 0 0 3px rgba(230, 36, 41, 0.1);
+}
+
+.category-chip-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(230, 36, 41, 0.1);
+  color: var(--dash-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.category-chip-icon .material-icons {
+  font-size: 18px;
+}
+
+.category-chip-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-chip-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #d9dde6;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.9rem;
+}
+
+.category-chip-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.category-chip-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: #f1f5f9;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.category-chip-icon-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.category-chip-icon-btn.danger:hover:not(:disabled) {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.category-chip-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.category-chip-icon-btn .material-icons {
+  font-size: 16px;
+}
+
 .panel.empty-state-panel {
   min-height: 320px;
   display: grid;

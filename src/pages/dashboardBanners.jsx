@@ -29,6 +29,16 @@ function toDatetimeLocalValue(isoString) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function isBannerScheduled(banner) {
+  if (!banner.starts_at) return false;
+  return new Date(banner.starts_at).getTime() > Date.now();
+}
+
+function isBannerExpired(banner) {
+  if (!banner.ends_at) return false;
+  return new Date(banner.ends_at).getTime() < Date.now();
+}
+
 export default function DashboardBanners() {
   const navigate = useNavigate();
   const userRaw = localStorage.getItem("pedeja_user");
@@ -59,6 +69,9 @@ export default function DashboardBanners() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const activeCount = useMemo(() => banners.filter((b) => b.active !== false).length, [banners]);
+  const scheduledCount = useMemo(() => banners.filter(isBannerScheduled).length, [banners]);
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -148,39 +161,90 @@ export default function DashboardBanners() {
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
 
-        <DashboardPanel title={editingId ? "Editar banner" : "Novo banner"}>
-          <form onSubmit={handleSubmit} className="profile-form-grid">
-            <label className="profile-field">
+        <section className="dashboard-grid premium-grid stat-hero-grid">
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
+            <div className="stat-hero-icon stat-hero-icon--red">
+              <span className="material-icons" aria-hidden="true">view_carousel</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Banners criados</div>
+              <div className="metric-value">{banners.length}</div>
+              <div className="metric-foot">No total</div>
+            </div>
+          </article>
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
+            <div className="stat-hero-icon stat-hero-icon--green">
+              <span className="material-icons" aria-hidden="true">visibility</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Ativos</div>
+              <div className="metric-value">{activeCount}</div>
+              <div className="metric-foot">Visiveis na home agora</div>
+            </div>
+          </article>
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#c2410c" }}>
+            <div className="stat-hero-icon stat-hero-icon--orange">
+              <span className="material-icons" aria-hidden="true">schedule</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Agendados</div>
+              <div className="metric-value">{scheduledCount}</div>
+              <div className="metric-foot">Com inicio ainda por chegar</div>
+            </div>
+          </article>
+        </section>
+
+        <DashboardPanel
+          title={(
+            <>
+              <span className="material-icons panel-title-icon" aria-hidden="true">
+                {editingId ? "edit" : "add_circle"}
+              </span>
+              {editingId ? "Editar banner" : "Novo banner"}
+            </>
+          )}
+        >
+          <form onSubmit={handleSubmit} className="dashboard-form-grid">
+            <label className="dashboard-form-field">
               <span>Titulo</span>
               <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>URL da imagem *</span>
               <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} required />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Link (opcional)</span>
               <input type="text" value={form.link_url} onChange={(e) => setForm({ ...form, link_url: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Ordem</span>
               <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Inicio</span>
               <input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Fim</span>
               <input type="datetime-local" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field dashboard-form-field--checkbox">
               <span>
                 <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Ativo
               </span>
             </label>
 
-            <div className="profile-actions-row">
+            {form.image_url ? (
+              <div className="dashboard-form-field dashboard-form-field--full">
+                <span>Pre-visualizacao</span>
+                <div className="menu-card-media" style={{ height: 160, borderRadius: 12 }}>
+                  <img src={form.image_url} alt="Pre-visualizacao do banner" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                </div>
+              </div>
+            ) : null}
+
+            <div className="dashboard-form-actions">
               <button className="btn-dashboard" type="submit" disabled={saving}>
                 {saving ? "A gravar..." : editingId ? "Guardar alteracoes" : "Criar banner"}
               </button>
@@ -189,29 +253,46 @@ export default function DashboardBanners() {
           </form>
         </DashboardPanel>
 
-        <DashboardPanel title="Banners existentes">
+        <DashboardPanel
+          title={(
+            <>
+              <span className="material-icons panel-title-icon" aria-hidden="true">grid_view</span>
+              Banners existentes
+            </>
+          )}
+        >
           {loading ? (
             <DashboardLoadingState />
           ) : banners.length === 0 ? (
             <DashboardEmptyState label="Sem banners para mostrar." />
           ) : (
-            <div className="table-wrap">
-              <table className="ops-table">
-                <thead>
-                  <tr>
-                    <th>Titulo</th>
-                    <th>Estado</th>
-                    <th>Ordem</th>
-                    <th>Acoes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {banners.map((banner) => (
-                    <tr key={banner.id}>
-                      <td>{banner.title || "(sem titulo)"}</td>
-                      <td><span className={banner.active ? "tag ok" : "tag warn"}>{banner.active ? "Ativo" : "Inativo"}</span></td>
-                      <td>{banner.sort_order}</td>
-                      <td>
+            <div className="menu-card-grid">
+              {banners.map((banner) => {
+                const expired = isBannerExpired(banner);
+                const scheduled = isBannerScheduled(banner);
+                return (
+                  <article key={banner.id} className="menu-card">
+                    <div className="menu-card-media">
+                      {banner.image_url ? (
+                        <img src={banner.image_url} alt={banner.title || "Banner"} />
+                      ) : (
+                        <div className="menu-card-placeholder">
+                          <span className="material-icons" aria-hidden="true">image</span>
+                        </div>
+                      )}
+                      <span className={`tag ${banner.active !== false ? "ok" : "neutral"}`}>
+                        {banner.active !== false ? "Ativo" : "Inativo"}
+                      </span>
+                      {expired ? <span className="tag bad menu-card-visibility-tag">Expirado</span> : null}
+                      {!expired && scheduled ? <span className="tag warn menu-card-visibility-tag">Agendado</span> : null}
+                    </div>
+                    <div className="menu-card-body">
+                      <h4>{banner.title || "(sem titulo)"}</h4>
+                      <div className="menu-card-meta">
+                        <span>Ordem: {banner.sort_order}</span>
+                        {banner.link_url ? <span className="muted">Com link</span> : null}
+                      </div>
+                      <div className="menu-card-actions">
                         <button type="button" className="btn-dashboard small" onClick={() => startEdit(banner)}>Editar</button>
                         <button
                           type="button"
@@ -221,11 +302,11 @@ export default function DashboardBanners() {
                         >
                           {busyId === banner.id ? "A apagar..." : "Eliminar"}
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </DashboardPanel>

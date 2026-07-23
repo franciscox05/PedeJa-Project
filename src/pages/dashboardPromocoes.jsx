@@ -82,6 +82,8 @@ export default function DashboardPromocoes() {
   }, [load]);
 
   const storeLookup = useMemo(() => new Map(stores.map((s) => [String(s.idloja), s.nome])), [stores]);
+  const activeCount = useMemo(() => promotions.filter((p) => p.active !== false).length, [promotions]);
+  const globalCount = useMemo(() => promotions.filter((p) => !p.loja_id).length, [promotions]);
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -175,21 +177,63 @@ export default function DashboardPromocoes() {
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
 
-        <DashboardPanel title={editingId ? "Editar promocao" : "Nova promocao"}>
-          <form onSubmit={handleSubmit} className="profile-form-grid">
-            <label className="profile-field">
+        <section className="dashboard-grid premium-grid stat-hero-grid">
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
+            <div className="stat-hero-icon stat-hero-icon--red">
+              <span className="material-icons" aria-hidden="true">campaign</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Promocoes criadas</div>
+              <div className="metric-value">{promotions.length}</div>
+              <div className="metric-foot">No total</div>
+            </div>
+          </article>
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
+            <div className="stat-hero-icon stat-hero-icon--green">
+              <span className="material-icons" aria-hidden="true">visibility</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Ativas</div>
+              <div className="metric-value">{activeCount}</div>
+              <div className="metric-foot">Visiveis agora</div>
+            </div>
+          </article>
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
+            <div className="stat-hero-icon stat-hero-icon--blue">
+              <span className="material-icons" aria-hidden="true">public</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Globais</div>
+              <div className="metric-value">{globalCount}</div>
+              <div className="metric-foot">Sem loja especifica associada</div>
+            </div>
+          </article>
+        </section>
+
+        <DashboardPanel
+          title={(
+            <>
+              <span className="material-icons panel-title-icon" aria-hidden="true">
+                {editingId ? "edit" : "add_circle"}
+              </span>
+              {editingId ? "Editar promocao" : "Nova promocao"}
+            </>
+          )}
+        >
+          <form onSubmit={handleSubmit} className="dashboard-form-grid">
+            <label className="dashboard-form-field">
               <span>Titulo *</span>
               <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Descricao</span>
               <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>URL da imagem</span>
               <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Loja (vazio = global)</span>
               <select value={form.loja_id} onChange={(e) => setForm({ ...form, loja_id: e.target.value })}>
                 <option value="">Todas as lojas</option>
@@ -198,29 +242,38 @@ export default function DashboardPromocoes() {
                 ))}
               </select>
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Texto de destaque (ex: -20%)</span>
               <input type="text" value={form.discount_label} onChange={(e) => setForm({ ...form, discount_label: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Ordem</span>
               <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Inicio</span>
               <input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Fim</span>
               <input type="datetime-local" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field dashboard-form-field--checkbox">
               <span>
                 <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Ativo
               </span>
             </label>
 
-            <div className="profile-actions-row">
+            {form.image_url ? (
+              <div className="dashboard-form-field dashboard-form-field--full">
+                <span>Pre-visualizacao</span>
+                <div className="menu-card-media" style={{ height: 160, borderRadius: 12 }}>
+                  <img src={form.image_url} alt="Pre-visualizacao da promocao" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                </div>
+              </div>
+            ) : null}
+
+            <div className="dashboard-form-actions">
               <button className="btn-dashboard" type="submit" disabled={saving}>
                 {saving ? "A gravar..." : editingId ? "Guardar alteracoes" : "Criar promocao"}
               </button>
@@ -229,43 +282,58 @@ export default function DashboardPromocoes() {
           </form>
         </DashboardPanel>
 
-        <DashboardPanel title="Promocoes existentes">
+        <DashboardPanel
+          title={(
+            <>
+              <span className="material-icons panel-title-icon" aria-hidden="true">grid_view</span>
+              Promocoes existentes
+            </>
+          )}
+        >
           {loading ? (
             <DashboardLoadingState />
           ) : promotions.length === 0 ? (
             <DashboardEmptyState label="Sem promocoes para mostrar." />
           ) : (
-            <div className="table-wrap">
-              <table className="ops-table">
-                <thead>
-                  <tr>
-                    <th>Titulo</th>
-                    <th>Loja</th>
-                    <th>Estado</th>
-                    <th>Acoes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {promotions.map((promotion) => (
-                    <tr key={promotion.id}>
-                      <td>{promotion.title}</td>
-                      <td>{promotion.loja_id ? (storeLookup.get(String(promotion.loja_id)) || `#${promotion.loja_id}`) : "Todas as lojas"}</td>
-                      <td><span className={promotion.active ? "tag ok" : "tag warn"}>{promotion.active ? "Ativo" : "Inativo"}</span></td>
-                      <td>
-                        <button type="button" className="btn-dashboard small" onClick={() => startEdit(promotion)}>Editar</button>
-                        <button
-                          type="button"
-                          className="btn-dashboard small danger"
-                          disabled={busyId === promotion.id}
-                          onClick={() => handleDelete(promotion)}
-                        >
-                          {busyId === promotion.id ? "A apagar..." : "Eliminar"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="menu-card-grid">
+              {promotions.map((promotion) => (
+                <article key={promotion.id} className="menu-card">
+                  <div className="menu-card-media">
+                    {promotion.image_url ? (
+                      <img src={promotion.image_url} alt={promotion.title || "Promocao"} />
+                    ) : (
+                      <div className="menu-card-placeholder">
+                        <span className="material-icons" aria-hidden="true">campaign</span>
+                      </div>
+                    )}
+                    <span className={`tag ${promotion.active !== false ? "ok" : "neutral"}`}>
+                      {promotion.active !== false ? "Ativo" : "Inativo"}
+                    </span>
+                    {promotion.discount_label ? (
+                      <span className="tag bad menu-card-visibility-tag">{promotion.discount_label}</span>
+                    ) : null}
+                  </div>
+                  <div className="menu-card-body">
+                    <h4>{promotion.title}</h4>
+                    {promotion.description ? <p className="menu-card-desc muted">{promotion.description}</p> : null}
+                    <div className="menu-card-meta">
+                      <span>{promotion.loja_id ? (storeLookup.get(String(promotion.loja_id)) || `#${promotion.loja_id}`) : "Todas as lojas"}</span>
+                      <span>Ordem: {promotion.sort_order}</span>
+                    </div>
+                    <div className="menu-card-actions">
+                      <button type="button" className="btn-dashboard small" onClick={() => startEdit(promotion)}>Editar</button>
+                      <button
+                        type="button"
+                        className="btn-dashboard small danger"
+                        disabled={busyId === promotion.id}
+                        onClick={() => handleDelete(promotion)}
+                      >
+                        {busyId === promotion.id ? "A apagar..." : "Eliminar"}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
             </div>
           )}
         </DashboardPanel>

@@ -128,7 +128,27 @@ export default function DashboardCategorias() {
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
 
-        <DashboardPanel title="Nova categoria">
+        <section className="dashboard-grid premium-grid stat-hero-grid">
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
+            <div className="stat-hero-icon stat-hero-icon--red">
+              <span className="material-icons" aria-hidden="true">category</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Categorias criadas</div>
+              <div className="metric-value">{categories.length}</div>
+              <div className="metric-foot">Disponiveis para atribuir a lojas</div>
+            </div>
+          </article>
+        </section>
+
+        <DashboardPanel
+          title={(
+            <>
+              <span className="material-icons panel-title-icon" aria-hidden="true">add_circle</span>
+              Nova categoria
+            </>
+          )}
+        >
           <div className="dashboard-actions">
             <input
               type="text"
@@ -148,74 +168,90 @@ export default function DashboardCategorias() {
           </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Categorias existentes">
+        <DashboardPanel
+          title={(
+            <>
+              <span className="material-icons panel-title-icon" aria-hidden="true">list_alt</span>
+              Categorias existentes
+            </>
+          )}
+        >
           {loading ? (
             <DashboardLoadingState />
           ) : categories.length === 0 ? (
             <DashboardEmptyState label="Sem categorias para mostrar." />
           ) : (
-            <div className="table-wrap">
-              <table className="ops-table">
-                <thead>
-                  <tr>
-                    <th>Nome</th>
-                    <th>Acoes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categories.map((category) => {
-                    const isEditing = editId === category.idcategoria;
-                    const isBusy = busyId === category.idcategoria;
-                    return (
-                      <tr key={category.idcategoria}>
-                        <td>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={editName}
-                              onChange={(event) => setEditName(event.target.value)}
-                              disabled={isBusy}
-                            />
-                          ) : (
-                            category.categoria
-                          )}
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <>
-                              <button
-                                type="button"
-                                className="btn-dashboard small"
-                                disabled={isBusy}
-                                onClick={() => handleSaveEdit(category.idcategoria)}
-                              >
-                                {isBusy ? "A guardar..." : "Guardar"}
-                              </button>
-                              <button type="button" className="btn-dashboard small secondary" disabled={isBusy} onClick={cancelEdit}>
-                                Cancelar
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button type="button" className="btn-dashboard small" disabled={isBusy} onClick={() => startEdit(category)}>
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-dashboard small danger"
-                                disabled={isBusy}
-                                onClick={() => handleDelete(category)}
-                              >
-                                {isBusy ? "A apagar..." : "Eliminar"}
-                              </button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="category-chip-grid">
+              {categories.map((category) => {
+                const isEditing = editId === category.idcategoria;
+                const isBusy = busyId === category.idcategoria;
+                return (
+                  <div key={category.idcategoria} className={`category-chip${isEditing ? " is-editing" : ""}`}>
+                    <span className="category-chip-icon">
+                      <span className="material-icons" aria-hidden="true">sell</span>
+                    </span>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        className="category-chip-input"
+                        value={editName}
+                        onChange={(event) => setEditName(event.target.value)}
+                        disabled={isBusy}
+                        autoFocus
+                      />
+                    ) : (
+                      <span className="category-chip-name" title={category.categoria}>{category.categoria}</span>
+                    )}
+                    <span className="category-chip-actions">
+                      {isEditing ? (
+                        <>
+                          <button
+                            type="button"
+                            className="category-chip-icon-btn"
+                            disabled={isBusy}
+                            title="Guardar"
+                            onClick={() => handleSaveEdit(category.idcategoria)}
+                          >
+                            <span className="material-icons" aria-hidden="true">check</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="category-chip-icon-btn"
+                            disabled={isBusy}
+                            title="Cancelar"
+                            onClick={cancelEdit}
+                          >
+                            <span className="material-icons" aria-hidden="true">close</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="category-chip-icon-btn"
+                            disabled={isBusy}
+                            title="Editar"
+                            onClick={() => startEdit(category)}
+                          >
+                            <span className="material-icons" aria-hidden="true">edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="category-chip-icon-btn danger"
+                            disabled={isBusy}
+                            title="Eliminar"
+                            onClick={() => handleDelete(category)}
+                          >
+                            <span className="material-icons" aria-hidden="true">
+                              {isBusy ? "hourglass_empty" : "delete"}
+                            </span>
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </DashboardPanel>

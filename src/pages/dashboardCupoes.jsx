@@ -43,6 +43,11 @@ function formatDiscount(coupon) {
   return coupon.discount_type === "percent" ? `${coupon.discount_value}%` : `${Number(coupon.discount_value).toFixed(2)}EUR`;
 }
 
+function isCouponExpired(coupon) {
+  if (!coupon.ends_at) return false;
+  return new Date(coupon.ends_at).getTime() < Date.now();
+}
+
 export default function DashboardCupoes() {
   const navigate = useNavigate();
   const userRaw = localStorage.getItem("pedeja_user");
@@ -73,6 +78,15 @@ export default function DashboardCupoes() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const activeCount = useMemo(
+    () => coupons.filter((c) => c.active !== false && !isCouponExpired(c)).length,
+    [coupons],
+  );
+  const totalUses = useMemo(
+    () => coupons.reduce((sum, c) => sum + Number(c.uses_count || 0), 0),
+    [coupons],
+  );
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -166,50 +180,92 @@ export default function DashboardCupoes() {
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
 
-        <DashboardPanel title={editingId ? "Editar cupao" : "Novo cupao"}>
-          <form onSubmit={handleSubmit} className="profile-form-grid">
-            <label className="profile-field">
+        <section className="dashboard-grid premium-grid stat-hero-grid">
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
+            <div className="stat-hero-icon stat-hero-icon--red">
+              <span className="material-icons" aria-hidden="true">confirmation_number</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Cupoes criados</div>
+              <div className="metric-value">{coupons.length}</div>
+              <div className="metric-foot">No total</div>
+            </div>
+          </article>
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
+            <div className="stat-hero-icon stat-hero-icon--green">
+              <span className="material-icons" aria-hidden="true">check_circle</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Ativos agora</div>
+              <div className="metric-value">{activeCount}</div>
+              <div className="metric-foot">Ativos e dentro da validade</div>
+            </div>
+          </article>
+          <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
+            <div className="stat-hero-icon stat-hero-icon--blue">
+              <span className="material-icons" aria-hidden="true">redeem</span>
+            </div>
+            <div className="stat-hero-body">
+              <div className="metric-label">Utilizacoes totais</div>
+              <div className="metric-value">{totalUses}</div>
+              <div className="metric-foot">Somatorio de todos os cupoes</div>
+            </div>
+          </article>
+        </section>
+
+        <DashboardPanel
+          title={(
+            <>
+              <span className="material-icons panel-title-icon" aria-hidden="true">
+                {editingId ? "edit" : "add_circle"}
+              </span>
+              {editingId ? "Editar cupao" : "Novo cupao"}
+            </>
+          )}
+        >
+          <form onSubmit={handleSubmit} className="dashboard-form-grid">
+            <label className="dashboard-form-field">
               <span>Codigo *</span>
               <input type="text" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} disabled={!!editingId} required />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Tipo de desconto</span>
               <select value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value })}>
                 <option value="percent">Percentagem</option>
                 <option value="fixed">Valor fixo</option>
               </select>
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Valor do desconto *</span>
               <input type="number" step="0.01" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: e.target.value })} required />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Valor minimo de encomenda</span>
               <input type="number" step="0.01" value={form.min_order_value} onChange={(e) => setForm({ ...form, min_order_value: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Limite total de utilizacoes (vazio = ilimitado)</span>
               <input type="number" value={form.max_uses_total} onChange={(e) => setForm({ ...form, max_uses_total: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Limite por cliente (vazio = ilimitado)</span>
               <input type="number" value={form.max_uses_per_customer} onChange={(e) => setForm({ ...form, max_uses_per_customer: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Inicio</span>
               <input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field">
               <span>Fim</span>
               <input type="datetime-local" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} />
             </label>
-            <label className="profile-field">
+            <label className="dashboard-form-field dashboard-form-field--checkbox">
               <span>
                 <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Ativo
               </span>
             </label>
 
-            <div className="profile-actions-row">
+            <div className="dashboard-form-actions">
               <button className="btn-dashboard" type="submit" disabled={saving}>
                 {saving ? "A gravar..." : editingId ? "Guardar alteracoes" : "Criar cupao"}
               </button>
@@ -218,7 +274,14 @@ export default function DashboardCupoes() {
           </form>
         </DashboardPanel>
 
-        <DashboardPanel title="Cupoes existentes">
+        <DashboardPanel
+          title={(
+            <>
+              <span className="material-icons panel-title-icon" aria-hidden="true">list_alt</span>
+              Cupoes existentes
+            </>
+          )}
+        >
           {loading ? (
             <DashboardLoadingState />
           ) : coupons.length === 0 ? (
@@ -236,25 +299,44 @@ export default function DashboardCupoes() {
                   </tr>
                 </thead>
                 <tbody>
-                  {coupons.map((coupon) => (
-                    <tr key={coupon.id}>
-                      <td>{coupon.code}</td>
-                      <td>{formatDiscount(coupon)}</td>
-                      <td>{coupon.uses_count}{coupon.max_uses_total !== null ? ` / ${coupon.max_uses_total}` : ""}</td>
-                      <td><span className={coupon.active ? "tag ok" : "tag warn"}>{coupon.active ? "Ativo" : "Inativo"}</span></td>
-                      <td>
-                        <button type="button" className="btn-dashboard small" onClick={() => startEdit(coupon)}>Editar</button>
-                        <button
-                          type="button"
-                          className="btn-dashboard small danger"
-                          disabled={busyId === coupon.id}
-                          onClick={() => handleDelete(coupon)}
-                        >
-                          {busyId === coupon.id ? "A apagar..." : "Eliminar"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {coupons.map((coupon) => {
+                    const expired = isCouponExpired(coupon);
+                    const usageMax = coupon.max_uses_total;
+                    const usagePercent = usageMax ? Math.min(100, (Number(coupon.uses_count || 0) / Number(usageMax)) * 100) : null;
+                    const statusLabel = expired ? "Expirado" : (coupon.active ? "Ativo" : "Inativo");
+                    const statusClass = expired ? "bad" : (coupon.active ? "ok" : "warn");
+
+                    return (
+                      <tr key={coupon.id}>
+                        <td><strong>{coupon.code}</strong></td>
+                        <td>{formatDiscount(coupon)}</td>
+                        <td>
+                          {usageMax ? (
+                            <div className="value-bar-cell">
+                              <span className="value-bar-amount">{coupon.uses_count} / {usageMax}</span>
+                              <span className="value-bar-track">
+                                <span className="value-bar-fill" style={{ width: `${usagePercent}%` }} />
+                              </span>
+                            </div>
+                          ) : (
+                            <span>{coupon.uses_count} (ilimitado)</span>
+                          )}
+                        </td>
+                        <td><span className={`tag ${statusClass}`}>{statusLabel}</span></td>
+                        <td>
+                          <button type="button" className="btn-dashboard small" onClick={() => startEdit(coupon)}>Editar</button>
+                          <button
+                            type="button"
+                            className="btn-dashboard small danger"
+                            disabled={busyId === coupon.id}
+                            onClick={() => handleDelete(coupon)}
+                          >
+                            {busyId === coupon.id ? "A apagar..." : "Eliminar"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
