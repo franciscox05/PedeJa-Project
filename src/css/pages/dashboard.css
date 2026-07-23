@@ -678,10 +678,49 @@ button.attention-chip--alert:not(:disabled):hover {
   color: var(--dash-accent);
 }
 
+/* Atalhos de scroll dentro do cartao da loja -- propositadamente NAO tem
+   aspeto de botao/pill (ao contrario de .restaurants-subtab) para nao
+   parecer que troca de separador; e so um "ir para" dentro da mesma pagina. */
 .restaurant-card-jump-nav {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px 16px;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px dashed var(--dash-card-border, #e8edf7);
+}
+
+.restaurant-card-jump-label {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.restaurant-card-jump-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.restaurant-card-jump-link:hover {
+  color: var(--dash-accent, #e62429);
+}
+
+.restaurant-card-jump-link .material-icons {
+  font-size: 14px;
+}
+
+.restaurant-card-jump-link--inline {
+  color: var(--dash-accent, #e62429);
+  text-decoration: underline;
 }
 
 .restaurant-setting-readonly {
@@ -1421,6 +1460,23 @@ button.attention-chip--alert:not(:disabled):hover {
 .restaurant-setting-field {
   display: grid;
   gap: 8px;
+}
+
+.association-search-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.association-empty-hint {
+  margin: 4px 0 0;
+}
+
+.association-results-wrap {
+  margin-top: 10px;
+  max-height: 280px;
+  overflow-y: auto;
 }
 
 .restaurant-setting-label {

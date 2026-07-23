@@ -236,7 +236,10 @@ export default function RestaurantsTab({
       ) : null}
 
       {section === "approvals" ? (
-        <DashboardPanel title="Aprovacoes de restaurantes">
+        <DashboardPanel
+          title="Aprovacoes de restaurantes"
+          description="Candidaturas novas de parceiros a espera de revisao."
+        >
           <div className="table-wrap">
             <table className="ops-table">
               <thead>

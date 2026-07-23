@@ -24,12 +24,12 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
   }, [selectedStoreId, stores]);
 
   const selectedUser = useMemo(
-    () => users.find((user) => String(user.idutilizador) === String(selectedUserId)) || null,
+    () => users.find((candidate) => String(candidate.idutilizador) === String(selectedUserId)) || null,
     [users, selectedUserId],
   );
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const handleSearch = async (event) => {
+    event.preventDefault();
     setSearching(true);
     setError("");
     setSuccess("");
@@ -87,88 +87,127 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
   };
 
   return (
-    <article className="panel">
-      <h3>Associar utilizador a restaurante</h3>
-      <p className="muted">
-        Fluxo seguro: utilizador cria conta normal e o admin promove para restaurante associando a uma loja.
-      </p>
-
-      <form onSubmit={handleSearch} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", marginBottom: "10px" }}>
-        <input
-          type="text"
-          placeholder="Pesquisar por email, username ou telemovel"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <button className="btn-dashboard" type="submit" disabled={searching}>
-          {searching ? "A pesquisar..." : "Pesquisar"}
-        </button>
-      </form>
-
-      <div style={{ display: "grid", gap: "8px", marginBottom: "12px" }}>
-        <label className="muted" htmlFor="associate-store">Loja destino</label>
-        <select
-          id="associate-store"
-          value={selectedStoreId}
-          onChange={(e) => setSelectedStoreId(e.target.value)}
-        >
-          <option value="">Selecionar loja</option>
-          {stores.map((store) => (
-            <option key={store.idloja} value={String(store.idloja)}>
-              {store.nome} (#{store.idloja})
-            </option>
-          ))}
-        </select>
+    <article className="panel restaurant-settings-panel">
+      <div className="restaurant-settings-header">
+        <div>
+          <h3>Associar utilizador a restaurante</h3>
+          <p className="muted">
+            Fluxo seguro: o utilizador cria uma conta normal e o admin promove-a a restaurante, associando-a a uma loja.
+          </p>
+        </div>
       </div>
 
-      {users.length === 0 ? (
-        <p className="muted" style={{ marginBottom: "10px" }}>Sem resultados. Pesquisa para listar utilizadores.</p>
-      ) : (
-        <div className="table-wrap" style={{ marginBottom: "12px", maxHeight: "280px", overflowY: "auto" }}>
-          <table className="ops-table compact">
-            <thead>
-              <tr>
-                <th>Selecionar</th>
-                <th>Utilizador</th>
-                <th>Email</th>
-                <th>Role atual</th>
-                <th>Loja atual</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.idutilizador}>
-                  <td>
-                    <input
-                      type="radio"
-                      name="rbac-user"
-                      checked={String(selectedUserId) === String(user.idutilizador)}
-                      onChange={() => setSelectedUserId(String(user.idutilizador))}
-                    />
-                  </td>
-                  <td>{user.username} (#{user.idutilizador})</td>
-                  <td>{user.email || "-"}</td>
-                  <td><span className="tag">{user.role}</span></td>
-                  <td>{user.loja_id || "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {error ? <p className="admin-inline-error">{error}</p> : null}
+      {success ? <p className="admin-inline-success">{success}</p> : null}
+
+      <section className="restaurant-settings-card">
+        <div className="restaurant-settings-card-top">
+          <div>
+            <h4>1. Escolhe a loja destino</h4>
+            <p className="muted">A conta associada passa a gerir esta loja.</p>
+          </div>
         </div>
-      )}
 
-      {selectedUser && (
-        <p className="muted" style={{ marginTop: 0 }}>
-          Selecionado: <strong>{selectedUser.username}</strong> ({selectedUser.email || "sem email"})
-        </p>
-      )}
+        <div className="restaurant-settings-controls">
+          <label className="restaurant-setting-field">
+            <span className="restaurant-setting-label">Loja destino</span>
+            <select
+              value={selectedStoreId}
+              onChange={(event) => setSelectedStoreId(event.target.value)}
+            >
+              <option value="">Selecionar loja</option>
+              {stores.map((store) => (
+                <option key={store.idloja} value={String(store.idloja)}>
+                  {store.nome} (#{store.idloja})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
 
-      {error && <p style={{ color: "#b91c1c", fontWeight: 700 }}>{error}</p>}
-      {success && <p style={{ color: "#166534", fontWeight: 700 }}>{success}</p>}
+      <section className="restaurant-settings-card">
+        <div className="restaurant-settings-card-top">
+          <div>
+            <h4>2. Encontra o utilizador</h4>
+            <p className="muted">Pesquisa por email, nome de utilizador ou telemóvel.</p>
+          </div>
+        </div>
 
-      <button className="btn-dashboard" type="button" disabled={saving || !selectedUserId || !selectedStoreId} onClick={handleAssociate}>
-        {saving ? "A associar..." : "Associar utilizador a restaurante"}
-      </button>
+        <form className="association-search-row" onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="Ex: joao@email.com"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <button className="btn-dashboard small" type="submit" disabled={searching}>
+            {searching ? "A pesquisar..." : "Pesquisar"}
+          </button>
+        </form>
+
+        {users.length === 0 ? (
+          <p className="muted association-empty-hint">Sem resultados. Pesquisa para listar utilizadores.</p>
+        ) : (
+          <div className="table-wrap association-results-wrap">
+            <table className="ops-table compact">
+              <thead>
+                <tr>
+                  <th>Selecionar</th>
+                  <th>Utilizador</th>
+                  <th>Email</th>
+                  <th>Role atual</th>
+                  <th>Loja atual</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((candidate) => (
+                  <tr key={candidate.idutilizador}>
+                    <td>
+                      <input
+                        type="radio"
+                        name="rbac-user"
+                        checked={String(selectedUserId) === String(candidate.idutilizador)}
+                        onChange={() => setSelectedUserId(String(candidate.idutilizador))}
+                      />
+                    </td>
+                    <td>{candidate.username} (#{candidate.idutilizador})</td>
+                    <td>{candidate.email || "-"}</td>
+                    <td><span className="tag">{candidate.role}</span></td>
+                    <td>{candidate.loja_id || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="restaurant-settings-card">
+        <div className="restaurant-settings-card-top">
+          <div>
+            <h4>3. Confirma a associação</h4>
+            {selectedUser ? (
+              <p className="muted">
+                Selecionado: <strong>{selectedUser.username}</strong> ({selectedUser.email || "sem email"})
+              </p>
+            ) : (
+              <p className="muted">Escolhe um utilizador na tabela acima.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="restaurant-settings-actions">
+          <button
+            className="btn-dashboard"
+            type="button"
+            disabled={saving || !selectedUserId || !selectedStoreId}
+            onClick={handleAssociate}
+          >
+            {saving ? "A associar..." : "Associar utilizador a restaurante"}
+          </button>
+        </div>
+      </section>
     </article>
   );
 }

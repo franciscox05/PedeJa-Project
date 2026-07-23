@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DatePickerCustom from "../ui/DatePickerCustom";
 import {
   formatScheduleExceptionLabel,
@@ -63,6 +64,7 @@ export default function StoreSpecialHoursPanel({
   canEdit = true,
   onSaveScheduleSettings,
 }) {
+  const navigate = useNavigate();
   const [drafts, setDrafts] = useState({});
   const [savingStoreId, setSavingStoreId] = useState("");
   const [savedStoreMap, setSavedStoreMap] = useState({});
@@ -190,7 +192,18 @@ export default function StoreSpecialHoursPanel({
               <div className="restaurant-settings-card-top">
                 <div>
                   <h4>{store.nome || `Loja ${store.idloja}`}</h4>
-                  <p className="muted">Horario base: {draft.weeklyLabel}</p>
+                  <p className="muted">
+                    Horario base: {draft.weeklyLabel}
+                    {" · "}
+                    <button
+                      type="button"
+                      className="restaurant-card-jump-link restaurant-card-jump-link--inline"
+                      onClick={() => navigate(`/parceiros?edit=1&loja=${store.idloja}`)}
+                    >
+                      Editar horario semanal
+                      <span className="material-icons" aria-hidden="true">open_in_new</span>
+                    </button>
+                  </p>
                 </div>
                 <button
                   type="button"

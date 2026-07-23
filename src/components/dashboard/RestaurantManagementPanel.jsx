@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { sanitizeCommissionConfig } from "../../services/pricingService";
 import {
   AUTO_ASSIGN_CRITERIA_OPTIONS,
@@ -264,69 +264,48 @@ export default function RestaurantManagementPanel({
     }
   };
 
-  const handleSaveCommissionSettings = async (store) => {
-    if (!canEdit || !showCommissionSettings || !onSaveCommissionSettings) return;
+  // Uma so gravacao por loja (criterios de auto-atribuicao + comissao), em
+  // vez de dois botoes separados que era facil mudar uma coisa e esquecer a
+  // outra. So dispara os pedidos que esta loja realmente tem disponiveis.
+  const handleSaveStoreSettings = async (store) => {
+    if (!canEdit) return;
 
     const rowKey = String(store.idloja);
-    const catalog = normalizeCatalog(commissionCatalogByStore[rowKey]);
+    const tasks = [];
+
+    if (isAdmin && operationalUiEnabled && typeof onSaveAutoAssignConfig === "function") {
+      const payload = autoAssignDrafts[rowKey] || buildAutoAssignDraft(store);
+      tasks.push(onSaveAutoAssignConfig(store, payload));
+    }
+
+    if (commissionUiEnabled && typeof onSaveCommissionSettings === "function") {
+      const catalog = normalizeCatalog(commissionCatalogByStore[rowKey]);
+      const payload = buildCommissionPayload(commissionDrafts[rowKey], catalog);
+      tasks.push(onSaveCommissionSettings(store, payload));
+    }
+
+    if (tasks.length === 0) return;
 
     setFeedback({ tone: "", message: "" });
     setSavingStoreId(rowKey);
 
     try {
-      const payload = buildCommissionPayload(commissionDrafts[rowKey], catalog);
-      await onSaveCommissionSettings(store, payload);
-      setSavedStoreMap((prev) => ({
-        ...prev,
-        [rowKey]: true,
-      }));
+      await Promise.all(tasks);
+      setSavedStoreMap((prev) => ({ ...prev, [rowKey]: true }));
+      setSavedAutoAssignMap((prev) => ({ ...prev, [rowKey]: true }));
       setFeedback({
         tone: "success",
-        message: `Comissao atualizada para ${store.nome || `Loja ${store.idloja}`}.`,
+        message: `Alteracoes guardadas para ${store.nome || `Loja ${store.idloja}`}.`,
       });
     } catch (saveError) {
-      setSavedStoreMap((prev) => ({
-        ...prev,
-        [rowKey]: false,
-      }));
+      setSavedStoreMap((prev) => ({ ...prev, [rowKey]: false }));
+      setSavedAutoAssignMap((prev) => ({ ...prev, [rowKey]: false }));
       setFeedback({
         tone: "error",
-        message: saveError?.message || "Nao foi possivel guardar a configuracao de comissao.",
+        message: saveError?.message || "Nao foi possivel guardar as alteracoes desta loja.",
       });
     } finally {
       setSavingStoreId("");
-    }
-  };
-
-  const handleSaveStoreAutoAssign = async (store) => {
-    if (!canEdit || !isAdmin || !onSaveAutoAssignConfig) return;
-
-    const rowKey = String(store.idloja);
-    setFeedback({ tone: "", message: "" });
-    setSavingAutoAssignId(rowKey);
-
-    try {
-      const payload = autoAssignDrafts[rowKey] || buildAutoAssignDraft(store);
-      await onSaveAutoAssignConfig(store, payload);
-      setSavedAutoAssignMap((prev) => ({
-        ...prev,
-        [rowKey]: true,
-      }));
-      setFeedback({
-        tone: "success",
-        message: `Criterios de atribuicao automatica atualizados para ${store.nome || `Loja ${store.idloja}`}.`,
-      });
-    } catch (saveError) {
-      setSavedAutoAssignMap((prev) => ({
-        ...prev,
-        [rowKey]: false,
-      }));
-      setFeedback({
-        tone: "error",
-        message: saveError?.message || "Nao foi possivel guardar os criterios de atribuicao automatica.",
-      });
-    } finally {
-      setSavingAutoAssignId("");
     }
   };
 
@@ -570,18 +549,22 @@ export default function RestaurantManagementPanel({
 
               {operationalUiEnabled || commissionUiEnabled ? (
                 <nav className="restaurant-card-jump-nav" aria-label={`Saltar para seccao da loja ${store.nome || store.idloja}`}>
+                  <span className="restaurant-card-jump-label">Ir para:</span>
                   {operationalUiEnabled ? (
-                    <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToStoreSection(rowKey, "operacional")}>
+                    <button type="button" className="restaurant-card-jump-link" onClick={() => scrollToStoreSection(rowKey, "operacional")}>
+                      <span className="material-icons" aria-hidden="true">arrow_downward</span>
                       Operacional
                     </button>
                   ) : null}
                   {isAdmin && operationalUiEnabled && typeof onSaveAutoAssignConfig === "function" ? (
-                    <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToStoreSection(rowKey, "auto-assign")}>
+                    <button type="button" className="restaurant-card-jump-link" onClick={() => scrollToStoreSection(rowKey, "auto-assign")}>
+                      <span className="material-icons" aria-hidden="true">arrow_downward</span>
                       Auto-atribuicao
                     </button>
                   ) : null}
                   {commissionUiEnabled ? (
-                    <button type="button" className="btn-dashboard small secondary" onClick={() => scrollToStoreSection(rowKey, "comissao")}>
+                    <button type="button" className="restaurant-card-jump-link" onClick={() => scrollToStoreSection(rowKey, "comissao")}>
+                      <span className="material-icons" aria-hidden="true">arrow_downward</span>
                       Comissao
                     </button>
                   ) : null}
@@ -737,22 +720,11 @@ export default function RestaurantManagementPanel({
                   <p className="muted commission-helper-text">
                     Prioridade atual: {autoAssignSummary}
                   </p>
-
-                  <div className="restaurant-settings-actions">
-                    <button
-                      type="button"
-                      className={`btn-dashboard${rowAutoAssignSaved ? " success" : ""}`}
-                      disabled={!canEdit || rowBusy || loading}
-                      onClick={() => handleSaveStoreAutoAssign(store)}
-                    >
-                      {savingAutoAssignId === rowKey ? "A guardar..." : rowAutoAssignSaved ? "Guardado" : "Guardar criterios"}
-                    </button>
-                  </div>
                 </div>
               ) : null}
 
               {commissionUiEnabled ? (
-                <Fragment>
+                <>
                   <div id={`restaurant-store-${rowKey}-comissao`} className="commission-mode-tabs" role="tablist" aria-label={`Modo de comissao da loja ${store.nome || store.idloja}`}>
                     {availableTabs.map((mode) => (
                       <button
@@ -862,18 +834,22 @@ export default function RestaurantManagementPanel({
                       ) : null}
                     </div>
                   ) : null}
+                </>
+              ) : null}
 
-                  <div className="restaurant-settings-actions">
-                    <button
-                      type="button"
-                      className={`btn-dashboard${rowSaved ? " success" : ""}`}
-                      disabled={!canEdit || rowBusy || loading}
-                      onClick={() => handleSaveCommissionSettings(store)}
-                    >
-                      {savingStoreId === rowKey ? "A guardar..." : rowSaved ? "Guardado" : "Guardar configuracao"}
-                    </button>
-                  </div>
-                </Fragment>
+              {(isAdmin && operationalUiEnabled && typeof onSaveAutoAssignConfig === "function") || commissionUiEnabled ? (
+                <div className="restaurant-settings-actions">
+                  <button
+                    type="button"
+                    className={`btn-dashboard${rowSaved && rowAutoAssignSaved ? " success" : ""}`}
+                    disabled={!canEdit || rowBusy || loading}
+                    onClick={() => handleSaveStoreSettings(store)}
+                  >
+                    {savingStoreId === rowKey
+                      ? "A guardar..."
+                      : (rowSaved && rowAutoAssignSaved ? "Guardado" : "Guardar alteracoes desta loja")}
+                  </button>
+                </div>
               ) : null}
             </section>
           );
