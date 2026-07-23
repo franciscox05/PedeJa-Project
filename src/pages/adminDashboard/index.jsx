@@ -1005,6 +1005,8 @@ export default function DashboardAdmin() {
           storeTypeMap={storeTypeMap}
           stores={state.stores}
           onLinkedAssociation={() => load()}
+          callerUserId={extractUserId(user)}
+          onProfileSaved={() => load()}
         />
       ) : null}
 

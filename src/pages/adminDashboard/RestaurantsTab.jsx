@@ -6,10 +6,12 @@ import DashboardLoadingState from "../../components/dashboard/DashboardLoadingSt
 import RestaurantManagementPanel from "../../components/dashboard/RestaurantManagementPanel";
 import StoreDeliveryPricingPanel from "../../components/dashboard/StoreDeliveryPricingPanel";
 import StoreSpecialHoursPanel from "../../components/dashboard/StoreSpecialHoursPanel";
+import StoreProfileEditor from "../../components/dashboard/StoreProfileEditor";
 import { formatScheduleLabel } from "../../utils/storeHours";
 import { safeImage, safeFixed } from "./helpers";
 
 const SUB_TABS = [
+  { id: "profile", label: "Dados da Loja" },
   { id: "commission", label: "Comissao" },
   { id: "delivery", label: "Entrega" },
   { id: "hours", label: "Horarios" },
@@ -59,8 +61,10 @@ export default function RestaurantsTab({
   storeTypeMap,
   stores,
   onLinkedAssociation,
+  callerUserId,
+  onProfileSaved,
 }) {
-  const [manualSection, setManualSection] = useState("commission");
+  const [manualSection, setManualSection] = useState("profile");
 
   useEffect(() => {
     if (!requestedSection) return;
@@ -134,6 +138,25 @@ export default function RestaurantsTab({
           </button>
         ))}
       </nav>
+
+      {section === "profile" ? (
+        <section className="panel restaurant-settings-panel">
+          <div className="restaurant-settings-header">
+            <div>
+              <h3>Dados da loja</h3>
+              <p className="muted">
+                Nome, NIF, contacto, tipo, morada, imagens e horario semanal -- tudo o que antes
+                so dava para editar saltando para outra pagina.
+              </p>
+            </div>
+          </div>
+          <StoreProfileEditor
+            lojaId={selectedStoreId}
+            callerUserId={callerUserId}
+            onSaved={onProfileSaved}
+          />
+        </section>
+      ) : null}
 
       {section === "commission" ? (
         <RestaurantManagementPanel

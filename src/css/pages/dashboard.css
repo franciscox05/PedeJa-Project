@@ -1479,6 +1479,131 @@ button.attention-chip--alert:not(:disabled):hover {
   overflow-y: auto;
 }
 
+/* Editor de dados base da loja (nome/NIF/contacto/morada/imagens/horario),
+   embutido no dashboard do admin -- so classes proprias, para nao herdar o
+   visual de pagina de marketing de parceiros.css. */
+.store-profile-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.store-profile-field-full {
+  display: grid;
+  gap: 6px;
+}
+
+.store-profile-address-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.store-profile-coords-hint {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.store-profile-coords-hint.is-ok {
+  color: #166534;
+  font-weight: 600;
+}
+
+.store-profile-suggestions {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--dash-card-border, #e8edf7);
+  border-radius: 10px;
+  padding: 6px;
+  background: #fff;
+}
+
+.store-profile-suggestions button {
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.86rem;
+}
+
+.store-profile-suggestions button:hover {
+  background: #f1f5f9;
+}
+
+.store-profile-image-preview {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.store-profile-image-preview img {
+  width: 200px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--dash-card-border, #e8edf7);
+}
+
+.store-profile-image-preview img.is-icon {
+  width: 80px;
+  height: 80px;
+}
+
+.store-profile-schedule {
+  display: grid;
+  gap: 12px;
+}
+
+.store-profile-schedule-block {
+  border: 1px solid var(--dash-card-border, #e8edf7);
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  background: #fbfcfe;
+}
+
+.store-profile-schedule-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.store-profile-schedule-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.store-profile-schedule-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.store-profile-day-btn {
+  border: 1px solid var(--dash-card-border, #e8edf7);
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.store-profile-day-btn.is-active {
+  background: var(--dash-accent, #e62429);
+  border-color: var(--dash-accent, #e62429);
+  color: #fff;
+}
+
+.store-profile-schedule-summary {
+  font-style: italic;
+}
+
 .restaurant-setting-label {
   font-size: 0.82rem;
   font-weight: 700;
