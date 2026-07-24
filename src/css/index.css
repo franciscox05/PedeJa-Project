@@ -645,6 +645,11 @@ img {
   cursor: wait;
 }
 
+.card-favorite-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .card-bg-img {
   width: 100%;
   height: 100%;
@@ -1343,6 +1348,11 @@ img {
   background-color: #dc3545;
   color: #fff;
   transform: rotate(90deg);
+}
+
+.store-details-close svg {
+  width: 18px;
+  height: 18px;
 }
 
 .store-details-close .material-icons {

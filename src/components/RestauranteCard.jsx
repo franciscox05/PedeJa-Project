@@ -1,12 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Info, Circle, Ban, Heart, X } from "lucide-react";
 
 import { getImageUrl } from "../services/partnerService";
-
-import iconInfo from "../assets/img/info.png";
-import iconAberto from "../assets/img/dot_green.png";
-import iconFechado from "../assets/img/dot_red.png";
-import iconBloqueado from "../assets/img/block.png";
 
 const DAY_LABELS = {
   1: "Seg",
@@ -71,12 +67,6 @@ function RestauranteCard({
     ? "Indisponivel"
     : restaurante.status;
 
-  const statusImage = restaurante.isIndisponivel
-    ? iconBloqueado
-    : restaurante.status === "Fechado"
-      ? iconFechado
-      : iconAberto;
-
   const backgroundImage = getImageUrl(restaurante.imagemfundo);
   const iconImage = getImageUrl(restaurante.icon);
 
@@ -110,7 +100,7 @@ function RestauranteCard({
                 disabled={favoriteBusy}
                 title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
               >
-                {isFavorite ? "♥" : "♡"}
+                <Heart className="card-favorite-icon" fill={isFavorite ? "currentColor" : "none"} aria-hidden="true" />
               </button>
             ) : null}
 
@@ -146,12 +136,16 @@ function RestauranteCard({
 
           <div className="card-footer-info">
             <button className="footer-info-btn" onClick={handleInfoClick} title="Mais informacoes">
-              <img src={iconInfo} className="info-icon-img" alt="Info" />
+              <Info className="info-icon-img" aria-hidden="true" />
               <span className="footer-text">Info</span>
             </button>
 
             <div className="footer-right">
-              <img src={statusImage} className="status-icon-img" alt={currentStatusText} />
+              {restaurante.isIndisponivel ? (
+                <Ban className="status-icon-img" style={{ color: currentStatusColor }} aria-hidden="true" />
+              ) : (
+                <Circle className="status-icon-img" fill="currentColor" style={{ color: currentStatusColor }} aria-hidden="true" />
+              )}
               <span className="status-text-dynamic" style={{ color: currentStatusColor }}>
                 {currentStatusText}
               </span>
@@ -164,7 +158,7 @@ function RestauranteCard({
         <div className="store-details-backdrop" onClick={handleCloseDetails}>
           <div className="store-details-sheet" onClick={(e) => e.stopPropagation()}>
             <button className="store-details-close" onClick={handleCloseDetails} aria-label="Fechar">
-              <span className="material-icons">close</span>
+              <X aria-hidden="true" />
             </button>
 
             <div className="store-details-header">

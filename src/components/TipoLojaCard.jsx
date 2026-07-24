@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import "../css/index.css";
-import iconChevron from "../assets/img/chevron_right.png"; 
 
 function TipoLojaCard({ cat, city }) {
   const navigate = useNavigate();
@@ -18,11 +18,7 @@ function TipoLojaCard({ cat, city }) {
         />
 
         <span className="cat-nome">{cat.nome}</span>
-        <img 
-            src={iconChevron} 
-            className="cat-chevron-img" 
-            alt="Ir" 
-        />
+        <ChevronRight className="cat-chevron-img" aria-hidden="true" />
       </div>
     </li>
   );
