@@ -2530,6 +2530,13 @@ svg.panel-title-icon {
   flex-shrink: 0;
 }
 
+.admin-peek-banner svg {
+  color: #e62429;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 .admin-peek-banner span:nth-child(2) {
   flex: 1 1 auto;
 }

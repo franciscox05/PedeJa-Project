@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { ShieldAlert } from "lucide-react";
 import "../css/pages/dashboard.css";
 import {
   fetchStoreCommissionCatalog,
@@ -683,7 +684,7 @@ export default function DashboardRestaurante() {
 
       {admin || fromAdmin ? (
         <div className="admin-peek-banner">
-          <span className="material-icons" aria-hidden="true">admin_panel_settings</span>
+          <ShieldAlert aria-hidden="true" />
           <span>
             Estás a gerir <strong>{storeName || "esta loja"}</strong> como administrador,
             sem precisares da conta do restaurante.
