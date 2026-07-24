@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, UtensilsCrossed, Trash2 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAlert } from "../context/AlertContext";
 import { useNavigate } from "react-router-dom";
@@ -821,7 +822,7 @@ export default function Carrinho() {
     <div className="cart-page-wrapper">
       <div className="cart-header-nav">
         <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", cursor: "pointer" }}>
-          <span className="material-icons" style={{ fontSize: "30px", color: "#333" }}>arrow_back</span>
+          <ArrowLeft style={{ width: 30, height: 30, color: "#333" }} aria-hidden="true" />
         </button>
         <h1 style={{ margin: 0, fontSize: "1.8rem", color: "#222" }}>O Meu Pedido</h1>
       </div>
@@ -837,7 +838,7 @@ export default function Carrinho() {
               <div key={cartLineId} className="cart-item-card">
               <div className="cart-item-info">
                 <div className="cart-item-img-box">
-                  {item.imagem ? <img src={item.imagem} alt={item.nome} /> : <span className="material-icons" style={{ fontSize: "40px", color: "#ccc" }}>restaurant</span>}
+                  {item.imagem ? <img src={item.imagem} alt={item.nome} /> : <UtensilsCrossed style={{ width: 40, height: 40, color: "#ccc" }} aria-hidden="true" />}
                 </div>
 
                 <div className="cart-item-details">
@@ -863,7 +864,7 @@ export default function Carrinho() {
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "10px" }}>
                 <div className="cart-item-total-price">{itemTotalPrice.toFixed(2)}EUR</div>
                 <button className="btn-remove-item" onClick={() => removeFromCart(cartLineId)} title="Remover produto" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span className="material-icons" style={{ fontSize: "20px" }}>delete</span>
+                  <Trash2 style={{ width: 20, height: 20 }} aria-hidden="true" />
                 </button>
               </div>
               </div>
