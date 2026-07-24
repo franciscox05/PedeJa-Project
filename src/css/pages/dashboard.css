@@ -753,6 +753,11 @@ svg.panel-title-icon {
   font-size: 18px;
 }
 
+.insight-card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 .insight-card-icon--purple {
   background: rgba(147, 51, 234, 0.1);
   color: #7e22ce;

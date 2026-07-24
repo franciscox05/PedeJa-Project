@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
+  Euro,
+  Truck,
+  CheckCircle2,
+  Clock,
+  LineChart as LineChartIcon,
+  Trophy,
+  Timer,
+} from "lucide-react";
+import {
   Bar,
   BarChart,
   CartesianGrid,
@@ -270,7 +279,7 @@ export default function DashboardPerformance() {
           <section className="dashboard-grid premium-grid stat-hero-grid">
             <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
               <div className="stat-hero-icon stat-hero-icon--green">
-                <span className="material-icons" aria-hidden="true">payments</span>
+                <Euro aria-hidden="true" />
               </div>
               <div className="stat-hero-body">
                 <div className="metric-label">Faturacao total</div>
@@ -280,7 +289,7 @@ export default function DashboardPerformance() {
             </article>
             <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#c2410c" }}>
               <div className="stat-hero-icon stat-hero-icon--orange">
-                <span className="material-icons" aria-hidden="true">local_shipping</span>
+                <Truck aria-hidden="true" />
               </div>
               <div className="stat-hero-body">
                 <div className="metric-label">Taxas de entrega</div>
@@ -290,7 +299,7 @@ export default function DashboardPerformance() {
             </article>
             <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
               <div className="stat-hero-icon stat-hero-icon--blue">
-                <span className="material-icons" aria-hidden="true">task_alt</span>
+                <CheckCircle2 aria-hidden="true" />
               </div>
               <div className="stat-hero-body">
                 <div className="metric-label">Entregas concluidas</div>
@@ -300,7 +309,7 @@ export default function DashboardPerformance() {
             </article>
             <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#7e22ce" }}>
               <div className="stat-hero-icon stat-hero-icon--purple">
-                <span className="material-icons" aria-hidden="true">schedule</span>
+                <Clock aria-hidden="true" />
               </div>
               <div className="stat-hero-body">
                 <div className="metric-label">Tempo medio</div>
@@ -315,7 +324,7 @@ export default function DashboardPerformance() {
               className="chart-panel"
               title={(
                 <>
-                  <span className="material-icons panel-title-icon" aria-hidden="true">show_chart</span>
+                  <LineChartIcon className="panel-title-icon" aria-hidden="true" />
                   Faturacao vs. taxas de entrega
                 </>
               )}
@@ -358,7 +367,7 @@ export default function DashboardPerformance() {
               className="chart-panel"
               title={(
                 <>
-                  <span className="material-icons panel-title-icon" aria-hidden="true">emoji_events</span>
+                  <Trophy className="panel-title-icon" aria-hidden="true" />
                   Top 5 produtos
                 </>
               )}
@@ -387,7 +396,7 @@ export default function DashboardPerformance() {
             className="chart-panel"
             title={(
               <>
-                <span className="material-icons panel-title-icon" aria-hidden="true">timer</span>
+                <Timer className="panel-title-icon" aria-hidden="true" />
                 Tempo medio entre atribuicao e entrega
               </>
             )}

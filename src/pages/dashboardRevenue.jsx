@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
+  Euro,
+  Store,
+  Percent,
+  Truck,
+  PieChart as PieChartIcon,
+  Trophy,
+  Lightbulb,
+  ShieldCheck,
+  UtensilsCrossed,
+  LayoutGrid,
+  Bike,
+} from "lucide-react";
+import {
   Bar,
   BarChart,
   CartesianGrid,
@@ -185,7 +198,7 @@ export default function DashboardRevenue() {
             <section className="dashboard-grid premium-grid stat-hero-grid">
               <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
                 <div className="stat-hero-icon stat-hero-icon--green">
-                  <span className="material-icons" aria-hidden="true">payments</span>
+                  <Euro aria-hidden="true" />
                 </div>
                 <div className="stat-hero-body">
                   <div className="metric-label">Faturado ao cliente</div>
@@ -195,7 +208,7 @@ export default function DashboardRevenue() {
               </article>
               <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
                 <div className="stat-hero-icon stat-hero-icon--blue">
-                  <span className="material-icons" aria-hidden="true">storefront</span>
+                  <Store aria-hidden="true" />
                 </div>
                 <div className="stat-hero-body">
                   <div className="metric-label">Base das lojas</div>
@@ -205,7 +218,7 @@ export default function DashboardRevenue() {
               </article>
               <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#7e22ce" }}>
                 <div className="stat-hero-icon stat-hero-icon--purple">
-                  <span className="material-icons" aria-hidden="true">percent</span>
+                  <Percent aria-hidden="true" />
                 </div>
                 <div className="stat-hero-body">
                   <div className="metric-label">Comissao PedeJa</div>
@@ -215,7 +228,7 @@ export default function DashboardRevenue() {
               </article>
               <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#c2410c" }}>
                 <div className="stat-hero-icon stat-hero-icon--orange">
-                  <span className="material-icons" aria-hidden="true">local_shipping</span>
+                  <Truck aria-hidden="true" />
                 </div>
                 <div className="stat-hero-body">
                   <div className="metric-label">Taxas de entrega</div>
@@ -230,7 +243,7 @@ export default function DashboardRevenue() {
                 className="chart-panel"
                 title={(
                   <>
-                    <span className="material-icons panel-title-icon" aria-hidden="true">donut_large</span>
+                    <PieChartIcon className="panel-title-icon" aria-hidden="true" />
                     Origem da receita por tipo
                   </>
                 )}
@@ -266,7 +279,7 @@ export default function DashboardRevenue() {
                 className="chart-panel"
                 title={(
                   <>
-                    <span className="material-icons panel-title-icon" aria-hidden="true">leaderboard</span>
+                    <Trophy className="panel-title-icon" aria-hidden="true" />
                     Top lojas por faturacao
                   </>
                 )}
@@ -296,7 +309,7 @@ export default function DashboardRevenue() {
                 title={(
                   <span className="insight-card-header">
                     <span className="insight-card-icon">
-                      <span className="material-icons" aria-hidden="true">insights</span>
+                      <Lightbulb aria-hidden="true" />
                     </span>
                     Leitura geral
                   </span>
@@ -318,7 +331,7 @@ export default function DashboardRevenue() {
                 title={(
                   <span className="insight-card-header">
                     <span className="insight-card-icon insight-card-icon--amber">
-                      <span className="material-icons" aria-hidden="true">verified</span>
+                      <ShieldCheck aria-hidden="true" />
                     </span>
                     Qualidade da leitura da comissao
                   </span>
@@ -368,7 +381,7 @@ export default function DashboardRevenue() {
                 title={(
                   <span className="insight-card-header">
                     <span className="insight-card-icon insight-card-icon--purple">
-                      <span className="material-icons" aria-hidden="true">restaurant</span>
+                      <UtensilsCrossed aria-hidden="true" />
                     </span>
                     Restaurantes em conjunto
                   </span>
@@ -398,7 +411,7 @@ export default function DashboardRevenue() {
             <DashboardPanel
               title={(
                 <>
-                  <span className="material-icons panel-title-icon" aria-hidden="true">category</span>
+                  <LayoutGrid className="panel-title-icon" aria-hidden="true" />
                   Receita por tipo de loja
                 </>
               )}
@@ -454,7 +467,7 @@ export default function DashboardRevenue() {
             <DashboardPanel
               title={(
                 <>
-                  <span className="material-icons panel-title-icon" aria-hidden="true">store</span>
+                  <Store className="panel-title-icon" aria-hidden="true" />
                   Receita por loja
                 </>
               )}
@@ -511,7 +524,7 @@ export default function DashboardRevenue() {
             <DashboardPanel
               title={(
                 <>
-                  <span className="material-icons panel-title-icon" aria-hidden="true">two_wheeler</span>
+                  <Bike className="panel-title-icon" aria-hidden="true" />
                   Estafetas
                 </>
               )}
