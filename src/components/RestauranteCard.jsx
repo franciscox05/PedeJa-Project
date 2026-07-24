@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Info, Circle, Ban, Heart, X } from "lucide-react";
+import { Info, Ban, Heart, X, Bike } from "lucide-react";
 
 import { getImageUrl } from "../services/partnerService";
 
@@ -84,31 +84,18 @@ function RestauranteCard({
     <>
       <div className="col-12 col-md-6 col-lg-4 restaurante-col">
         <div
-          className="restaurante-card"
+          className="group"
           onClick={handleOpenStore}
           style={{
             cursor: restaurante.isIndisponivel ? "default" : "pointer",
-            opacity: restaurante.isIndisponivel ? 0.8 : 1,
           }}
         >
-          <div className="card-image-container">
-            {showFavoriteButton ? (
-              <button
-                type="button"
-                className={`card-favorite-btn${isFavorite ? " is-active" : ""}`}
-                onClick={handleFavoriteClick}
-                disabled={favoriteBusy}
-                title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-              >
-                <Heart className="card-favorite-icon" fill={isFavorite ? "currentColor" : "none"} aria-hidden="true" />
-              </button>
-            ) : null}
-
+          <div className="relative h-[150px] w-full overflow-hidden rounded-xl bg-gray-100 shadow-sm">
             {backgroundImage ? (
               <img
                 src={backgroundImage}
                 alt={restaurante.nome}
-                className="card-bg-img"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 style={{ filter: restaurante.isIndisponivel ? "grayscale(100%)" : "none" }}
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
@@ -116,39 +103,75 @@ function RestauranteCard({
               />
             ) : null}
 
-            <div className="card-overlay"></div>
+            {restaurante.isIndisponivel ? (
+              <div className="absolute inset-0 rounded-xl bg-black/45" />
+            ) : null}
 
-            <h3 className="card-center-title">{restaurante.nome}</h3>
+            {showFavoriteButton ? (
+              <button
+                type="button"
+                className={`absolute left-2 top-2 flex h-9 w-9 items-center justify-center rounded-full shadow-md transition-colors ${
+                  isFavorite ? "bg-[#e62429] text-white" : "bg-black/60 text-white hover:bg-black/80"
+                }`}
+                onClick={handleFavoriteClick}
+                disabled={favoriteBusy}
+                title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              >
+                <Heart className="h-[18px] w-[18px]" fill={isFavorite ? "currentColor" : "none"} aria-hidden="true" />
+              </button>
+            ) : null}
 
-            <div className="card-logo-badge">
-              {iconImage ? (
+            <span
+              className="absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm"
+              style={{ backgroundColor: currentStatusColor }}
+            >
+              {currentStatusText}
+            </span>
+
+            {iconImage ? (
+              <div className="absolute -bottom-3 left-3 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white shadow-md">
                 <img
                   src={iconImage}
                   alt="Logo"
+                  className="h-full w-full object-cover"
                   style={{ filter: restaurante.isIndisponivel ? "grayscale(100%)" : "none" }}
                   onError={(e) => {
-                    e.currentTarget.style.display = "none";
+                    e.currentTarget.parentElement.style.display = "none";
                   }}
                 />
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
 
-          <div className="card-footer-info">
-            <button className="footer-info-btn" onClick={handleInfoClick} title="Mais informacoes">
-              <Info className="info-icon-img" aria-hidden="true" />
-              <span className="footer-text">Info</span>
-            </button>
+          <div className={`mt-3 space-y-1 px-1 ${restaurante.isIndisponivel ? "opacity-60" : ""}`}>
+            <h3 className="truncate text-sm font-bold text-gray-900">{restaurante.nome}</h3>
 
-            <div className="footer-right">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+              {restaurante.taxaentrega > 0 ? (
+                <>
+                  <span className="flex items-center gap-1">
+                    <Bike className="h-3 w-3" aria-hidden="true" />
+                    {Number(restaurante.taxaentrega).toFixed(2)}€
+                  </span>
+                  <span className="text-gray-300">·</span>
+                </>
+              ) : null}
               {restaurante.isIndisponivel ? (
-                <Ban className="status-icon-img" style={{ color: currentStatusColor }} aria-hidden="true" />
+                <span className="flex items-center gap-1 text-gray-400">
+                  <Ban className="h-3 w-3" aria-hidden="true" />
+                  Indisponível
+                </span>
               ) : (
-                <Circle className="status-icon-img" fill="currentColor" style={{ color: currentStatusColor }} aria-hidden="true" />
+                <button
+                  type="button"
+                  className="flex items-center gap-1 hover:text-[#e62429]"
+                  onClick={handleInfoClick}
+                  title="Mais informacoes"
+                >
+                  <Info className="h-3 w-3" aria-hidden="true" />
+                  Info
+                </button>
               )}
-              <span className="status-text-dynamic" style={{ color: currentStatusColor }}>
-                {currentStatusText}
-              </span>
             </div>
           </div>
         </div>
