@@ -91,6 +91,9 @@
 }
 
 .profile-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid #f1c0c2;
   background: #fff;
   color: #c91b20;
@@ -101,6 +104,12 @@
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s ease;
+}
+
+.profile-tab-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .profile-tab-btn:hover {

@@ -1,4 +1,5 @@
 import { Link, NavLink, Navigate, Outlet } from "react-router-dom";
+import { Package, Heart, User, Shield, MapPin } from "lucide-react";
 import Logo from "../../components/Logo";
 import LoginButton from "../../components/LoginButton";
 import CartWidget from "../../components/CartWidget";
@@ -13,11 +14,11 @@ import "../../css/pages/perfil.css";
 // feito pedidos, favoritos ou moradas como cliente (nada no checkout impede
 // isso), por isso todos os separadores ficam visiveis a qualquer sessao.
 const TABS = [
-  { path: "pedidos", label: "Pedidos" },
-  { path: "favoritos", label: "Favoritos" },
-  { path: "dados", label: "Dados pessoais" },
-  { path: "seguranca", label: "Segurança" },
-  { path: "moradas", label: "Moradas" },
+  { path: "pedidos", label: "Pedidos", icon: Package },
+  { path: "favoritos", label: "Favoritos", icon: Heart },
+  { path: "dados", label: "Dados pessoais", icon: User },
+  { path: "seguranca", label: "Segurança", icon: Shield },
+  { path: "moradas", label: "Moradas", icon: MapPin },
 ];
 
 export default function ProfileLayout() {
@@ -68,6 +69,7 @@ export default function ProfileLayout() {
                   to={`/perfil/${tab.path}`}
                   className={({ isActive }) => `profile-tab-btn${isActive ? " active" : ""}`}
                 >
+                  <tab.icon className="profile-tab-icon" aria-hidden="true" />
                   {tab.label}
                 </NavLink>
               ))}
