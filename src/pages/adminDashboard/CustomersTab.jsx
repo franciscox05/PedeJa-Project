@@ -1,3 +1,12 @@
+import {
+  Users,
+  ShoppingBag,
+  Activity,
+  Package,
+  Euro,
+  Receipt,
+  TrendingUp,
+} from "lucide-react";
 import DashboardPanel from "../../components/dashboard/DashboardPanel";
 import DashboardEmptyState from "../../components/dashboard/DashboardEmptyState";
 import DashboardLoadingState from "../../components/dashboard/DashboardLoadingState";
@@ -13,36 +22,43 @@ export default function CustomersTab({
     <div className="dashboard-stack">
       <section className="dashboard-grid premium-grid">
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-indigo"><Users aria-hidden="true" /></div>
           <div className="metric-label">Clientes registados</div>
           <div className="metric-value">{customerInsights.metrics.totalCustomers}</div>
           <div className="metric-foot">Base de clientes sem contas staff/admin</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-blue"><ShoppingBag aria-hidden="true" /></div>
           <div className="metric-label">Clientes com pedidos</div>
           <div className="metric-value">{customerInsights.metrics.customersWithOrders}</div>
           <div className="metric-foot">Pelo menos uma compra na janela selecionada</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-green"><Activity aria-hidden="true" /></div>
           <div className="metric-label">Ativos 30 dias</div>
           <div className="metric-value">{customerInsights.metrics.activeCustomers30d}</div>
           <div className="metric-foot">Clientes com pedido recente</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-amber"><Package aria-hidden="true" /></div>
           <div className="metric-label">Pedidos</div>
           <div className="metric-value">{customerInsights.metrics.totalOrders}</div>
           <div className="metric-foot">Total da janela selecionada</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-red"><Euro aria-hidden="true" /></div>
           <div className="metric-label">Receita clientes</div>
           <div className="metric-value">{safeFixed(customerInsights?.metrics?.totalSpent, 2)}EUR</div>
           <div className="metric-foot">Gasto acumulado dos clientes</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-purple"><Receipt aria-hidden="true" /></div>
           <div className="metric-label">Ticket medio</div>
           <div className="metric-value">{safeFixed(customerInsights?.metrics?.avgTicket, 2)}EUR</div>
           <div className="metric-foot">Media por pedido cliente</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-teal"><TrendingUp aria-hidden="true" /></div>
           <div className="metric-label">LTV medio cliente</div>
           <div className="metric-value">{safeFixed(customerInsights?.metrics?.avgSpentPerCustomer, 2)}EUR</div>
           <div className="metric-foot">Media de gasto por cliente comprador</div>
