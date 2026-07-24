@@ -32,7 +32,7 @@ function Categorias() {
         <div id="div-right" className="col-12 col-lg-8">
           <div id="base-right">
             <h1 className="titulo-cidade">{city?.toUpperCase()}</h1>
-            <ul id="tipo">
+            <ul className="grid list-none grid-cols-2 gap-4 p-0 sm:grid-cols-3">
               {categorias.map((cat) => (
                 <TipoLojaCard key={cat.id} cat={cat} city={city} />
               ))}

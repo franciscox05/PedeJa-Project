@@ -160,26 +160,9 @@ img {
   transition: all 0.2s ease;
 }
 
-/* --- Seta da Categoria (Imagem) --- */
-.cat-chevron-img {
-  /* 1. Tamanho mais pequeno (estava 24px) */
-  width: 18px; 
-  height: 18px;
-  
-  object-fit: contain;
-  margin-left: 20px;
-  
-  /* 2. Menos Opacidade (Mais transparente) */
-  opacity: 0.25; /* Valor entre 0 (invisÃ­vel) e 1 (sÃ³lido) */
-  
-  transition: all 0.2s ease;
-}
-
-/* Opcional: Quando passas o rato, ela fica um pouco mais visÃ­vel */
-.categoria-btn:hover .cat-chevron-img {
-  transform: translateX(3px);
-  opacity: 0.6; 
-}
+/* Os tiles de categoria (TipoLojaCard.jsx) passaram a ser feitos com
+   classes Tailwind diretamente no componente, ao estilo do
+   ModernCategories.jsx do projeto de referencia base44. */
 
 /* --- BOTÃƒO DE LOGIN (Estilo PedeJÃ¡) --- */
 /* --- BOTÃƒO DE LOGIN (VersÃ£o Final: Cor consistente no clique) --- */
@@ -610,67 +593,6 @@ img {
   margin: 0 !important;
   padding: 20px !important;
 }
-#tipo {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-}
-
-/* BotÃ£o da Categoria (O Card) */
-.categoria-btn {
-  display: flex;
-  align-items: center;
-  background-color: white;
-  padding: 15px 20px;
-  border-radius: 50px;
-  cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  transition: transform 0.2s ease;
-  height: 100%;
-  width: 100%;
-}
-
-/* Efeito Hover */
-.categoria-btn:hover {
-  transform: scale(1.02);
-}
-
-/* Imagem da Categoria */
-.cat-img {
-  width: 35px;
-  height: 35px;
-  margin-right: 15px;
-  object-fit: contain;
-}
-
-/* Ãcone Material (Alternativo) */
-.cat-icon-fallback {
-  font-size: 28px;
-  color: #dc3545;
-  margin-right: 15px;
-  display: none; /* Escondido por defeito */
-}
-
-/* Nome da Categoria */
-.cat-nome {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Seta direita */
-.cat-chevron {
-  margin-left: 10px;
-  color: #ccc;
-  font-size: 24px;
-}
-
 .titulo-cidade {
   color: #ffffff;
   font-size: 3.5rem; 
@@ -1365,12 +1287,6 @@ img {
     padding-top: 90px;
   }
 
-  /* Categorias: coluna única para caber o nome da categoria */
-  #tipo {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
   /* Reduzir padding do container de categorias */
   #content #div-right #base-right {
     padding: 12px !important;
@@ -1379,11 +1295,6 @@ img {
   /* Manter flex centering vertical dentro do div-right */
   #content #div-right {
     min-height: 60vh !important;
-  }
-
-  /* Botão de categoria: mais espaço vertical para toque */
-  .categoria-btn {
-    padding: 14px 16px;
   }
 }
 
