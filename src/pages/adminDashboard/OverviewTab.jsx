@@ -1,3 +1,16 @@
+import {
+  Euro,
+  TrendingUp,
+  ShoppingBag,
+  Clock,
+  Receipt,
+  CheckCircle2,
+  XCircle,
+  Truck,
+  AlertTriangle,
+  Store,
+  Bike,
+} from "lucide-react";
 import TrendBars from "../../components/dashboard/TrendBars";
 import DashboardPanel from "../../components/dashboard/DashboardPanel";
 import DashboardEmptyState from "../../components/dashboard/DashboardEmptyState";
@@ -54,6 +67,7 @@ export default function OverviewTab({
           onClick={() => navigate(`/dashboard/admin/receita?days=${periodDays}`)}
           onKeyDown={(event) => handleRowKeyDown(event, () => navigate(`/dashboard/admin/receita?days=${periodDays}`))}
         >
+          <div className="metric-card-icon metric-icon-red"><Euro aria-hidden="true" /></div>
           <div className="metric-label">Receita</div>
           <div className="metric-value">{safeFixed(state?.metrics?.totalRevenue, 2)}EUR</div>
           <div className="metric-foot">Faturado pelos clientes -- abrir detalhe</div>
@@ -65,6 +79,7 @@ export default function OverviewTab({
           onClick={() => navigate(`/dashboard/admin/receita?days=${periodDays}`)}
           onKeyDown={(event) => handleRowKeyDown(event, () => navigate(`/dashboard/admin/receita?days=${periodDays}`))}
         >
+          <div className="metric-card-icon metric-icon-green"><TrendingUp aria-hidden="true" /></div>
           <div className="metric-label">Comissao ganha</div>
           <div className="metric-value">
             {commissionEarned?.loading ? "..." : `${safeFixed(commissionEarned?.value, 2)}EUR`}
@@ -76,31 +91,37 @@ export default function OverviewTab({
           </div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-blue"><ShoppingBag aria-hidden="true" /></div>
           <div className="metric-label">Pedidos</div>
           <div className="metric-value">{state.metrics.totalOrders}</div>
           <div className="metric-foot">Volume total</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-amber"><Clock aria-hidden="true" /></div>
           <div className="metric-label">Agendados</div>
           <div className="metric-value">{state.metrics.scheduledOrders}</div>
           <div className="metric-foot">Ainda fora da fila imediata</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-purple"><Receipt aria-hidden="true" /></div>
           <div className="metric-label">Ticket medio</div>
           <div className="metric-value">{safeFixed(state?.metrics?.avgTicket, 2)}EUR</div>
           <div className="metric-foot">Valor por pedido</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-green"><CheckCircle2 aria-hidden="true" /></div>
           <div className="metric-label">Entrega concluida</div>
           <div className="metric-value">{safeFixed(state?.metrics?.deliveredRate, 1)}%</div>
           <div className="metric-foot">Qualidade operacional</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-red"><XCircle aria-hidden="true" /></div>
           <div className="metric-label">Cancelamento</div>
           <div className="metric-value">{safeFixed(state?.metrics?.cancelRate, 1)}%</div>
           <div className="metric-foot">Risco de churn</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-teal"><Truck aria-hidden="true" /></div>
           <div className="metric-label">Entregas ativas</div>
           <div className="metric-value">{state.metrics.activeDeliveries}</div>
           <div className="metric-foot">Agora</div>
@@ -120,6 +141,7 @@ export default function OverviewTab({
               disabled={safeSlaAlerts.length === 0}
               onClick={() => scrollToSection("dashboard-tab-sla-panel")}
             >
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
               <span className="attention-chip-value">{safeSlaAlerts.length}</span>
               <span className="attention-chip-label">
                 {safeSlaAlerts.length === 1 ? "pedido com SLA excedido" : "pedidos com SLA excedido"}
@@ -131,6 +153,7 @@ export default function OverviewTab({
               disabled={safeRequests.length === 0}
               onClick={onGoToRestaurantApprovals}
             >
+              <Store className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
               <span className="attention-chip-value">{safeRequests.length}</span>
               <span className="attention-chip-label">
                 {safeRequests.length === 1 ? "pedido de restaurante pendente" : "pedidos de restaurante pendentes"}
@@ -144,6 +167,7 @@ export default function OverviewTab({
                 ? scrollToImmediateOrder(driverAlertOrders[0].id)
                 : scrollToSection("immediate-orders-panel"))}
             >
+              <Bike className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
               <span className="attention-chip-value">{driverAlertOrders.length}</span>
               <span className="attention-chip-label">
                 {driverAlertOrders.length === 1 ? "pedido sem estafeta" : "pedidos sem estafeta"}
@@ -155,6 +179,7 @@ export default function OverviewTab({
               disabled={failedDeliveries.length === 0}
               onClick={() => scrollToSection("recent-deliveries-panel")}
             >
+              <XCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
               <span className="attention-chip-value">{failedDeliveries.length}</span>
               <span className="attention-chip-label">
                 {failedDeliveries.length === 1 ? "entrega falhada" : "entregas falhadas"}
