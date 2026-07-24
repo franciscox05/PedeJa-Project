@@ -150,6 +150,11 @@
   font-size: 20px;
 }
 
+.estafeta-app-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 /* ---------- Conteudo ---------- */
 
 .estafeta-app-content {
@@ -204,6 +209,11 @@
   font-size: 22px;
 }
 
+.estafeta-app-bottom-nav-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
 .estafeta-app-bottom-nav-btn.is-active {
   color: var(--ped-red);
 }
@@ -245,6 +255,8 @@
 
 .estafeta-empty-state-icon {
   font-size: 40px;
+  width: 40px;
+  height: 40px;
   color: rgba(20, 20, 26, 0.22);
   display: block;
   margin: 0 auto 12px;
@@ -306,6 +318,12 @@
   margin-bottom: 16px;
 }
 
+.estafeta-location-warning svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
 /* ---------- Stats ---------- */
 
 .estafeta-stats-row {
@@ -337,6 +355,11 @@
 
 .estafeta-stat-icon .material-icons {
   font-size: 16px;
+}
+
+.estafeta-stat-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .estafeta-stat-label {
@@ -403,6 +426,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.estafeta-order-card-title svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .estafeta-order-card-meta {
@@ -507,6 +536,12 @@
   font-size: 15px;
 }
 
+.estafeta-order-card-eta svg {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+}
+
 /* ---------- Tarefa em 2 paragens (recolha -> entrega) ---------- */
 
 .estafeta-task-earn {
@@ -572,6 +607,11 @@
 
 .estafeta-task-stop-marker .material-icons {
   font-size: 18px;
+}
+
+.estafeta-task-stop-marker svg {
+  width: 18px;
+  height: 18px;
 }
 
 .estafeta-task-stop.is-done .estafeta-task-stop-marker {
@@ -671,6 +711,11 @@
 
 .estafeta-task-primary-cta .material-icons {
   font-size: 22px;
+}
+
+.estafeta-task-primary-cta svg {
+  width: 22px;
+  height: 22px;
 }
 
 .estafeta-task-secondary-row {
@@ -838,6 +883,11 @@
   font-size: 18px;
 }
 
+.estafeta-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .estafeta-link-btn {
   display: inline-flex;
   align-items: center;
@@ -853,6 +903,11 @@
 
 .estafeta-link-btn .material-icons {
   font-size: 17px;
+}
+
+.estafeta-link-btn svg {
+  width: 17px;
+  height: 17px;
 }
 
 /* ---------- Historico ---------- */
@@ -883,6 +938,11 @@
   justify-content: center;
   background: var(--ped-success-soft);
   color: var(--ped-success);
+}
+
+.estafeta-history-row-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .estafeta-history-row-icon.is-warn {
@@ -1033,6 +1093,14 @@
   margin-top: 1px;
 }
 
+.estafeta-profile-field svg {
+  width: 18px;
+  height: 18px;
+  color: var(--ped-ink-faint);
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
 .estafeta-profile-field-label {
   font-size: 0.72rem;
   color: var(--ped-ink-soft);
@@ -1057,6 +1125,12 @@
   margin-bottom: 16px;
   font-size: 0.88rem;
   font-weight: 600;
+}
+
+.estafeta-password-banner svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 .estafeta-password-form {

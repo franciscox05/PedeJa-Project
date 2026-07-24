@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { UserX } from "lucide-react";
 import "../css/pages/dashboard.css";
 import "../css/pages/estafeta.css";
 import { useAuth } from "../context/AuthContext";
@@ -272,7 +273,7 @@ export default function EstafetaDashboard() {
     return (
       <div className="estafeta-app-loading-screen">
         <div className="estafeta-empty-state">
-          <span className="material-icons estafeta-empty-state-icon" aria-hidden="true">person_off</span>
+          <UserX className="estafeta-empty-state-icon" aria-hidden="true" />
           <p>Esta conta não tem um perfil de estafeta associado.</p>
         </div>
       </div>

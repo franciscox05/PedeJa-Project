@@ -1,7 +1,9 @@
+import { Home, Receipt, User, LogOut } from "lucide-react";
+
 const NAV_ITEMS = [
-  { id: "inicio", label: "Início", icon: "home" },
-  { id: "historico", label: "Histórico", icon: "receipt_long" },
-  { id: "perfil", label: "Perfil", icon: "person" },
+  { id: "inicio", label: "Início", icon: Home },
+  { id: "historico", label: "Histórico", icon: Receipt },
+  { id: "perfil", label: "Perfil", icon: User },
 ];
 
 // Shell de app movel dedicado a /estafeta -- barra superior compacta +
@@ -42,7 +44,7 @@ export default function EstafetaAppShell({
               title="A minha conta"
               onClick={() => onTabChange("perfil")}
             >
-              <span className="material-icons" aria-hidden="true">account_circle</span>
+              <User aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -50,7 +52,7 @@ export default function EstafetaAppShell({
               title="Sair"
               onClick={onLogout}
             >
-              <span className="material-icons" aria-hidden="true">logout</span>
+              <LogOut aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -69,7 +71,7 @@ export default function EstafetaAppShell({
               className={`estafeta-app-bottom-nav-btn${activeTab === item.id ? " is-active" : ""}`}
               onClick={() => onTabChange(item.id)}
             >
-              <span className="material-icons" aria-hidden="true">{item.icon}</span>
+              <item.icon aria-hidden="true" />
               <span>{item.label}</span>
             </button>
           ))}

@@ -1,16 +1,38 @@
 import { useEffect, useState } from "react";
+import {
+  Store,
+  Bike,
+  CheckCircle2,
+  Navigation,
+  Check,
+  MapPin,
+  AlertTriangle,
+  Truck,
+  Banknote,
+  Star,
+  BellRing,
+  ChevronUp,
+  ChevronDown,
+  X,
+  ClipboardList,
+  Phone,
+  MessageCircle,
+  Undo2,
+  Hourglass,
+  Moon,
+} from "lucide-react";
 import { getEstadoInternoLabelPt, getEstadoInternoTone } from "../../services/orderStatusMapper";
 import { groupSelectedMenuOptionsForDisplay } from "../../services/menuOptionsService";
 import { getDrivingRoute } from "../../services/googleMapsService";
 
 const NEXT_STEP_BY_ESTADO = {
-  estafeta_aceitou: { estado: "recolhido", label: "Marcar como recolhido", icon: "storefront" },
-  iniciado: { estado: "recolhido", label: "Marcar como recolhido", icon: "storefront" },
-  em_preparacao: { estado: "recolhido", label: "Marcar como recolhido", icon: "storefront" },
-  pronto_recolha: { estado: "recolhido", label: "Marcar como recolhido", icon: "storefront" },
-  recolhido: { estado: "a_caminho", label: "A caminho do cliente", icon: "two_wheeler" },
-  pronto_entregar: { estado: "a_caminho", label: "A caminho do cliente", icon: "two_wheeler" },
-  a_caminho: { estado: "entregue", label: "Marcar como entregue", icon: "task_alt" },
+  estafeta_aceitou: { estado: "recolhido", label: "Marcar como recolhido", icon: Store },
+  iniciado: { estado: "recolhido", label: "Marcar como recolhido", icon: Store },
+  em_preparacao: { estado: "recolhido", label: "Marcar como recolhido", icon: Store },
+  pronto_recolha: { estado: "recolhido", label: "Marcar como recolhido", icon: Store },
+  recolhido: { estado: "a_caminho", label: "A caminho do cliente", icon: Bike },
+  pronto_entregar: { estado: "a_caminho", label: "A caminho do cliente", icon: Bike },
+  a_caminho: { estado: "entregue", label: "Marcar como entregue", icon: CheckCircle2 },
 };
 
 const AVG_SPEED_KMH_BY_VEICULO = {
@@ -91,13 +113,13 @@ function resolveAvgSpeedKmh(veiculo) {
   return AVG_SPEED_KMH_BY_VEICULO[key] || 22;
 }
 
-function EstafetaButton({ variant = "primary", size, icon, children, ...rest }) {
+function EstafetaButton({ variant = "primary", size, icon: Icon, children, ...rest }) {
   const classNames = ["estafeta-btn", `estafeta-btn--${variant}`, size ? `estafeta-btn--${size}` : ""]
     .filter(Boolean)
     .join(" ");
   return (
     <button type="button" className={classNames} {...rest}>
-      {icon ? <span className="material-icons" aria-hidden="true">{icon}</span> : null}
+      {Icon ? <Icon aria-hidden="true" /> : null}
       {children}
     </button>
   );
@@ -141,7 +163,7 @@ function DistanceEtaBadge({ estafeta, assignment, isPending }) {
 
   return (
     <p className="estafeta-order-card-eta">
-      <span className="material-icons" aria-hidden="true">near_me</span>
+      <Navigation aria-hidden="true" />
       {isHeadingToStore ? "Até à loja" : "Até ao cliente"}: ~{distanceKm.toFixed(1)} km · ~{etaMinutes} min
     </p>
   );
@@ -160,7 +182,7 @@ function TaskStops({ assignment, isPending }) {
     <div className="estafeta-task-stops">
       <div className={`estafeta-task-stop${pickupDone ? " is-done" : ""}${pickupIsCurrent ? " is-current" : ""}`}>
         <span className="estafeta-task-stop-marker">
-          <span className="material-icons" aria-hidden="true">{pickupDone ? "check" : "storefront"}</span>
+          {pickupDone ? <Check aria-hidden="true" /> : <Store aria-hidden="true" />}
         </span>
         <div className="estafeta-task-stop-body">
           <p className="estafeta-task-stop-label">Recolha</p>
@@ -174,7 +196,7 @@ function TaskStops({ assignment, isPending }) {
 
       <div className={`estafeta-task-stop${deliveryDone ? " is-done" : ""}${deliveryIsCurrent ? " is-current" : ""}`}>
         <span className="estafeta-task-stop-marker">
-          <span className="material-icons" aria-hidden="true">{deliveryDone ? "check" : "person_pin_circle"}</span>
+          {deliveryDone ? <Check aria-hidden="true" /> : <MapPin aria-hidden="true" />}
         </span>
         <div className="estafeta-task-stop-body">
           <p className="estafeta-task-stop-label">Entrega</p>
@@ -273,11 +295,11 @@ function TaskStopActions({ assignment, isPending }) {
     const storeTelUrl = buildTelUrl(assignment.store_contacto);
     return (
       <div className="estafeta-order-card-actions">
-        <EstafetaButton variant="outline" size="sm" icon="storefront" onClick={() => openExternal(storeMapsUrl)}>
+        <EstafetaButton variant="outline" size="sm" icon={Store} onClick={() => openExternal(storeMapsUrl)}>
           Navegar até à loja
         </EstafetaButton>
         {storeTelUrl ? (
-          <EstafetaButton variant="outline" size="sm" icon="call" onClick={() => openExternal(storeTelUrl)}>
+          <EstafetaButton variant="outline" size="sm" icon={Phone} onClick={() => openExternal(storeTelUrl)}>
             Ligar à loja
           </EstafetaButton>
         ) : null}
@@ -291,16 +313,16 @@ function TaskStopActions({ assignment, isPending }) {
 
   return (
     <div className="estafeta-order-card-actions">
-      <EstafetaButton variant="outline" size="sm" icon="location_on" onClick={() => openExternal(customerMapsUrl)}>
+      <EstafetaButton variant="outline" size="sm" icon={MapPin} onClick={() => openExternal(customerMapsUrl)}>
         Navegar até ao cliente
       </EstafetaButton>
       {telUrl ? (
-        <EstafetaButton variant="outline" size="sm" icon="call" onClick={() => openExternal(telUrl)}>
+        <EstafetaButton variant="outline" size="sm" icon={Phone} onClick={() => openExternal(telUrl)}>
           Ligar
         </EstafetaButton>
       ) : null}
       {whatsappUrl ? (
-        <EstafetaButton variant="outline" size="sm" icon="chat" onClick={() => openExternal(whatsappUrl)}>
+        <EstafetaButton variant="outline" size="sm" icon={MessageCircle} onClick={() => openExternal(whatsappUrl)}>
           WhatsApp
         </EstafetaButton>
       ) : null}
@@ -351,24 +373,24 @@ export default function EstafetaHomeTab({
 
       {isOnline && locationStatus === "error" ? (
         <div className="estafeta-location-warning">
-          <span className="material-icons" aria-hidden="true">warning</span>
+          <AlertTriangle aria-hidden="true" />
           <span>{locationErrorMessage || "Não foi possível partilhar a tua localização."} Sem isto, o admin não te vê corretamente no mapa nem consegue calcular distâncias.</span>
         </div>
       ) : null}
 
       <div className="estafeta-stats-row">
         <div className="estafeta-stat-card">
-          <span className="estafeta-stat-icon"><span className="material-icons" aria-hidden="true">local_shipping</span></span>
+          <span className="estafeta-stat-icon"><Truck aria-hidden="true" /></span>
           <p className="estafeta-stat-label">Entregas</p>
           <p className="estafeta-stat-value">{estafeta?.total_entregas ?? 0}</p>
         </div>
         <div className="estafeta-stat-card">
-          <span className="estafeta-stat-icon"><span className="material-icons" aria-hidden="true">payments</span></span>
+          <span className="estafeta-stat-icon"><Banknote aria-hidden="true" /></span>
           <p className="estafeta-stat-label">Ganhos totais</p>
           <p className="estafeta-stat-value">{formatCurrency(estafeta?.total_ganhos)}</p>
         </div>
         <div className="estafeta-stat-card">
-          <span className="estafeta-stat-icon"><span className="material-icons" aria-hidden="true">star</span></span>
+          <span className="estafeta-stat-icon"><Star aria-hidden="true" /></span>
           <p className="estafeta-stat-label">Avaliação</p>
           <p className="estafeta-stat-value">{Number(estafeta?.avaliacao_media ?? 5).toFixed(1)}</p>
         </div>
@@ -378,7 +400,7 @@ export default function EstafetaHomeTab({
         <div className="estafeta-order-card estafeta-order-card--pending">
           <div className="estafeta-order-card-head">
             <h3 className="estafeta-order-card-title">
-              <span className="material-icons" aria-hidden="true">notifications_active</span>
+              <BellRing aria-hidden="true" />
               Nova tarefa
             </h3>
             <span className="estafeta-tag estafeta-tag--warn">Por responder</span>
@@ -393,16 +415,16 @@ export default function EstafetaHomeTab({
             className="estafeta-link-btn"
             onClick={() => setExpandedId(expandedId === pendingAssignment.id ? null : pendingAssignment.id)}
           >
-            <span className="material-icons" aria-hidden="true">{expandedId === pendingAssignment.id ? "expand_less" : "expand_more"}</span>
+            {expandedId === pendingAssignment.id ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
             {expandedId === pendingAssignment.id ? "Esconder detalhes do pedido" : "Ver detalhes do pedido"}
           </button>
           {expandedId === pendingAssignment.id ? <OrderDetailPanel assignment={pendingAssignment} /> : null}
 
           <div className="estafeta-task-cta-row">
-            <EstafetaButton variant="primary" size="lg" icon="check" onClick={() => onAccept(pendingAssignment.id)} disabled={busy}>
+            <EstafetaButton variant="primary" size="lg" icon={Check} onClick={() => onAccept(pendingAssignment.id)} disabled={busy}>
               Aceitar tarefa
             </EstafetaButton>
-            <EstafetaButton variant="outline" size="lg" icon="close" onClick={() => onReject(pendingAssignment.id)} disabled={busy}>
+            <EstafetaButton variant="outline" size="lg" icon={X} onClick={() => onReject(pendingAssignment.id)} disabled={busy}>
               Rejeitar
             </EstafetaButton>
           </div>
@@ -413,7 +435,7 @@ export default function EstafetaHomeTab({
         <div className="estafeta-order-card estafeta-order-card--active">
           <div className="estafeta-order-card-head">
             <h3 className="estafeta-order-card-title">
-              <span className="material-icons" aria-hidden="true">assignment</span>
+              <ClipboardList aria-hidden="true" />
               Tarefa #{activeAssignment.order_id}
             </h3>
             <span className={`estafeta-tag estafeta-tag--${activeTone}`}>
@@ -432,7 +454,7 @@ export default function EstafetaHomeTab({
             className="estafeta-link-btn"
             onClick={() => setExpandedId(expandedId === activeAssignment.id ? null : activeAssignment.id)}
           >
-            <span className="material-icons" aria-hidden="true">{expandedId === activeAssignment.id ? "expand_less" : "expand_more"}</span>
+            {expandedId === activeAssignment.id ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
             {expandedId === activeAssignment.id ? "Esconder detalhes do pedido" : "Ver detalhes do pedido"}
           </button>
           {expandedId === activeAssignment.id ? <OrderDetailPanel assignment={activeAssignment} showTimeline /> : null}
@@ -446,7 +468,7 @@ export default function EstafetaHomeTab({
                 : onAdvance(activeAssignment.id, nextStep.estado))}
               disabled={busy}
             >
-              <span className="material-icons" aria-hidden="true">{nextStep.icon}</span>
+              <nextStep.icon aria-hidden="true" />
               {nextStep.label}
             </button>
           ) : null}
@@ -454,12 +476,12 @@ export default function EstafetaHomeTab({
           <div className="estafeta-task-secondary-row">
             {canRevert ? (
               <button type="button" className="estafeta-link-btn" onClick={() => onRevert(activeAssignment.id)} disabled={busy}>
-                <span className="material-icons" aria-hidden="true">undo</span>
+                <Undo2 aria-hidden="true" />
                 Voltar atrás
               </button>
             ) : null}
             <button type="button" className="estafeta-link-btn estafeta-link-btn--danger" onClick={() => onCancel(activeAssignment.id)} disabled={busy}>
-              <span className="material-icons" aria-hidden="true">report_problem</span>
+              <AlertTriangle aria-hidden="true" />
               Reportar problema
             </button>
           </div>
@@ -468,9 +490,11 @@ export default function EstafetaHomeTab({
 
       {!pendingAssignment && !activeAssignment ? (
         <div className="estafeta-empty-state">
-          <span className="material-icons estafeta-empty-state-icon" aria-hidden="true">
-            {isOnline ? "hourglass_empty" : "bedtime"}
-          </span>
+          {isOnline ? (
+            <Hourglass className="estafeta-empty-state-icon" aria-hidden="true" />
+          ) : (
+            <Moon className="estafeta-empty-state-icon" aria-hidden="true" />
+          )}
           <p>{isOnline ? "Sem entregas de momento. Assim que houver um pedido, avisamos-te aqui." : "Fica online para começares a receber pedidos."}</p>
         </div>
       ) : null}

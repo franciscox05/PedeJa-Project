@@ -1,3 +1,4 @@
+import { Banknote, CheckCircle2, Ban, XCircle, Info, Receipt } from "lucide-react";
 import EstafetaEarningsChart from "./EstafetaEarningsChart";
 
 function formatCurrency(value) {
@@ -14,10 +15,10 @@ function formatDateTime(value) {
 }
 
 function resolveHistoryStatus(item) {
-  if (item.entregue_em) return { label: "Entregue", tone: "ok", icon: "task_alt" };
-  if (item.rejeitado_em) return { label: "Rejeitado", tone: "warn", icon: "block" };
-  if (item.cancelado_em) return { label: "Cancelado", tone: "bad", icon: "cancel" };
-  return { label: "Terminado", tone: "warn", icon: "info" };
+  if (item.entregue_em) return { label: "Entregue", tone: "ok", icon: CheckCircle2 };
+  if (item.rejeitado_em) return { label: "Rejeitado", tone: "warn", icon: Ban };
+  if (item.cancelado_em) return { label: "Cancelado", tone: "bad", icon: XCircle };
+  return { label: "Terminado", tone: "warn", icon: Info };
 }
 
 function formatDuration(startValue, endValue) {
@@ -43,7 +44,7 @@ export default function EstafetaHistoryTab({ history, loading, earningsByDay, lo
             {liquidacoes.map((item) => (
               <div className="estafeta-history-row" key={item.id}>
                 <span className="estafeta-history-row-icon">
-                  <span className="material-icons" aria-hidden="true">payments</span>
+                  <Banknote aria-hidden="true" />
                 </span>
                 <div className="estafeta-history-row-main">
                   <span className="estafeta-history-row-title">Pagamento de {item.entregas_incluidas} entregas</span>
@@ -64,7 +65,7 @@ export default function EstafetaHistoryTab({ history, loading, earningsByDay, lo
         <p className="muted">A carregar histórico...</p>
       ) : !history?.length ? (
         <div className="estafeta-empty-state">
-          <span className="material-icons estafeta-empty-state-icon" aria-hidden="true">receipt_long</span>
+          <Receipt className="estafeta-empty-state-icon" aria-hidden="true" />
           <p>Ainda não tens entregas no histórico.</p>
         </div>
       ) : (
@@ -75,7 +76,7 @@ export default function EstafetaHistoryTab({ history, loading, earningsByDay, lo
             return (
               <div className="estafeta-history-row" key={item.id}>
                 <span className={`estafeta-history-row-icon${status.tone !== "ok" ? ` is-${status.tone}` : ""}`}>
-                  <span className="material-icons" aria-hidden="true">{status.icon}</span>
+                  <status.icon aria-hidden="true" />
                 </span>
                 <div className="estafeta-history-row-main">
                   <span className="estafeta-history-row-title">

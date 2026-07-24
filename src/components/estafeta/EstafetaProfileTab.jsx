@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Clock, Bike, Car, Footprints, Phone, Mail, Bell } from "lucide-react";
 
 const VEHICLE_LABELS = {
   bicicleta: "Bicicleta",
@@ -8,10 +9,10 @@ const VEHICLE_LABELS = {
 };
 
 const VEHICLE_ICONS = {
-  bicicleta: "pedal_bike",
-  mota: "two_wheeler",
-  carro: "directions_car",
-  a_pe: "directions_walk",
+  bicicleta: Bike,
+  mota: Bike,
+  carro: Car,
+  a_pe: Footprints,
 };
 
 export default function EstafetaProfileTab({ estafeta, onChangePassword, busy, pushSubscription }) {
@@ -47,7 +48,7 @@ export default function EstafetaProfileTab({ estafeta, onChangePassword, busy, p
     <div className="estafeta-app-section">
       {estafeta?.password_temporaria ? (
         <div className="estafeta-password-banner">
-          <span className="material-icons" aria-hidden="true">lock_clock</span>
+          <Clock aria-hidden="true" />
           <span>Estás a usar uma password temporária. Define uma nova password abaixo antes de continuar.</span>
         </div>
       ) : null}
@@ -58,9 +59,10 @@ export default function EstafetaProfileTab({ estafeta, onChangePassword, busy, p
           <div>
             <p className="estafeta-profile-header-name">{estafeta?.nome}</p>
             <p className="estafeta-profile-header-sub">
-              <span className="material-icons" aria-hidden="true" style={{ fontSize: 16 }}>
-                {VEHICLE_ICONS[estafeta?.veiculo] || "two_wheeler"}
-              </span>
+              {(() => {
+                const VehicleIcon = VEHICLE_ICONS[estafeta?.veiculo] || Bike;
+                return <VehicleIcon style={{ width: 16, height: 16 }} aria-hidden="true" />;
+              })()}
               {VEHICLE_LABELS[estafeta?.veiculo] || estafeta?.veiculo || "-"}
             </p>
           </div>
@@ -68,14 +70,14 @@ export default function EstafetaProfileTab({ estafeta, onChangePassword, busy, p
 
         <div className="estafeta-profile-grid">
           <div className="estafeta-profile-field">
-            <span className="material-icons" aria-hidden="true">call</span>
+            <Phone aria-hidden="true" />
             <div>
               <p className="estafeta-profile-field-label">Telemóvel</p>
               <p className="estafeta-profile-field-value">{estafeta?.telefone || "-"}</p>
             </div>
           </div>
           <div className="estafeta-profile-field">
-            <span className="material-icons" aria-hidden="true">mail</span>
+            <Mail aria-hidden="true" />
             <div>
               <p className="estafeta-profile-field-label">Email</p>
               <p className="estafeta-profile-field-value">{estafeta?.email || "-"}</p>
@@ -88,7 +90,7 @@ export default function EstafetaProfileTab({ estafeta, onChangePassword, busy, p
         <div className="estafeta-order-card estafeta-order-card--active">
           <div className="estafeta-order-card-head">
             <h3 className="estafeta-order-card-title">
-              <span className="material-icons" aria-hidden="true">notifications</span>
+              <Bell aria-hidden="true" />
               Notificações
             </h3>
           </div>
