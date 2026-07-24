@@ -346,6 +346,14 @@
 .metric-icon-slate { background: #f1f5f9; color: #475569; }
 .metric-icon-indigo { background: #e0e7ff; color: #4f46e5; }
 
+.inline-star {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  vertical-align: -1px;
+  margin-left: 2px;
+}
+
 .panel-grid {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
