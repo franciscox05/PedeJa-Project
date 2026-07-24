@@ -65,6 +65,11 @@
   font-size: 18px;
 }
 
+.location-picker-close svg {
+  width: 18px;
+  height: 18px;
+}
+
 .location-picker-map-wrap {
   position: relative;
 }

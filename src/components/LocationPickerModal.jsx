@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
 import {
   BARCELOS_CENTER,
   buildDeliveryPricingDistanceRings,
@@ -247,7 +248,7 @@ export default function LocationPickerModal({
             <p>{subtitle}</p>
           </div>
           <button type="button" className="location-picker-close" onClick={onCancel} aria-label="Fechar">
-            <span className="material-icons">close</span>
+            <X aria-hidden="true" />
           </button>
         </header>
 

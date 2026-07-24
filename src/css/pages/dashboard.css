@@ -533,6 +533,11 @@ button.attention-chip--alert:not(:disabled):hover {
   font-size: 14px;
 }
 
+.restaurant-card-jump-link svg {
+  width: 14px;
+  height: 14px;
+}
+
 .restaurant-card-jump-link--inline {
   color: var(--dash-accent, #e62429);
   text-decoration: underline;
@@ -1349,6 +1354,11 @@ svg.panel-title-icon {
 
 .geo-map-fullscreen-btn .material-icons {
   font-size: 19px;
+}
+
+.geo-map-fullscreen-btn svg {
+  width: 19px;
+  height: 19px;
 }
 
 /* Fullscreen: so muda o layout via CSS (o mapa nao sai da arvore do DOM,

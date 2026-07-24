@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
+import { LayoutDashboard } from "lucide-react";
 import userGif from "../assets/img/perfil.gif";
 import logoutImg from "../assets/img/logout.png";
 import profileImg from "../assets/img/user.png";
@@ -49,7 +50,7 @@ function UserProfileMenu({ user, canOpenPortal = false, onLogout, onOpenProfile,
             }}
             style={{ borderBottom: "1px solid #f0f0f0", marginBottom: "5px" }}
           >
-            <span className="material-icons" style={{ fontSize: "18px" }}>dashboard</span>
+            <LayoutDashboard style={{ width: 18, height: 18 }} aria-hidden="true" />
             <span className="profile-static">Painel</span>
           </div>
         )}

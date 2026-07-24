@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { AlertCircle, AlertTriangle, X } from "lucide-react";
 
 const AlertContext = createContext(null);
 
@@ -62,9 +63,11 @@ export function AlertProvider({ children }) {
                 className={`global-alert-card global-alert-card--${alert.type}`}
                 onClick={(event) => event.stopPropagation()}
               >
-                <span className="material-icons global-alert-icon" aria-hidden="true">
-                  {alert.type === "error" ? "error" : "warning"}
-                </span>
+                {alert.type === "error" ? (
+                  <AlertCircle className="global-alert-icon" aria-hidden="true" />
+                ) : (
+                  <AlertTriangle className="global-alert-icon" aria-hidden="true" />
+                )}
                 <p className="global-alert-message">{alert.message}</p>
                 <button
                   type="button"
@@ -72,7 +75,7 @@ export function AlertProvider({ children }) {
                   aria-label="Fechar aviso"
                   onClick={() => dismiss(alert.id)}
                 >
-                  <span className="material-icons" aria-hidden="true">close</span>
+                  <X aria-hidden="true" />
                 </button>
               </div>
             ))}

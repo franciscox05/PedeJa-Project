@@ -1648,6 +1648,8 @@ img {
 .global-alert-icon {
   flex-shrink: 0;
   font-size: 24px;
+  width: 24px;
+  height: 24px;
   margin-top: 1px;
 }
 
@@ -1687,5 +1689,10 @@ img {
 
 .global-alert-close .material-icons {
   font-size: 18px;
+}
+
+.global-alert-close svg {
+  width: 18px;
+  height: 18px;
 }
 

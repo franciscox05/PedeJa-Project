@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, ExternalLink } from "lucide-react";
 import DatePickerCustom from "../ui/DatePickerCustom";
 import {
   formatScheduleExceptionLabel,
@@ -212,9 +213,7 @@ export default function StoreSpecialHoursPanel({
                         : navigate(`/parceiros?edit=1&loja=${store.idloja}`))}
                     >
                       Editar horario semanal
-                      <span className="material-icons" aria-hidden="true">
-                        {onEditWeeklySchedule ? "arrow_forward" : "open_in_new"}
-                      </span>
+                      {onEditWeeklySchedule ? <ArrowRight aria-hidden="true" /> : <ExternalLink aria-hidden="true" />}
                     </button>
                   </p>
                 </div>

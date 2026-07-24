@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowDown } from "lucide-react";
 import { sanitizeCommissionConfig } from "../../services/pricingService";
 import { useAlert } from "../../context/AlertContext";
 import {
@@ -557,19 +558,19 @@ export default function RestaurantManagementPanel({
                   <span className="restaurant-card-jump-label">Ir para:</span>
                   {operationalUiEnabled ? (
                     <button type="button" className="restaurant-card-jump-link" onClick={() => scrollToStoreSection(rowKey, "operacional")}>
-                      <span className="material-icons" aria-hidden="true">arrow_downward</span>
+                      <ArrowDown aria-hidden="true" />
                       Operacional
                     </button>
                   ) : null}
                   {isAdmin && operationalUiEnabled && typeof onSaveAutoAssignConfig === "function" ? (
                     <button type="button" className="restaurant-card-jump-link" onClick={() => scrollToStoreSection(rowKey, "auto-assign")}>
-                      <span className="material-icons" aria-hidden="true">arrow_downward</span>
+                      <ArrowDown aria-hidden="true" />
                       Auto-atribuicao
                     </button>
                   ) : null}
                   {commissionUiEnabled ? (
                     <button type="button" className="restaurant-card-jump-link" onClick={() => scrollToStoreSection(rowKey, "comissao")}>
-                      <span className="material-icons" aria-hidden="true">arrow_downward</span>
+                      <ArrowDown aria-hidden="true" />
                       Comissao
                     </button>
                   ) : null}

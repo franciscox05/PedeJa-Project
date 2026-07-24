@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Minimize2, Maximize2 } from "lucide-react";
 import { getEstadoInternoLabelPt, getEstadoInternoTagClass, resolveOrderEstadoInterno } from "../../services/orderStatusMapper";
 import {
   BARCELOS_CENTER,
@@ -849,9 +850,7 @@ export default function LiveOperationsBoard({
           onClick={() => setIsMapFullscreen((prev) => !prev)}
           title={isMapFullscreen ? "Fechar mapa em ecra completo" : "Expandir mapa em ecra completo"}
         >
-          <span className="material-icons" aria-hidden="true">
-            {isMapFullscreen ? "close_fullscreen" : "open_in_full"}
-          </span>
+          {isMapFullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
         </button>
         <div ref={mapElementRef} className="geo-map-target" />
       </div>
