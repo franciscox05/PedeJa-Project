@@ -90,7 +90,9 @@ export default function MenuCard({ prato }) {
     <>
       <div className="col-12 col-lg-6">
         <div
-          className={`menu-item-card ${isSoldOut ? "menu-item-card-sold-out" : ""}`}
+          className={`relative flex cursor-pointer gap-3 rounded-2xl border bg-white p-3 transition-shadow hover:shadow-md ${
+            isSoldOut ? "cursor-default border-gray-100 opacity-60" : "border-gray-100"
+          }`}
           onClick={openProductModal}
         >
           {notificacao && (
@@ -100,32 +102,35 @@ export default function MenuCard({ prato }) {
             <div className="menu-toast error">Prato esgotado de momento.</div>
           )}
 
-          <div className="menu-item-thumb">
+          <div className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-bold text-gray-900">{prato.nome}</span>
+            <span className="mt-0.5 block text-xs text-gray-400">{categoryName}</span>
+            {isSoldOut ? (
+              <span className="mt-1 inline-block rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-500">
+                Esgotado
+              </span>
+            ) : null}
+            <p className="mt-2 text-sm font-bold text-[#e62429]">{displayPrice.toFixed(2)}€</p>
+          </div>
+
+          <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#6b1a1a] via-[#b91c1c] to-[#e8a0a0]">
             {prato.imagem ? (
-              <img src={prato.imagem} alt={prato.nome} />
+              <img src={prato.imagem} alt={prato.nome} className="h-full w-full object-cover" />
             ) : (
-              <div className="menu-item-thumb-placeholder">
-                <UtensilsCrossed aria-hidden="true" />
+              <div className="flex h-full w-full items-center justify-center">
+                <UtensilsCrossed className="h-9 w-9 text-white/50" aria-hidden="true" />
               </div>
             )}
-          </div>
-
-          <div className="menu-item-info">
-            <span className="menu-item-name">{prato.nome}</span>
-            <span className="menu-item-category">{categoryName}</span>
-            {isSoldOut && <span className="menu-item-badge-soldout">Esgotado</span>}
-          </div>
-
-          <div className="menu-item-right">
-            <span className="menu-item-price">{displayPrice.toFixed(2)}€</span>
             <button
               onClick={openProductModal}
               disabled={isSoldOut}
-              className={`menu-mini-btn add ${isSoldOut ? "disabled" : ""}`}
-              style={{ transform: animacao ? "scale(1.2)" : "scale(1)" }}
+              className={`absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#e62429] to-[#c91b20] text-white shadow-md transition-transform ${
+                isSoldOut ? "cursor-not-allowed from-gray-300 to-gray-400" : "hover:scale-110"
+              }`}
+              style={{ transform: animacao ? "scale(1.2)" : undefined }}
               title={isSoldOut ? "Prato esgotado" : "Adicionar ao carrinho"}
             >
-              <Plus aria-hidden="true" />
+              <Plus className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </div>
