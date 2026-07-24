@@ -891,12 +891,14 @@ export default function Carrinho() {
 
         <div className="cart-summary-panel">
           <h2 style={{ marginTop: 0, marginBottom: "25px" }}>Resumo</h2>
-          <div className="summary-row"><span>Subtotal</span><span>{subtotal.toFixed(2)}EUR</span></div>
-          <div className="summary-row"><span>Taxa de Entrega</span><span>{taxaEntrega.toFixed(2)}EUR</span></div>
+          <div className="flex justify-between py-1.5 text-sm text-gray-600"><span>Subtotal</span><span>{subtotal.toFixed(2)}EUR</span></div>
+          <div className="flex justify-between py-1.5 text-sm text-gray-600"><span>Taxa de Entrega</span><span>{taxaEntrega.toFixed(2)}EUR</span></div>
           {appliedCoupon ? (
-            <div className="summary-row"><span>Desconto ({appliedCoupon.code})</span><span>-{couponDiscount.toFixed(2)}EUR</span></div>
+            <div className="flex justify-between py-1.5 text-sm text-gray-600"><span>Desconto ({appliedCoupon.code})</span><span>-{couponDiscount.toFixed(2)}EUR</span></div>
           ) : null}
-          <div className="summary-row total"><span>Total a Pagar</span><span style={{ color: "#e62429" }}>{totalFinal.toFixed(2)}EUR</span></div>
+          <div className="mt-2 flex justify-between border-t-2 border-gray-100 pt-3 text-lg font-black text-gray-900">
+            <span>Total a Pagar</span><span className="text-[#e62429]">{totalFinal.toFixed(2)}EUR</span>
+          </div>
 
           <div style={{ marginTop: "10px", display: "grid", gap: "6px" }}>
             {appliedCoupon ? (

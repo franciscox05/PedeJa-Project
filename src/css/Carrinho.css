@@ -53,22 +53,6 @@
     top: 100px; 
 }
 
-.summary-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-    color: #666;
-}
-
-.summary-row.total {
-    color: #222;
-    font-weight: 900;
-    font-size: 1.5rem;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 2px solid #eee;
-}
-
 .btn-checkout-final {
     width: 100%;
     background: #ff3b30;
@@ -106,9 +90,5 @@
   .cart-summary-panel {
     padding: 20px;
     position: static;
-  }
-
-  .summary-row.total {
-    font-size: 1.2rem;
   }
 }
