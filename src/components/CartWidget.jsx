@@ -1,9 +1,8 @@
-import React from "react";
 import { Link } from "react-router-dom";
+import { ShoppingCart } from "lucide-react";
 import { useCart } from "../context/CartContext";
 
-// AQUI ESTÁ O DETALHE: Importamos o CSS específico deste componente
-import "../css/CartWidget.css"; 
+import "../css/CartWidget.css";
 
 export default function CartWidget() {
   const { cart } = useCart();
@@ -11,7 +10,7 @@ export default function CartWidget() {
 
   return (
     <Link to="/carrinho" className="cart-widget-header">
-      <span className="material-icons" style={{ fontSize: '24px' }}>shopping_cart</span>
+      <ShoppingCart className="cart-widget-icon" aria-hidden="true" />
       {qtdTotal > 0 && (
         <span className="cart-badge-count">{qtdTotal}</span>
       )}

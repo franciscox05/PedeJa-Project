@@ -43,6 +43,11 @@
   color: #ff3b30;
 }
 
+.cart-widget-icon {
+  width: 24px;
+  height: 24px;
+}
+
 /* Cart item count badge */
 .cart-badge-count {
   position: absolute;

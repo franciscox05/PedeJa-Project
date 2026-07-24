@@ -116,8 +116,7 @@ img {
 .voltar-icon-img {
   width: 30px;
   height: 30px;
-  object-fit: contain;
-  /* O .icon-red aplicado no JSX trata da cor */
+  color: #e62429;
 }
 
 /* --- LÃ“GICA DO BOTÃƒO FECHAR (CLOSE) --- */
@@ -520,9 +519,6 @@ img {
 }
 .btn-voltar-fixo:hover {
   transform: scale(1.1);
-}
-.btn-voltar-fixo .material-icons {
-  font-size: 30px;
 }
 
 
