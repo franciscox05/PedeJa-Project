@@ -1,4 +1,13 @@
 import { Fragment, useEffect, useState } from "react";
+import {
+  Store,
+  Percent,
+  Truck,
+  Clock,
+  LineChart,
+  ClipboardCheck,
+  Link2,
+} from "lucide-react";
 import AdminRestaurantAssociation from "../../components/admin/AdminRestaurantAssociation";
 import DashboardPanel from "../../components/dashboard/DashboardPanel";
 import DashboardEmptyState from "../../components/dashboard/DashboardEmptyState";
@@ -11,13 +20,13 @@ import { formatScheduleLabel } from "../../utils/storeHours";
 import { safeImage, safeFixed } from "./helpers";
 
 const SUB_TABS = [
-  { id: "profile", label: "Dados da Loja" },
-  { id: "commission", label: "Comissao" },
-  { id: "delivery", label: "Entrega" },
-  { id: "hours", label: "Horarios Especiais" },
-  { id: "performance", label: "Performance" },
-  { id: "approvals", label: "Aprovacoes" },
-  { id: "association", label: "Associar Utilizador" },
+  { id: "profile", label: "Dados da Loja", icon: Store },
+  { id: "commission", label: "Comissao", icon: Percent },
+  { id: "delivery", label: "Entrega", icon: Truck },
+  { id: "hours", label: "Horarios Especiais", icon: Clock },
+  { id: "performance", label: "Performance", icon: LineChart },
+  { id: "approvals", label: "Aprovacoes", icon: ClipboardCheck },
+  { id: "association", label: "Associar Utilizador", icon: Link2 },
 ];
 
 // Antes eram 7 paineis empilhados navegados so por scroll-jump a ancoras --
@@ -131,6 +140,7 @@ export default function RestaurantsTab({
             className={`restaurants-subtab${section === tab.id ? " is-active" : ""}`}
             onClick={() => setSection(tab.id)}
           >
+            <tab.icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
             {tab.label}
             {tab.id === "approvals" && safeRequests.length > 0 ? (
               <span className="restaurants-subtab-badge">{safeRequests.length}</span>
