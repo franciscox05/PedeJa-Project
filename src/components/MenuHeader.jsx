@@ -1,5 +1,3 @@
-import "/src/css/index.css";
-
 const DAY_LABELS = {
   1: "Seg",
   2: "Ter",
@@ -48,6 +46,11 @@ function summarizeSchedule(schedule) {
     .join(" | ");
 }
 
+const STATUS_PILL_CLASS = {
+  Aberto: "bg-green-500/90 text-white",
+  Fechado: "bg-red-500/90 text-white",
+};
+
 function MenuHeader({ lojaInfo }) {
   const nome = lojaInfo?.nome || "Restaurante";
   const status = lojaInfo?.status || "Indisponivel";
@@ -56,32 +59,35 @@ function MenuHeader({ lojaInfo }) {
 
   return (
     <div className="container">
-      <div
-        className="menu-hero-banner"
-        style={{
-          backgroundImage: bannerImage
-            ? `linear-gradient(110deg, rgba(18,24,35,0.78), rgba(230,36,41,0.55)), url(${bannerImage})`
-            : "linear-gradient(110deg, rgba(18,24,35,0.9), rgba(230,36,41,0.78))",
-        }}
-      >
-        <div className="menu-hero-content">
-          <div className="menu-hero-title-row">
-            <h1>{nome}</h1>
-            {logoImage ? <img src={logoImage} alt={nome} className="menu-hero-logo" /> : null}
+      <div className="relative h-56 overflow-hidden rounded-2xl">
+        {bannerImage ? (
+          <img src={bannerImage} alt={nome} className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-gray-800 to-[#e62429]" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+        {logoImage ? (
+          <div className="absolute right-4 top-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white shadow-md">
+            <img src={logoImage} alt={nome} className="h-full w-full object-cover" />
           </div>
+        ) : null}
+
+        <div className="absolute bottom-4 left-4 right-4">
+          <h1 className="text-2xl font-black text-white">{nome}</h1>
 
           <span
-            className={`badge-status ${
-              status === "Aberto" ? "status-aberto" : status === "Fechado" ? "status-fechado" : "status-indisponivel"
+            className={`mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold backdrop-blur-sm ${
+              STATUS_PILL_CLASS[status] || "bg-white/20 text-white"
             }`}
           >
             {status}
           </span>
 
-          <div className="menu-hero-meta">
-            <span><b>Horario:</b> {summarizeSchedule(lojaInfo?.horario_funcionamento)}</span>
-            {lojaInfo?.statusDetalhe ? <span><b>Excecao:</b> {lojaInfo.statusDetalhe}</span> : null}
-            {lojaInfo?.morada ? <span><b>Morada:</b> {lojaInfo.morada}</span> : null}
+          <div className="mt-2 space-y-0.5 text-xs text-white/85">
+            <p><span className="font-semibold text-white">Horario:</span> {summarizeSchedule(lojaInfo?.horario_funcionamento)}</p>
+            {lojaInfo?.statusDetalhe ? <p><span className="font-semibold text-white">Excecao:</span> {lojaInfo.statusDetalhe}</p> : null}
+            {lojaInfo?.morada ? <p><span className="font-semibold text-white">Morada:</span> {lojaInfo.morada}</p> : null}
           </div>
         </div>
       </div>

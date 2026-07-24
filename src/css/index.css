@@ -622,18 +622,6 @@ img {
 
 
 
-/* Badges de status (Aberto/Fechado) */
-.badge-status {
-    display: inline-block;
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-.status-aberto { background-color: #d4edda; color: #28a745; }
-.status-fechado { background-color: #f8d7da; color: #dc3545; }
-
 /* TÃ­tulo da secÃ§Ã£o "Pratos Principais" */
 .menu-seccao-titulo {
     font-size: 1.5rem;
