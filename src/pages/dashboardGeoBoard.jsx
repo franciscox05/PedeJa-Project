@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Package, Bike, Truck, ShoppingBag } from "lucide-react";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
@@ -244,21 +245,25 @@ export default function DashboardGeoBoard() {
 
       <section className="dashboard-grid premium-grid">
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-amber"><Package aria-hidden="true" /></div>
           <div className="metric-label">Pedidos ativos</div>
           <div className="metric-value">{activeOrders.length}</div>
           <div className="metric-foot">Em fila operacional</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-blue"><Bike aria-hidden="true" /></div>
           <div className="metric-label">Estafetas no mapa</div>
           <div className="metric-value">{liveCarrierEntries.length}</div>
           <div className="metric-foot">Com coordenadas validas</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-teal"><Truck aria-hidden="true" /></div>
           <div className="metric-label">Em recolha/entrega</div>
           <div className="metric-value">{activeDeliveringCarriers.length}</div>
           <div className="metric-foot">Rotas em curso</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-slate"><ShoppingBag aria-hidden="true" /></div>
           <div className="metric-label">Pedidos janela</div>
           <div className="metric-value">{state.metrics.totalOrders}</div>
           <div className="metric-foot">Selecionados pelo periodo</div>

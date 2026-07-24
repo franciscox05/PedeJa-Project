@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import {
+  Bike,
+  Wifi,
+  Truck,
+  PackageSearch,
+  Clock,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import "../css/pages/dashboard.css";
 import "../css/pages/estafeta.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
@@ -364,18 +373,22 @@ export default function DashboardEstafetas() {
 
       <section className="dashboard-grid premium-grid">
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-blue"><Bike aria-hidden="true" /></div>
           <div className="metric-label">Estafetas ativos</div>
           <div className="metric-value">{estafetas.filter((item) => item.ativo).length}</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-green"><Wifi aria-hidden="true" /></div>
           <div className="metric-label">Online agora</div>
           <div className="metric-value">{estafetas.filter((item) => item.online).length}</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-teal"><Truck aria-hidden="true" /></div>
           <div className="metric-label">Entregas em curso</div>
           <div className="metric-value">{activeAtribuicoes.length}</div>
         </article>
         <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-amber"><PackageSearch aria-hidden="true" /></div>
           <div className="metric-label">Por atribuir</div>
           <div className="metric-value">{unassignedOrders.length}</div>
         </article>
@@ -536,6 +549,7 @@ export default function DashboardEstafetas() {
 
           <div className="dashboard-grid premium-grid" style={{ marginBottom: 20 }}>
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-slate"><Clock aria-hidden="true" /></div>
               <div className="metric-label">Taxa de entregas a tempo</div>
               <div className="metric-value">
                 {opsReport.data?.on_time_rate_percent === null || opsReport.data?.on_time_rate_percent === undefined
@@ -544,10 +558,12 @@ export default function DashboardEstafetas() {
               </div>
             </article>
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-green"><CheckCircle2 aria-hidden="true" /></div>
               <div className="metric-label">Entregas concluidas</div>
               <div className="metric-value">{opsReport.data?.total_delivered ?? 0}</div>
             </article>
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-red"><XCircle aria-hidden="true" /></div>
               <div className="metric-label">Entregas falhadas/canceladas</div>
               <div className="metric-value">{opsReport.data?.failed_deliveries?.length ?? 0}</div>
             </article>
