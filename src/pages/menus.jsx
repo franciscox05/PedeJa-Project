@@ -121,10 +121,14 @@ export default function Menus() {
       <MenuHeader lojaInfo={lojaInfo} />
 
       {categorias.length > 1 && (
-        <div className="container menu-quicknav-wrap">
-          <div className="menu-quicknav">
+        <div className="container sticky top-0 z-20 my-3 bg-[#f4f5f8]/95 py-2 backdrop-blur-xl">
+          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
             {categorias.map((categoria) => (
-              <button key={categoria} onClick={() => scrollToCategory(categoria)}>
+              <button
+                key={categoria}
+                onClick={() => scrollToCategory(categoria)}
+                className="flex-shrink-0 rounded-full border border-[#f0c5c8] bg-white px-4 py-1.5 text-xs font-bold text-[#c91b20] transition-colors hover:bg-[#ffecee]"
+              >
                 {categoria}
               </button>
             ))}

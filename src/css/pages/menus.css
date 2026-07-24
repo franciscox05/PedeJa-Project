@@ -22,34 +22,8 @@
   font-weight: 700;
 }
 
-.menu-quicknav-wrap {
-  margin-top: 14px;
-  margin-bottom: 12px;
-}
-
-.menu-quicknav {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 2px;
-}
-
-.menu-quicknav button {
-  border: 1px solid #f0c5c8;
-  background: #fff;
-  color: #c91b20;
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-weight: 700;
-  font-size: 0.83rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.menu-quicknav button:hover {
-  background: #ffecee;
-}
-
+/* A barra de categorias (menus.jsx) passou a ser feita com classes
+   Tailwind diretamente na pagina. */
 .menu-lista-container {
   margin-top: 14px;
   padding-bottom: 36px;
@@ -116,10 +90,4 @@
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
-@media (max-width: 575.98px) {
-  .menu-quicknav button {
-    padding: 6px 12px;
-    font-size: 0.78rem;
-  }
-}
 
