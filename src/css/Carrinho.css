@@ -39,88 +39,8 @@
     }
 }
 
-/* Cartão do Produto */
-.cart-item-card {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.03);
-    transition: transform 0.2s;
-}
-
-.cart-item-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-}
-
-.cart-item-info {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex: 1;
-}
-
-.cart-item-img-box {
-    width: 80px;
-    height: 80px;
-    background: #eee;
-    border-radius: 10px;
-    overflow: hidden;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.cart-item-img-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.cart-item-details h4 {
-    margin: 0 0 5px 0;
-    color: #222;
-    font-size: 1.1rem;
-}
-
-.cart-item-price-calc {
-    color: #666;
-    font-size: 0.95rem;
-}
-
-.cart-item-total-price {
-    font-weight: 800;
-    color: #333;
-    font-size: 1.2rem;
-    min-width: 80px;
-    text-align: right;
-}
-
-.btn-remove-item {
-    background: #fff0f0;
-    color: #ff3b30;
-    border: none;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    margin-left: 20px;
-    transition: all 0.2s;
-    font-weight: bold;
-}
-
-.btn-remove-item:hover {
-    background: #ff3b30;
-    color: white;
-}
+/* O cartao de item do carrinho passou a ser feito com classes Tailwind
+   diretamente em carrinho.jsx, ao estilo do Cart.jsx do base44. */
 
 /* Painel de Resumo (Direita) */
 .cart-summary-panel {
@@ -181,20 +101,6 @@
     margin: 16px auto;
     padding: 0 12px;
     gap: 20px;
-  }
-
-  .cart-item-card {
-    padding: 14px;
-    gap: 10px;
-  }
-
-  .cart-item-img-box {
-    width: 60px;
-    height: 60px;
-  }
-
-  .cart-item-info {
-    gap: 12px;
   }
 
   .cart-summary-panel {

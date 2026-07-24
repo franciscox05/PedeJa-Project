@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, UtensilsCrossed, Trash2 } from "lucide-react";
+import { ArrowLeft, UtensilsCrossed, Trash2, Minus, Plus } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAlert } from "../context/AlertContext";
 import { useNavigate } from "react-router-dom";
@@ -835,38 +835,55 @@ export default function Carrinho() {
             const cartLineId = item.cart_line_id || item.idmenu;
 
             return (
-              <div key={cartLineId} className="cart-item-card">
-              <div className="cart-item-info">
-                <div className="cart-item-img-box">
-                  {item.imagem ? <img src={item.imagem} alt={item.nome} /> : <UtensilsCrossed style={{ width: 40, height: 40, color: "#ccc" }} aria-hidden="true" />}
+              <div key={cartLineId} className="flex gap-3 rounded-xl border border-gray-100 bg-white p-4">
+                <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-50 flex items-center justify-center">
+                  {item.imagem ? (
+                    <img src={item.imagem} alt={item.nome} className="h-full w-full object-cover" />
+                  ) : (
+                    <UtensilsCrossed className="h-10 w-10 text-gray-300" aria-hidden="true" />
+                  )}
                 </div>
 
-                <div className="cart-item-details">
-                  <h4>{item.nome}</h4>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-sm font-semibold text-gray-900">{item.nome}</h4>
+                    <span className="flex-shrink-0 text-sm font-bold text-gray-900">{itemTotalPrice.toFixed(2)}€</span>
+                  </div>
                   {groupSelectedMenuOptionsForDisplay(item.opcoes_selecionadas).map((group) => (
-                    <p key={`${cartLineId}-${group.groupId}`} style={{ margin: "4px 0 0", color: "#64748b", fontSize: "0.9rem" }}>
+                    <p key={`${cartLineId}-${group.groupId}`} className="mt-0.5 text-xs text-gray-500">
                       <strong>{group.title}:</strong> {group.options.map((option) => option.option_name).join(", ")}
                     </p>
                   ))}
                   {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim() ? (
-                    <p style={{ margin: "4px 0 0", color: "#475569", fontSize: "0.9rem", fontStyle: "italic" }}>
+                    <p className="mt-0.5 text-xs italic text-gray-600">
                       <strong>Instrucoes:</strong> {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim()}
                     </p>
                   ) : null}
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px" }}>
-                    <button onClick={() => decreaseQuantity(cartLineId)} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid #ddd", background: "white", cursor: "pointer" }}>-</button>
-                    <span style={{ fontWeight: "bold", minWidth: "20px", textAlign: "center", fontSize: "1.1rem" }}>{item.qtd}</span>
-                    <button onClick={() => addToCart(item)} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "none", background: "#e62429", color: "white", cursor: "pointer" }}>+</button>
+                  <div className="mt-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => decreaseQuantity(cartLineId)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      >
+                        <Minus className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                      <span className="w-6 text-center text-sm font-bold">{item.qtd}</span>
+                      <button
+                        onClick={() => addToCart(item)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[#e62429] text-white hover:bg-[#c91b20]"
+                      >
+                        <Plus className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => removeFromCart(cartLineId)}
+                      title="Remover produto"
+                      className="p-1 text-gray-400 transition-colors hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "10px" }}>
-                <div className="cart-item-total-price">{itemTotalPrice.toFixed(2)}EUR</div>
-                <button className="btn-remove-item" onClick={() => removeFromCart(cartLineId)} title="Remover produto" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Trash2 style={{ width: 20, height: 20 }} aria-hidden="true" />
-                </button>
-              </div>
               </div>
             );
           })}
