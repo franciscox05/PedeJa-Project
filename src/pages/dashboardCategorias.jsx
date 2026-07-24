@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import {
+  Tag,
+  PlusCircle,
+  ListChecks,
+  Check,
+  X,
+  Pencil,
+  Trash2,
+  Loader2,
+} from "lucide-react";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
@@ -152,7 +162,7 @@ export default function DashboardCategorias() {
         <section className="dashboard-grid premium-grid stat-hero-grid">
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
             <div className="stat-hero-icon stat-hero-icon--red">
-              <span className="material-icons" aria-hidden="true">category</span>
+              <Tag aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Categorias criadas</div>
@@ -165,7 +175,7 @@ export default function DashboardCategorias() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">add_circle</span>
+              <PlusCircle className="panel-title-icon" aria-hidden="true" />
               Nova categoria
             </>
           )}
@@ -192,7 +202,7 @@ export default function DashboardCategorias() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">list_alt</span>
+              <ListChecks className="panel-title-icon" aria-hidden="true" />
               Categorias existentes
             </>
           )}
@@ -209,7 +219,7 @@ export default function DashboardCategorias() {
                 return (
                   <div key={category.idcategoria} className={`category-chip${isEditing ? " is-editing" : ""}`}>
                     <span className="category-chip-icon">
-                      <span className="material-icons" aria-hidden="true">sell</span>
+                      <Tag aria-hidden="true" />
                     </span>
                     {isEditing ? (
                       <input
@@ -238,7 +248,7 @@ export default function DashboardCategorias() {
                             title="Guardar"
                             onClick={() => handleSaveEdit(category.idcategoria)}
                           >
-                            <span className="material-icons" aria-hidden="true">check</span>
+                            <Check aria-hidden="true" />
                           </button>
                           <button
                             type="button"
@@ -247,7 +257,7 @@ export default function DashboardCategorias() {
                             title="Cancelar"
                             onClick={cancelEdit}
                           >
-                            <span className="material-icons" aria-hidden="true">close</span>
+                            <X aria-hidden="true" />
                           </button>
                         </>
                       ) : (
@@ -259,7 +269,7 @@ export default function DashboardCategorias() {
                             title="Editar"
                             onClick={() => startEdit(category)}
                           >
-                            <span className="material-icons" aria-hidden="true">edit</span>
+                            <Pencil aria-hidden="true" />
                           </button>
                           <button
                             type="button"
@@ -268,9 +278,11 @@ export default function DashboardCategorias() {
                             title="Eliminar"
                             onClick={() => handleDelete(category)}
                           >
-                            <span className="material-icons" aria-hidden="true">
-                              {isBusy ? "hourglass_empty" : "delete"}
-                            </span>
+                            {isBusy ? (
+                              <Loader2 className="animate-spin" aria-hidden="true" />
+                            ) : (
+                              <Trash2 aria-hidden="true" />
+                            )}
                           </button>
                         </>
                       )}

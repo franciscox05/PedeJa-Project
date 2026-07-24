@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import {
+  GalleryHorizontal,
+  Eye,
+  Clock,
+  Pencil,
+  PlusCircle,
+  LayoutGrid,
+  ImageOff,
+} from "lucide-react";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
@@ -170,7 +179,7 @@ export default function DashboardBanners() {
         <section className="dashboard-grid premium-grid stat-hero-grid">
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
             <div className="stat-hero-icon stat-hero-icon--red">
-              <span className="material-icons" aria-hidden="true">view_carousel</span>
+              <GalleryHorizontal aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Banners criados</div>
@@ -180,7 +189,7 @@ export default function DashboardBanners() {
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
             <div className="stat-hero-icon stat-hero-icon--green">
-              <span className="material-icons" aria-hidden="true">visibility</span>
+              <Eye aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Ativos</div>
@@ -190,7 +199,7 @@ export default function DashboardBanners() {
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#c2410c" }}>
             <div className="stat-hero-icon stat-hero-icon--orange">
-              <span className="material-icons" aria-hidden="true">schedule</span>
+              <Clock aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Agendados</div>
@@ -203,9 +212,11 @@ export default function DashboardBanners() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">
-                {editingId ? "edit" : "add_circle"}
-              </span>
+              {editingId ? (
+                <Pencil className="panel-title-icon" aria-hidden="true" />
+              ) : (
+                <PlusCircle className="panel-title-icon" aria-hidden="true" />
+              )}
               {editingId ? "Editar banner" : "Novo banner"}
             </>
           )}
@@ -262,7 +273,7 @@ export default function DashboardBanners() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">grid_view</span>
+              <LayoutGrid className="panel-title-icon" aria-hidden="true" />
               Banners existentes
             </>
           )}
@@ -283,7 +294,7 @@ export default function DashboardBanners() {
                         <img src={banner.image_url} alt={banner.title || "Banner"} />
                       ) : (
                         <div className="menu-card-placeholder">
-                          <span className="material-icons" aria-hidden="true">image</span>
+                          <ImageOff aria-hidden="true" />
                         </div>
                       )}
                       <span className={`tag ${banner.active !== false ? "ok" : "neutral"}`}>

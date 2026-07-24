@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { Ticket, CheckCircle2, Gift, Pencil, PlusCircle, ListChecks } from "lucide-react";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
@@ -189,7 +190,7 @@ export default function DashboardCupoes() {
         <section className="dashboard-grid premium-grid stat-hero-grid">
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
             <div className="stat-hero-icon stat-hero-icon--red">
-              <span className="material-icons" aria-hidden="true">confirmation_number</span>
+              <Ticket aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Cupoes criados</div>
@@ -199,7 +200,7 @@ export default function DashboardCupoes() {
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
             <div className="stat-hero-icon stat-hero-icon--green">
-              <span className="material-icons" aria-hidden="true">check_circle</span>
+              <CheckCircle2 aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Ativos agora</div>
@@ -209,7 +210,7 @@ export default function DashboardCupoes() {
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
             <div className="stat-hero-icon stat-hero-icon--blue">
-              <span className="material-icons" aria-hidden="true">redeem</span>
+              <Gift aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Utilizacoes totais</div>
@@ -222,9 +223,11 @@ export default function DashboardCupoes() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">
-                {editingId ? "edit" : "add_circle"}
-              </span>
+              {editingId ? (
+                <Pencil className="panel-title-icon" aria-hidden="true" />
+              ) : (
+                <PlusCircle className="panel-title-icon" aria-hidden="true" />
+              )}
               {editingId ? "Editar cupao" : "Novo cupao"}
             </>
           )}
@@ -283,7 +286,7 @@ export default function DashboardCupoes() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">list_alt</span>
+              <ListChecks className="panel-title-icon" aria-hidden="true" />
               Cupoes existentes
             </>
           )}

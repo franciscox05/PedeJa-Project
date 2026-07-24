@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { Megaphone, Eye, Globe, Pencil, PlusCircle, LayoutGrid } from "lucide-react";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
@@ -186,7 +187,7 @@ export default function DashboardPromocoes() {
         <section className="dashboard-grid premium-grid stat-hero-grid">
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
             <div className="stat-hero-icon stat-hero-icon--red">
-              <span className="material-icons" aria-hidden="true">campaign</span>
+              <Megaphone aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Promocoes criadas</div>
@@ -196,7 +197,7 @@ export default function DashboardPromocoes() {
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
             <div className="stat-hero-icon stat-hero-icon--green">
-              <span className="material-icons" aria-hidden="true">visibility</span>
+              <Eye aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Ativas</div>
@@ -206,7 +207,7 @@ export default function DashboardPromocoes() {
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
             <div className="stat-hero-icon stat-hero-icon--blue">
-              <span className="material-icons" aria-hidden="true">public</span>
+              <Globe aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Globais</div>
@@ -219,9 +220,11 @@ export default function DashboardPromocoes() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">
-                {editingId ? "edit" : "add_circle"}
-              </span>
+              {editingId ? (
+                <Pencil className="panel-title-icon" aria-hidden="true" />
+              ) : (
+                <PlusCircle className="panel-title-icon" aria-hidden="true" />
+              )}
               {editingId ? "Editar promocao" : "Nova promocao"}
             </>
           )}
@@ -291,7 +294,7 @@ export default function DashboardPromocoes() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">grid_view</span>
+              <LayoutGrid className="panel-title-icon" aria-hidden="true" />
               Promocoes existentes
             </>
           )}
@@ -309,7 +312,7 @@ export default function DashboardPromocoes() {
                       <img src={promotion.image_url} alt={promotion.title || "Promocao"} />
                     ) : (
                       <div className="menu-card-placeholder">
-                        <span className="material-icons" aria-hidden="true">campaign</span>
+                        <Megaphone aria-hidden="true" />
                       </div>
                     )}
                     <span className={`tag ${promotion.active !== false ? "ok" : "neutral"}`}>
