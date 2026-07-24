@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { UtensilsCrossed, Plus, AlertTriangle } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import "../css/pages/menus.css";
 import { normalizePricedItem, resolveDisplayPrice } from "../services/pricingService";
@@ -104,7 +105,7 @@ export default function MenuCard({ prato }) {
               <img src={prato.imagem} alt={prato.nome} />
             ) : (
               <div className="menu-item-thumb-placeholder">
-                <span className="material-icons">restaurant</span>
+                <UtensilsCrossed aria-hidden="true" />
               </div>
             )}
           </div>
@@ -124,7 +125,7 @@ export default function MenuCard({ prato }) {
               style={{ transform: animacao ? "scale(1.2)" : "scale(1)" }}
               title={isSoldOut ? "Prato esgotado" : "Adicionar ao carrinho"}
             >
-              <span className="material-icons">add</span>
+              <Plus aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -165,9 +166,7 @@ export default function MenuCard({ prato }) {
               boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
             }}
           >
-            <span className="material-icons" style={{ fontSize: "50px", color: "#ff9800", marginBottom: "15px" }}>
-              warning_amber
-            </span>
+            <AlertTriangle style={{ width: 50, height: 50, color: "#ff9800", marginBottom: 15 }} aria-hidden="true" />
             <h3 style={{ margin: "0 0 10px 0", color: "#333" }}>Atencao</h3>
             <p style={{ color: "#666", marginBottom: "25px", fontSize: "0.95rem" }}>
               Ja tens produtos de outro restaurante no carrinho. Desejas limpar o carrinho e iniciar um novo pedido aqui?

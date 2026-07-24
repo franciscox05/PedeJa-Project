@@ -65,6 +65,11 @@
   font-size: 18px;
 }
 
+.menu-product-modal-close svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* ── Media area ────────────────────────────────── */
 .menu-product-modal-media {
   width: 100%;
@@ -91,6 +96,12 @@
 
 .menu-product-modal-media-placeholder .material-icons {
   font-size: 64px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.menu-product-modal-media-placeholder svg {
+  width: 64px;
+  height: 64px;
   color: rgba(255, 255, 255, 0.45);
 }
 
@@ -348,6 +359,11 @@
 }
 .menu-product-modal-quantity button .material-icons {
   font-size: 18px;
+}
+
+.menu-product-modal-quantity button svg {
+  width: 18px;
+  height: 18px;
 }
 
 .menu-product-modal-quantity button:hover:not(:disabled) {

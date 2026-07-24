@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { X, UtensilsCrossed, Minus, Plus } from "lucide-react";
 import { normalizePricedItem } from "../services/pricingService";
 import {
   buildDefaultMenuOptionSelections,
@@ -305,7 +306,7 @@ export default function MenuProductModal({
     <div className="menu-product-modal-backdrop" onClick={onClose}>
       <div className="menu-product-modal-sheet" onClick={(event) => event.stopPropagation()}>
         <button type="button" className="menu-product-modal-close" onClick={onClose} aria-label="Fechar">
-          <span className="material-icons">close</span>
+          <X aria-hidden="true" />
         </button>
 
         <div className="menu-product-modal-media">
@@ -313,7 +314,7 @@ export default function MenuProductModal({
             <img src={prato.imagem} alt={prato.nome} />
           ) : (
             <div className="menu-product-modal-media-placeholder">
-              <span className="material-icons">restaurant</span>
+              <UtensilsCrossed aria-hidden="true" />
             </div>
           )}
         </div>
@@ -423,7 +424,7 @@ export default function MenuProductModal({
                 disabled={quantity <= 1}
                 aria-label="Diminuir"
               >
-                <span className="material-icons">remove</span>
+                <Minus aria-hidden="true" />
               </button>
               <span>{quantity}</span>
               <button
@@ -431,7 +432,7 @@ export default function MenuProductModal({
                 onClick={() => setQuantity((prev) => prev + 1)}
                 aria-label="Aumentar"
               >
-                <span className="material-icons">add</span>
+                <Plus aria-hidden="true" />
               </button>
             </div>
 
