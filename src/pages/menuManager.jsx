@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Pencil, SlidersHorizontal, Ban, CheckCircle2, Eye, EyeOff, Trash2, ImageOff } from "lucide-react";
 import {
   createMenu,
   createMenuOptionLibraryGroup,
@@ -1291,7 +1292,7 @@ export default function MenuManager() {
                 return (
                   <article className="menu-card" key={item.idmenu}>
                     <div className="menu-card-media">
-                      {item.imagem ? <img src={item.imagem} alt={item.nome} /> : <div className="menu-card-placeholder">Sem imagem</div>}
+                      {item.imagem ? <img src={item.imagem} alt={item.nome} /> : <div className="menu-card-placeholder"><ImageOff aria-hidden="true" /></div>}
                       <span className={item.ativo !== false ? "tag ok" : "tag warn"}>{item.ativo !== false ? "Disponivel" : "Esgotado"}</span>
                       <span className={`tag soft menu-card-visibility-tag ${item.visivel !== false ? "" : "warn"}`}>{item.visivel !== false ? "Visivel" : "Oculto"}</span>
                     </div>
@@ -1305,11 +1306,26 @@ export default function MenuManager() {
                         <strong>{formatCurrency(item.preco)}</strong>
                       </div>
                       <div className="menu-card-actions">
-                        <button className="btn-dashboard small" type="button" onClick={() => startEdit(item)}>{missingDetails ? "Completar dados" : "Editar"}</button>
-                        <button className="btn-dashboard small" type="button" onClick={() => openModifierManager(item)}>Gerir opcoes</button>
-                        <button className="btn-dashboard small secondary" type="button" onClick={() => handleToggle(item)}>{item.ativo !== false ? "Marcar esgotado" : "Marcar disponivel"}</button>
-                        <button className="btn-dashboard small secondary" type="button" onClick={() => handleToggleVisibility(item)}>{item.visivel !== false ? "Esconder prato" : "Mostrar na app"}</button>
-                        <button className="btn-dashboard small secondary" type="button" onClick={() => handleDelete(item.idmenu, item.nome)}>Apagar</button>
+                        <button className="btn-dashboard small" type="button" onClick={() => startEdit(item)}>
+                          <Pencil aria-hidden="true" />
+                          {missingDetails ? "Completar dados" : "Editar"}
+                        </button>
+                        <button className="btn-dashboard small" type="button" onClick={() => openModifierManager(item)}>
+                          <SlidersHorizontal aria-hidden="true" />
+                          Gerir opcoes
+                        </button>
+                        <button className="btn-dashboard small secondary" type="button" onClick={() => handleToggle(item)}>
+                          {item.ativo !== false ? <Ban aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
+                          {item.ativo !== false ? "Marcar esgotado" : "Marcar disponivel"}
+                        </button>
+                        <button className="btn-dashboard small secondary" type="button" onClick={() => handleToggleVisibility(item)}>
+                          {item.visivel !== false ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                          {item.visivel !== false ? "Esconder prato" : "Mostrar na app"}
+                        </button>
+                        <button className="btn-dashboard small secondary" type="button" onClick={() => handleDelete(item.idmenu, item.nome)}>
+                          <Trash2 aria-hidden="true" />
+                          Apagar
+                        </button>
                       </div>
                     </div>
                   </article>
