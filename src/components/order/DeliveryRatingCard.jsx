@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Star } from "lucide-react";
 import { fetchMyDeliveryRating, rateDelivery } from "../../services/estafetaService";
 import { useAlert } from "../../context/AlertContext";
 
@@ -83,7 +84,7 @@ export default function DeliveryRatingCard({ orderId, callerUserId, driverName }
             onClick={() => !isReadOnly && setSelectedValue(star)}
             aria-label={`${star} estrela${star === 1 ? "" : "s"}`}
           >
-            {star <= displayValue ? "★" : "☆"}
+            <Star fill={star <= displayValue ? "currentColor" : "none"} aria-hidden="true" />
           </button>
         ))}
       </div>

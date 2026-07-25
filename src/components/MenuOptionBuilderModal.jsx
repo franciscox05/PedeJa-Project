@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import {
   createMenuOptionGroupForMenu,
   deleteMenuOptionLibraryGroup,
@@ -729,7 +730,7 @@ export default function MenuOptionBuilderModal({
                           disabled={index === 0}
                           title="Mover item para cima"
                         >
-                          ↑
+                          <ArrowUp aria-hidden="true" />
                         </button>
                         <button
                           type="button"
@@ -738,7 +739,7 @@ export default function MenuOptionBuilderModal({
                           disabled={index >= draft.options.length - 1}
                           title="Mover item para baixo"
                         >
-                          ↓
+                          <ArrowDown aria-hidden="true" />
                         </button>
                         <button type="button" className="btn-dashboard small secondary" onClick={() => removeOption(option.id)}>
                           Remover
@@ -879,7 +880,7 @@ export default function MenuOptionBuilderModal({
                               disabled={!canMoveUp || saving || orderingInProgress}
                               title="Mover para cima"
                             >
-                              ↑
+                              <ArrowUp aria-hidden="true" />
                             </button>
                             <button
                               type="button"
@@ -888,7 +889,7 @@ export default function MenuOptionBuilderModal({
                               disabled={!canMoveDown || saving || orderingInProgress}
                               title="Mover para baixo"
                             >
-                              ↓
+                              <ArrowDown aria-hidden="true" />
                             </button>
                           </div>
                         </div>

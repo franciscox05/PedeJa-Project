@@ -228,6 +228,11 @@
   padding: 0;
 }
 
+.pedido-rating-star svg {
+  width: 30px;
+  height: 30px;
+}
+
 .pedido-rating-star.is-filled {
   color: #f59e0b;
 }

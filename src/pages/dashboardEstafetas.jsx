@@ -9,6 +9,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Star,
 } from "lucide-react";
 import "../css/pages/dashboard.css";
 import "../css/pages/estafeta.css";
@@ -591,7 +592,12 @@ export default function DashboardEstafetas() {
                     <td>{row.entregas_canceladas}</td>
                     <td>{row.pedidos_rejeitados}</td>
                     <td>{row.tempo_medio_min ? `${row.tempo_medio_min} min` : "-"}</td>
-                    <td>{Number(row.avaliacao_media ?? 5).toFixed(1)} ★</td>
+                    <td>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        {Number(row.avaliacao_media ?? 5).toFixed(1)}
+                        <Star style={{ width: 14, height: 14 }} fill="#f59e0b" color="#f59e0b" aria-hidden="true" />
+                      </span>
+                    </td>
                   </tr>
                 ))}
                 {!opsReport.loading && (opsReport.data?.leaderboard || []).length === 0 ? (
