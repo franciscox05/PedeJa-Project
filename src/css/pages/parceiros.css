@@ -282,11 +282,21 @@
 }
 
 .benefit-icon {
-  font-size: 1.6rem;
+  width: 48px;
+  height: 48px;
   margin-bottom: 14px;
-  display: block;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: rgba(230, 36, 41, 0.1);
+  color: #e62429;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.benefit-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .benefits-grid article:hover .benefit-icon {

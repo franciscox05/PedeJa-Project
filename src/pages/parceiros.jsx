@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Megaphone, Settings, Truck } from "lucide-react";
 import LoginButton from "../components/LoginButton";
 import logoImg from "../assets/iconSite/logo.png";
 import {
@@ -526,17 +527,17 @@ const handleSubmit = async (e) => {
         <h2>{isEditMode ? "Gestão contínua da tua loja" : "Porque vale a pena juntar-se"}</h2>
         <div className="benefits-grid">
           <article>
-            <span className="benefit-icon">📣</span>
+            <span className="benefit-icon"><Megaphone aria-hidden="true" /></span>
             <h3>Mais visibilidade</h3>
             <p>O teu restaurante aparece na app PedeJá para milhares de clientes locais.</p>
           </article>
           <article>
-            <span className="benefit-icon">⚙️</span>
+            <span className="benefit-icon"><Settings aria-hidden="true" /></span>
             <h3>Gestão simples</h3>
             <p>Controla menu, horários e dados da loja num painel único.</p>
           </article>
           <article>
-            <span className="benefit-icon">🚀</span>
+            <span className="benefit-icon"><Truck aria-hidden="true" /></span>
             <h3>Logística integrada</h3>
             <p>Estafetas próprios com atribuição automática para entregas consistentes.</p>
           </article>
