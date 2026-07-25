@@ -1,6 +1,20 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Pencil, SlidersHorizontal, Ban, CheckCircle2, Eye, EyeOff, Trash2, ImageOff } from "lucide-react";
+import {
+  Pencil,
+  SlidersHorizontal,
+  Ban,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Trash2,
+  ImageOff,
+  UtensilsCrossed,
+  PackageCheck,
+  PackageX,
+  ListChecks,
+  Tags,
+} from "lucide-react";
 import {
   createMenu,
   createMenuOptionLibraryGroup,
@@ -1649,19 +1663,40 @@ export default function MenuManager() {
       </header>
 
       <section className="dashboard-grid premium-grid">
-        <article className="metric-card premium"><div className="metric-label">Pratos no catalogo</div><div className="metric-value">{stats.total}</div></article>
-        <article className="metric-card premium"><div className="metric-label">Disponiveis</div><div className="metric-value">{stats.active}</div></article>
-        <article className="metric-card premium"><div className="metric-label">Esgotados</div><div className="metric-value">{stats.soldOut}</div></article>
-        <article className="metric-card premium"><div className="metric-label">A mostrar</div><div className="metric-value">{filteredStats.visible}</div><div className="metric-foot">{filteredStats.visibleActive} disponiveis com filtro atual</div></article>
-        <article className="metric-card premium"><div className="metric-label">Ocultos na app</div><div className="metric-value">{stats.hidden}</div><div className="metric-foot">Pratos escondidos do cliente mas mantidos no catalogo</div></article>
+        <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-blue"><UtensilsCrossed aria-hidden="true" /></div>
+          <div className="metric-label">Pratos no catalogo</div><div className="metric-value">{stats.total}</div>
+        </article>
+        <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-green"><PackageCheck aria-hidden="true" /></div>
+          <div className="metric-label">Disponiveis</div><div className="metric-value">{stats.active}</div>
+        </article>
+        <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-red"><PackageX aria-hidden="true" /></div>
+          <div className="metric-label">Esgotados</div><div className="metric-value">{stats.soldOut}</div>
+        </article>
+        <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-amber"><Eye aria-hidden="true" /></div>
+          <div className="metric-label">A mostrar</div><div className="metric-value">{filteredStats.visible}</div><div className="metric-foot">{filteredStats.visibleActive} disponiveis com filtro atual</div>
+        </article>
+        <article className="metric-card premium">
+          <div className="metric-card-icon metric-icon-slate"><EyeOff aria-hidden="true" /></div>
+          <div className="metric-label">Ocultos na app</div><div className="metric-value">{stats.hidden}</div><div className="metric-foot">Pratos escondidos do cliente mas mantidos no catalogo</div>
+        </article>
       </section>
 
       {error && <p style={{ color: "#b91c1c", fontWeight: 700 }}>{error}</p>}
 
       <section className="panel menu-manager-tabs-panel">
         <div className="menu-manager-tabs">
-          <button type="button" className={`menu-manager-tab ${activeTab === MENU_MANAGER_TABS.CATALOG ? "is-active" : ""}`} onClick={() => setActiveTab(MENU_MANAGER_TABS.CATALOG)}>Categorias e pratos</button>
-          <button type="button" className={`menu-manager-tab ${activeTab === MENU_MANAGER_TABS.LIBRARY ? "is-active" : ""}`} onClick={() => setActiveTab(MENU_MANAGER_TABS.LIBRARY)}>Biblioteca de extras</button>
+          <button type="button" className={`menu-manager-tab ${activeTab === MENU_MANAGER_TABS.CATALOG ? "is-active" : ""}`} onClick={() => setActiveTab(MENU_MANAGER_TABS.CATALOG)}>
+            <ListChecks className="w-4 h-4" style={{ marginRight: 6, verticalAlign: -3 }} aria-hidden="true" />
+            Categorias e pratos
+          </button>
+          <button type="button" className={`menu-manager-tab ${activeTab === MENU_MANAGER_TABS.LIBRARY ? "is-active" : ""}`} onClick={() => setActiveTab(MENU_MANAGER_TABS.LIBRARY)}>
+            <Tags className="w-4 h-4" style={{ marginRight: 6, verticalAlign: -3 }} aria-hidden="true" />
+            Biblioteca de extras
+          </button>
         </div>
       </section>
 
