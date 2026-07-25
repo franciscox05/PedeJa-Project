@@ -11,6 +11,9 @@ function normalizeRpcPayload(payload) {
   return payload || null;
 }
 
+const inputClass =
+  "w-full rounded-xl border border-gray-200 p-2.5 text-sm outline-none transition-colors focus:border-[#e62429] disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-100";
+
 export default function ProfileDados() {
   const { user } = useOutletContext();
   const { updateUser } = useAuth();
@@ -64,53 +67,57 @@ export default function ProfileDados() {
   };
 
   return (
-    <form onSubmit={handleSave} className="profile-form-grid">
-      <div className="profile-field">
-        <label htmlFor="username">Nome</label>
+    <form onSubmit={handleSave} className="grid gap-4">
+      <div>
+        <label htmlFor="username" className="mb-1.5 block text-sm font-semibold text-gray-700">Nome</label>
         <input
           type="text"
           id="username"
           value={formData.username}
           onChange={handleChange}
           disabled={!editing}
-          className={!editing ? "input-disabled" : ""}
+          className={inputClass}
         />
       </div>
 
-      <div className="profile-field">
-        <label htmlFor="email">Email</label>
+      <div>
+        <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-gray-700">Email</label>
         <input
           type="email"
           id="email"
           value={formData.email}
           onChange={handleChange}
           disabled={!editing}
-          className={!editing ? "input-disabled" : ""}
+          className={inputClass}
         />
       </div>
 
-      <div className="profile-field">
-        <label htmlFor="telemovel">Telemovel</label>
+      <div>
+        <label htmlFor="telemovel" className="mb-1.5 block text-sm font-semibold text-gray-700">Telemovel</label>
         <input
           type="tel"
           id="telemovel"
           value={formData.telemovel}
           onChange={handleChange}
           disabled={!editing}
-          className={!editing ? "input-disabled" : ""}
+          className={inputClass}
         />
       </div>
 
-      <div className="profile-actions-row">
+      <div className="flex flex-wrap justify-end gap-2.5">
         {!editing ? (
-          <button type="button" className="profile-btn secondary" onClick={() => setEditing(true)}>
+          <button
+            type="button"
+            className="rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-gray-800"
+            onClick={() => setEditing(true)}
+          >
             Editar dados
           </button>
         ) : (
           <>
             <button
               type="button"
-              className="profile-btn ghost"
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
               onClick={() => {
                 setEditing(false);
                 setFormData({
@@ -122,7 +129,11 @@ export default function ProfileDados() {
             >
               Cancelar
             </button>
-            <button type="submit" className="profile-btn primary" disabled={loading}>
+            <button
+              type="submit"
+              className="rounded-xl bg-[#e62429] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#c91b20] disabled:opacity-60"
+              disabled={loading}
+            >
               {loading ? "A guardar..." : "Guardar alteracoes"}
             </button>
           </>

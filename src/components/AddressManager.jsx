@@ -321,32 +321,36 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
   };
 
   return (
-    <section className="profile-address-manager">
-      <header className="profile-section-header">
-        <h2>Moradas guardadas</h2>
-        <p>Gere as tuas moradas de entrega e escolhe uma principal.</p>
+    <section className="grid gap-5">
+      <header>
+        <h2 className="text-lg font-bold text-gray-900">Moradas guardadas</h2>
+        <p className="mt-0.5 text-sm text-gray-500">Gere as tuas moradas de entrega e escolhe uma principal.</p>
       </header>
 
-      {loading ? <p className="profile-note">A carregar moradas...</p> : null}
+      {loading ? <p className="text-sm text-gray-500">A carregar moradas...</p> : null}
 
-      <div className="profile-address-grid">
+      <div className="grid gap-3">
         {addresses.map((address) => (
           <article
             key={address.id}
-            className={`profile-address-card ${address.is_default ? "is-default" : ""}`}
+            className={`grid gap-2 rounded-xl border p-3 ${
+              address.is_default ? "border-green-200 bg-green-50" : "border-gray-100 bg-white"
+            }`}
           >
-            <div className="profile-address-top">
-              <strong>{address.label}</strong>
-              {address.is_default ? <span className="profile-pill-default">Principal</span> : null}
+            <div className="flex items-center justify-between gap-2.5">
+              <strong className="text-gray-900">{address.label}</strong>
+              {address.is_default ? (
+                <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-800">Principal</span>
+              ) : null}
             </div>
 
-            <p>{address.address_line}</p>
+            <p className="text-sm text-gray-600">{address.address_line}</p>
 
-            <div className="profile-address-actions">
+            <div className="flex flex-wrap gap-2">
               {!address.is_default && (
                 <button
                   type="button"
-                  className="profile-mini-btn"
+                  className="justify-self-start rounded-lg bg-red-500 px-2.5 py-2 text-sm font-bold text-white disabled:opacity-60"
                   onClick={() => makeDefault(address.id)}
                   disabled={rowLoadingId === address.id}
                 >
@@ -355,7 +359,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
               )}
               <button
                 type="button"
-                className="profile-mini-btn dark"
+                className="justify-self-start rounded-lg bg-gray-900 px-2.5 py-2 text-sm font-bold text-white disabled:opacity-60"
                 onClick={() => openEditModal(address)}
                 disabled={rowLoadingId === address.id}
               >
@@ -363,7 +367,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
               </button>
               <button
                 type="button"
-                className="profile-mini-btn danger"
+                className="justify-self-start rounded-lg bg-red-700 px-2.5 py-2 text-sm font-bold text-white disabled:opacity-60"
                 onClick={() => handleDelete(address)}
                 disabled={rowLoadingId === address.id}
               >
@@ -374,18 +378,18 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
         ))}
       </div>
 
-      <form ref={formRef} onSubmit={handleSave} className="profile-address-form">
-        <div className="profile-section-header">
-          <h3>{isEditing ? `Editar morada: ${editAddress.label}` : "Adicionar nova morada"}</h3>
-          <p>
+      <form ref={formRef} onSubmit={handleSave} className="grid gap-2.5 border-t border-gray-100 pt-3">
+        <div>
+          <h3 className="text-base font-bold text-gray-900">{isEditing ? `Editar morada: ${editAddress.label}` : "Adicionar nova morada"}</h3>
+          <p className="mt-0.5 text-sm text-gray-500">
             {isEditing
               ? "Atualiza primeiro a etiqueta e a morada escrita. Depois, se precisares, ajusta o ponto no mapa."
               : "Escreve a morada completa e, se precisares, confirma o ponto exato no mapa."}
           </p>
         </div>
 
-        <div className="profile-field profile-inline-field">
-          <label htmlFor="profileAddressLabel">Etiqueta</label>
+        <div className="max-w-[260px]">
+          <label htmlFor="profileAddressLabel" className="mb-1.5 block text-sm font-semibold text-gray-700">Etiqueta</label>
           <select
             id="profileAddressLabel"
             value={form.label}
@@ -397,6 +401,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
                 custom_label: nextLabel === "Outro" ? prev.custom_label : "",
               }));
             }}
+            className="w-full rounded-xl border border-gray-200 p-2.5 text-sm outline-none transition-colors focus:border-[#e62429]"
           >
             <option value="Casa">Casa</option>
             <option value="Trabalho">Trabalho</option>
@@ -405,33 +410,35 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
         </div>
 
         {form.label === "Outro" && (
-          <div className="profile-field profile-inline-field">
-            <label htmlFor="profileAddressCustomLabel">Nome da etiqueta</label>
+          <div className="max-w-[260px]">
+            <label htmlFor="profileAddressCustomLabel" className="mb-1.5 block text-sm font-semibold text-gray-700">Nome da etiqueta</label>
             <input
               id="profileAddressCustomLabel"
               type="text"
               placeholder="Ex: Casa dos pais"
               value={form.custom_label}
               onChange={(e) => setForm((prev) => ({ ...prev, custom_label: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200 p-2.5 text-sm outline-none transition-colors focus:border-[#e62429]"
             />
           </div>
         )}
 
-        <div className="profile-field">
-          <label htmlFor="profileAddressInput">Morada</label>
+        <div>
+          <label htmlFor="profileAddressInput" className="mb-1.5 block text-sm font-semibold text-gray-700">Morada</label>
           <input
             id="profileAddressInput"
             type="text"
             placeholder="Pesquisar morada em Barcelos"
             value={form.address_line}
             onChange={(e) => setForm((prev) => ({ ...prev, address_line: e.target.value }))}
+            className="w-full rounded-xl border border-gray-200 p-2.5 text-sm outline-none transition-colors focus:border-[#e62429]"
           />
         </div>
 
-        <div className="profile-address-tools">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
-            className="profile-btn secondary compact"
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-900 hover:bg-gray-50 disabled:opacity-60"
             onClick={openMapPicker}
             disabled={rowLoadingId === (editAddress?.id || "new")}
           >
@@ -440,23 +447,23 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
               : (isEditing ? "Ajustar no mapa" : "Marcar no mapa")}
           </button>
           {isFiniteCoordinate(form.lat) && isFiniteCoordinate(form.lng) ? (
-            <p className="profile-address-coords">
+            <p className="text-sm text-gray-600">
               Coordenadas: {Number(form.lat).toFixed(6)}, {Number(form.lng).toFixed(6)}
             </p>
           ) : (
-            <p className="profile-address-coords muted">Sem coordenadas definidas.</p>
+            <p className="text-sm text-gray-400">Sem coordenadas definidas.</p>
           )}
         </div>
 
-        <p className="profile-address-hint">Sugestoes e mapa limitados a freguesias de Barcelos.</p>
+        <p className="text-xs text-gray-400">Sugestoes e mapa limitados a freguesias de Barcelos.</p>
 
         {suggestions.length > 0 && (
-          <div className="profile-suggestions-list">
+          <div className="overflow-hidden rounded-xl border border-gray-100">
             {suggestions.map((suggestion) => (
               <button
                 key={suggestion.id}
                 type="button"
-                className="profile-suggestion-item"
+                className="block w-full border-b border-gray-100 px-3 py-2.5 text-left text-sm text-gray-800 last:border-b-0 hover:bg-red-50"
                 onClick={() => {
                   setForm((prev) => ({
                     ...prev,
@@ -474,7 +481,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
           </div>
         )}
 
-        <label className="profile-checkbox-row">
+        <label className="flex items-center gap-2 text-sm text-gray-700">
           <input
             type="checkbox"
             checked={form.is_default}
@@ -483,14 +490,24 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
           Definir como principal
         </label>
 
-        <button type="submit" className="profile-btn primary" disabled={saving}>
-          {saving ? (isEditing ? "A atualizar..." : "A guardar...") : (isEditing ? "Guardar alteracoes" : "Guardar morada")}
-        </button>
-        {isEditing ? (
-          <button type="button" className="profile-btn ghost" onClick={cancelEditing}>
-            Cancelar edicao
+        <div className="flex flex-wrap justify-end gap-2.5">
+          {isEditing ? (
+            <button
+              type="button"
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
+              onClick={cancelEditing}
+            >
+              Cancelar edicao
+            </button>
+          ) : null}
+          <button
+            type="submit"
+            className="rounded-xl bg-[#e62429] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#c91b20] disabled:opacity-60"
+            disabled={saving}
+          >
+            {saving ? (isEditing ? "A atualizar..." : "A guardar...") : (isEditing ? "Guardar alteracoes" : "Guardar morada")}
           </button>
-        ) : null}
+        </div>
       </form>
 
       <LocationPickerModal

@@ -55,7 +55,10 @@ export default function ProfileLayout() {
 
               {!isCustomer ? (
                 <div className="profile-header-actions">
-                  <Link to={getDefaultPathByRole(role)} className="profile-btn secondary profile-back-btn">
+                  <Link
+                    to={getDefaultPathByRole(role)}
+                    className="inline-flex items-center rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-gray-800"
+                  >
                     Voltar ao painel
                   </Link>
                 </div>

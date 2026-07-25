@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchProfileOrders } from "../../services/profileOrdersService";
 
 function formatDateTime(value) {
@@ -26,10 +27,14 @@ function formatMoney(value) {
   return `${Number(value || 0).toFixed(2)}EUR`;
 }
 
+const STATUS_TONE_CLASS = {
+  success: "bg-green-100 text-green-800",
+  danger: "bg-red-100 text-red-800",
+  warning: "bg-amber-100 text-amber-800",
+};
+
 function statusClassName(tone) {
-  if (tone === "success") return "is-success";
-  if (tone === "danger") return "is-danger";
-  return "is-warning";
+  return STATUS_TONE_CLASS[tone] || STATUS_TONE_CLASS.warning;
 }
 
 const ORDERS_PER_PAGE = 8;
@@ -81,64 +86,66 @@ export default function ProfilePedidos() {
   const paginatedOrders = orderedOrders.slice((page - 1) * ORDERS_PER_PAGE, page * ORDERS_PER_PAGE);
 
   if (loading) {
-    return <p className="profile-note">A carregar resumo e historico de pedidos...</p>;
+    return <p className="text-sm text-gray-500">A carregar resumo e historico de pedidos...</p>;
   }
 
   return (
-    <section className="profile-orders-area">
-      <div className="profile-order-summary-grid">
-        <article className="profile-summary-card">
-          <span>Total de pedidos</span>
-          <strong>{ordersData.summary.totalOrders}</strong>
+    <section className="grid gap-3.5">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <article className="grid gap-1.5 rounded-xl border border-gray-100 bg-white p-3">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Total de pedidos</span>
+          <strong className="text-xl text-gray-900">{ordersData.summary.totalOrders}</strong>
         </article>
-        <article className="profile-summary-card">
-          <span>Em curso</span>
-          <strong>{ordersData.summary.openOrders}</strong>
+        <article className="grid gap-1.5 rounded-xl border border-gray-100 bg-white p-3">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Em curso</span>
+          <strong className="text-xl text-gray-900">{ordersData.summary.openOrders}</strong>
         </article>
-        <article className="profile-summary-card">
-          <span>Concluidos</span>
-          <strong>{ordersData.summary.completedOrders}</strong>
+        <article className="grid gap-1.5 rounded-xl border border-gray-100 bg-white p-3">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Concluidos</span>
+          <strong className="text-xl text-gray-900">{ordersData.summary.completedOrders}</strong>
         </article>
-        <article className="profile-summary-card">
-          <span>Cancelados</span>
-          <strong>{ordersData.summary.canceledOrders}</strong>
+        <article className="grid gap-1.5 rounded-xl border border-gray-100 bg-white p-3">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Cancelados</span>
+          <strong className="text-xl text-gray-900">{ordersData.summary.canceledOrders}</strong>
         </article>
       </div>
 
       {ordersData.orders.length === 0 ? (
-        <p className="profile-note">Ainda nao tens pedidos registados.</p>
+        <p className="text-sm text-gray-500">Ainda nao tens pedidos registados.</p>
       ) : (
-        <div className="profile-orders-section">
-          <div className="profile-orders-header">
-            <p className="profile-note">Pedidos recentes ({orderedOrders.length})</p>
+        <div className="grid gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">Pedidos recentes ({orderedOrders.length})</p>
             {orderedOrders.length > ORDERS_PER_PAGE ? (
-              <div className="profile-pagination">
+              <div className="flex flex-wrap items-center gap-2.5 text-sm text-gray-600">
                 <button
                   type="button"
-                  className="profile-order-link"
+                  className="flex items-center gap-1 font-bold text-[#c91b20] hover:underline disabled:opacity-40 disabled:no-underline"
                   disabled={page <= 1}
                   onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
                 >
+                  <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
                   Anterior
                 </button>
                 <span>Pagina {page} de {totalPages}</span>
                 <button
                   type="button"
-                  className="profile-order-link"
+                  className="flex items-center gap-1 font-bold text-[#c91b20] hover:underline disabled:opacity-40 disabled:no-underline"
                   disabled={page >= totalPages}
                   onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
                 >
                   Seguinte
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </div>
             ) : null}
           </div>
 
-          <div className="profile-orders-list">
+          <div className="grid gap-2.5">
             {paginatedOrders.map((order) => (
               <article
                 key={order.id}
-                className="profile-order-item is-clickable"
+                className="grid cursor-pointer gap-2 rounded-xl border border-gray-100 bg-white p-3 transition-all hover:-translate-y-px hover:border-red-200 hover:shadow-md"
                 role="button"
                 tabIndex={0}
                 onClick={() => navigate(`/pedido/${order.id}`)}
@@ -149,25 +156,25 @@ export default function ProfilePedidos() {
                   }
                 }}
               >
-                <div className="profile-order-main">
+                <div className="flex justify-between gap-3.5">
                   <div>
-                    <p className="profile-order-id">Pedido #{order.id}</p>
-                    <h4>{order.loja_nome}</h4>
-                    <p className="profile-order-date">{formatOrderMoment(order)}</p>
+                    <p className="text-xs font-bold text-[#e62429]">Pedido #{order.id}</p>
+                    <h4 className="mt-1 text-gray-800">{order.loja_nome}</h4>
+                    <p className="mt-1 text-sm text-gray-500">{formatOrderMoment(order)}</p>
                   </div>
 
-                  <div className="profile-order-right">
-                    <strong>{formatMoney(order.total)}</strong>
-                    <span className={`profile-status-pill ${statusClassName(order.status_tone)}`}>
+                  <div className="grid content-start justify-items-end gap-1.5">
+                    <strong className="text-gray-900">{formatMoney(order.total)}</strong>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${statusClassName(order.status_tone)}`}>
                       {order.status_label}
                     </span>
                   </div>
                 </div>
 
-                <div className="profile-order-meta">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    className="profile-order-link"
+                    className="text-sm font-bold text-[#c91b20] hover:underline"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/pedido/${order.id}`);

@@ -11,6 +11,9 @@ function normalizeRpcPayload(payload) {
   return payload || null;
 }
 
+const inputClass =
+  "w-full rounded-xl border border-gray-200 p-2.5 text-sm outline-none transition-colors focus:border-[#e62429]";
+
 export default function ProfileSeguranca() {
   const { user } = useOutletContext();
   const { updateUser } = useAuth();
@@ -73,46 +76,53 @@ export default function ProfileSeguranca() {
   };
 
   return (
-    <form onSubmit={handleSave} className="profile-form-grid profile-security-form">
-      <p className="profile-note">
+    <form onSubmit={handleSave} className="grid gap-4">
+      <p className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800">
         Atualiza a password da conta. Os restantes dados do perfil mantem-se inalterados.
       </p>
 
-      <div className="profile-field">
-        <label htmlFor="senhaAtual">Password atual</label>
+      <div>
+        <label htmlFor="senhaAtual" className="mb-1.5 block text-sm font-semibold text-gray-700">Password atual</label>
         <input
           type="password"
           id="senhaAtual"
           placeholder="Introduz a password atual"
           value={formData.senhaAtual}
           onChange={handleChange}
+          className={inputClass}
         />
       </div>
 
-      <div className="profile-field">
-        <label htmlFor="novaSenha">Nova password</label>
+      <div>
+        <label htmlFor="novaSenha" className="mb-1.5 block text-sm font-semibold text-gray-700">Nova password</label>
         <input
           type="password"
           id="novaSenha"
           placeholder="Introduz nova password"
           value={formData.novaSenha}
           onChange={handleChange}
+          className={inputClass}
         />
       </div>
 
-      <div className="profile-field">
-        <label htmlFor="confirmarSenha">Confirmar password</label>
+      <div>
+        <label htmlFor="confirmarSenha" className="mb-1.5 block text-sm font-semibold text-gray-700">Confirmar password</label>
         <input
           type="password"
           id="confirmarSenha"
           placeholder="Repete a nova password"
           value={formData.confirmarSenha}
           onChange={handleChange}
+          className={inputClass}
         />
       </div>
 
-      <div className="profile-actions-row">
-        <button type="submit" className="profile-btn primary" disabled={loading}>
+      <div className="flex flex-wrap justify-end gap-2.5">
+        <button
+          type="submit"
+          className="rounded-xl bg-[#e62429] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#c91b20] disabled:opacity-60"
+          disabled={loading}
+        >
           {loading ? "A atualizar..." : "Atualizar password"}
         </button>
       </div>
