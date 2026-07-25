@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ShieldAlert } from "lucide-react";
+import {
+  ShieldAlert,
+  ShoppingBag,
+  Clock,
+  CalendarClock,
+  Euro,
+  Receipt,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import "../css/pages/dashboard.css";
 import {
   fetchStoreCommissionCatalog,
@@ -789,36 +798,43 @@ export default function DashboardRestaurante() {
         <div className="dashboard-stack">
           <section className="dashboard-grid premium-grid">
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-blue"><ShoppingBag aria-hidden="true" /></div>
               <div className="metric-label">Pedidos</div>
               <div className="metric-value">{state.metrics.totalOrders}</div>
               <div className="metric-foot">Volume total</div>
             </article>
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-amber"><Clock aria-hidden="true" /></div>
               <div className="metric-label">Em aberto</div>
               <div className="metric-value">{openOrders}</div>
               <div className="metric-foot">Fila imediata</div>
             </article>
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-slate"><CalendarClock aria-hidden="true" /></div>
               <div className="metric-label">Agendados</div>
               <div className="metric-value">{state.metrics.scheduledOrders}</div>
               <div className="metric-foot">Aguardam janela operacional</div>
             </article>
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-red"><Euro aria-hidden="true" /></div>
               <div className="metric-label">Receita</div>
               <div className="metric-value">{state.metrics.totalRevenue.toFixed(2)}EUR</div>
               <div className="metric-foot">Apenas entregues (sem taxa de entrega)</div>
             </article>
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-purple"><Receipt aria-hidden="true" /></div>
               <div className="metric-label">Ticket medio</div>
               <div className="metric-value">{state.metrics.avgTicket.toFixed(2)}EUR</div>
               <div className="metric-foot">Valor medio por pedido entregue</div>
             </article>
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-green"><CheckCircle2 aria-hidden="true" /></div>
               <div className="metric-label">Concluido</div>
               <div className="metric-value">{state.metrics.deliveredRate.toFixed(1)}%</div>
               <div className="metric-foot">Pedidos entregues</div>
             </article>
             <article className="metric-card premium">
+              <div className="metric-card-icon metric-icon-red"><XCircle aria-hidden="true" /></div>
               <div className="metric-label">Cancelamento</div>
               <div className="metric-value">{state.metrics.cancelRate.toFixed(1)}%</div>
               <div className="metric-foot">Taxa de cancelamento</div>
