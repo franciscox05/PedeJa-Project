@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, UtensilsCrossed, Trash2, Minus, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  UtensilsCrossed,
+  Trash2,
+  Minus,
+  Plus,
+  Ticket,
+  MapPin,
+  Home,
+  MapPinned,
+  Clock,
+  Wallet,
+  Banknote,
+  Smartphone,
+} from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAlert } from "../context/AlertContext";
 import { useNavigate } from "react-router-dom";
@@ -900,61 +914,62 @@ export default function Carrinho() {
             <span>Total a Pagar</span><span className="text-[#e62429]">{totalFinal.toFixed(2)}EUR</span>
           </div>
 
-          <div style={{ marginTop: "10px", display: "grid", gap: "6px" }}>
+          <div className="mt-2.5 grid gap-1.5">
             {appliedCoupon ? (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #d1fae5", background: "#ecfdf5", borderRadius: "10px", padding: "10px" }}>
-                <span style={{ color: "#166534", fontWeight: 600 }}>Cupao {appliedCoupon.code} aplicado</span>
-                <button type="button" onClick={handleRemoveCoupon} style={{ border: "none", background: "none", color: "#166534", textDecoration: "underline", cursor: "pointer" }}>
+              <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 p-2.5">
+                <span className="flex items-center gap-1.5 font-semibold text-green-700">
+                  <Ticket className="h-4 w-4" aria-hidden="true" />
+                  Cupao {appliedCoupon.code} aplicado
+                </span>
+                <button type="button" onClick={handleRemoveCoupon} className="text-green-700 underline">
                   Remover
                 </button>
               </div>
             ) : (
-              <div style={{ display: "flex", gap: "8px" }}>
+              <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="Codigo de desconto"
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value)}
-                  style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }}
+                  className="flex-1 rounded-xl border border-gray-200 p-2.5"
                 />
                 <button
                   type="button"
                   onClick={handleApplyCoupon}
                   disabled={couponChecking || !couponInput.trim()}
-                  style={{ border: "1px solid #ddd", borderRadius: "10px", padding: "10px 16px", background: "#fff", cursor: "pointer" }}
+                  className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 font-semibold text-gray-700 hover:bg-gray-50"
                 >
                   {couponChecking ? "A validar..." : "Aplicar"}
                 </button>
               </div>
             )}
-            {couponError ? <p style={{ color: "#c62828", margin: 0, fontSize: "0.88rem" }}>{couponError}</p> : null}
+            {couponError ? <p className="m-0 text-sm font-semibold text-red-600">{couponError}</p> : null}
           </div>
 
-          <div style={{
-            marginTop: "10px",
-            borderRadius: "10px",
-            border: "1px solid #eee",
-            padding: "10px",
-            background: "#fafafa",
-          }}
-          >
-            <strong style={{ display: "block", marginBottom: "4px" }}>
+          <div className="mt-2.5 rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <strong className="mb-1 flex items-center gap-1.5 text-gray-900">
+              <MapPin className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
               Zona de entrega{storeOrigin.nome ? ` - ${storeOrigin.nome}` : ""}
             </strong>
             {storeOriginLoading || deliveryLoading ? (
-              <span style={{ color: "#0f172a" }}>A validar morada e distancia real de conducao...</span>
+              <span className="text-gray-900">A validar morada e distancia real de conducao...</span>
             ) : deliveryQuote.deliverable ? (
-              <span style={{ color: "#166534" }}>
+              <span className="text-green-700">
                 Dentro da zona ({formatDistanceKm(deliveryQuote.distanceKm)} por estrada).
               </span>
             ) : (
-              <span style={{ color: "#b91c1c" }}>{deliveryQuote.reason}</span>
+              <span className="text-red-700">{deliveryQuote.reason}</span>
             )}
           </div>
 
-          <div style={{ marginTop: "20px", display: "grid", gap: "10px" }}>
+          <div className="mt-5 grid gap-2.5">
             {addresses.length > 0 && (
-              <select value={useNewAddress ? "__new__" : selectedAddressId} onChange={handleAddressSelect} style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }}>
+              <select
+                value={useNewAddress ? "__new__" : selectedAddressId}
+                onChange={handleAddressSelect}
+                className="w-full rounded-xl border border-gray-200 p-2.5"
+              >
                 <option value="">Escolher morada guardada</option>
                 {addresses.map((address) => (
                   <option key={address.id} value={address.id}>{address.label} - {address.address_line}</option>
@@ -964,15 +979,26 @@ export default function Carrinho() {
             )}
 
             {addresses.length === 0 && !useNewAddress && (
-              <button type="button" onClick={() => setUseNewAddress(true)} style={{ border: "1px solid #ddd", borderRadius: "10px", padding: "10px", background: "#fff" }}>
+              <button
+                type="button"
+                onClick={() => setUseNewAddress(true)}
+                className="rounded-xl border border-gray-200 bg-white p-2.5 font-semibold text-gray-700 hover:bg-gray-50"
+              >
                 Adicionar morada
               </button>
             )}
 
             {useNewAddress && (
-              <div style={{ display: "grid", gap: "8px", border: "1px solid #eee", borderRadius: "12px", padding: "12px" }}>
-                <strong>Nova morada de entrega</strong>
-                <select value={newAddress.label} onChange={(e) => setNewAddress((prev) => ({ ...prev, label: e.target.value }))}>
+              <div className="grid gap-2 rounded-xl border border-gray-100 p-3">
+                <strong className="flex items-center gap-1.5 text-gray-900">
+                  <Home className="h-4 w-4" aria-hidden="true" />
+                  Nova morada de entrega
+                </strong>
+                <select
+                  value={newAddress.label}
+                  onChange={(e) => setNewAddress((prev) => ({ ...prev, label: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 p-2"
+                >
                   <option value="Casa">Casa</option>
                   <option value="Trabalho">Trabalho</option>
                   <option value="Outro">Outro</option>
@@ -980,30 +1006,47 @@ export default function Carrinho() {
                 <button
                   type="button"
                   onClick={() => setShowMapPicker(true)}
-                  style={{
-                    border: "none",
-                    borderRadius: "10px",
-                    minHeight: "40px",
-                    background: "#111827",
-                    color: "#fff",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
+                  className="flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-none bg-gray-900 font-bold text-white hover:bg-gray-800"
                 >
+                  <MapPinned className="h-4 w-4" aria-hidden="true" />
                   Marcar no mapa
                 </button>
-                <input type="text" placeholder="Rua" value={newAddress.rua} onChange={(e) => setNewAddress((prev) => ({ ...prev, rua: e.target.value }))} />
-                <input type="text" placeholder="Porta" value={newAddress.porta} onChange={(e) => setNewAddress((prev) => ({ ...prev, porta: e.target.value }))} />
-                <input type="text" placeholder="Codigo Postal (0000-000)" value={newAddress.codigoPostal} onChange={(e) => setNewAddress((prev) => ({ ...prev, codigoPostal: e.target.value }))} />
-                <input type="text" placeholder="Cidade (Barcelos)" value={newAddress.cidade} onChange={(e) => setNewAddress((prev) => ({ ...prev, cidade: e.target.value }))} />
+                <input
+                  type="text"
+                  placeholder="Rua"
+                  value={newAddress.rua}
+                  onChange={(e) => setNewAddress((prev) => ({ ...prev, rua: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 p-2"
+                />
+                <input
+                  type="text"
+                  placeholder="Porta"
+                  value={newAddress.porta}
+                  onChange={(e) => setNewAddress((prev) => ({ ...prev, porta: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 p-2"
+                />
+                <input
+                  type="text"
+                  placeholder="Codigo Postal (0000-000)"
+                  value={newAddress.codigoPostal}
+                  onChange={(e) => setNewAddress((prev) => ({ ...prev, codigoPostal: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 p-2"
+                />
+                <input
+                  type="text"
+                  placeholder="Cidade (Barcelos)"
+                  value={newAddress.cidade}
+                  onChange={(e) => setNewAddress((prev) => ({ ...prev, cidade: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 p-2"
+                />
                 {isFiniteCoordinate(newAddressGeo?.lat) && isFiniteCoordinate(newAddressGeo?.lng) ? (
-                  <p style={{ margin: 0, color: "#334155", fontWeight: 600, fontSize: "0.88rem" }}>
+                  <p className="m-0 text-sm font-semibold text-slate-600">
                     Coordenadas validadas: {Number(newAddressGeo.lat).toFixed(6)}, {Number(newAddressGeo.lng).toFixed(6)}
                   </p>
                 ) : null}
 
                 {user && (
-                  <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={newAddress.is_default}
@@ -1015,13 +1058,37 @@ export default function Carrinho() {
               </div>
             )}
 
-            <input name="nome" type="text" placeholder="Nome completo" value={dadosEntrega.nome} onChange={handleFormChange} style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }} />
-            <input name="telefone" type="text" placeholder="Telefone" value={dadosEntrega.telefone} onChange={handleFormChange} style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }} />
-            <textarea name="notas" placeholder="Notas para o estafeta (opcional)" value={dadosEntrega.notas} onChange={handleFormChange} rows={2} style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }} />
+            <input
+              name="nome"
+              type="text"
+              placeholder="Nome completo"
+              value={dadosEntrega.nome}
+              onChange={handleFormChange}
+              className="w-full rounded-xl border border-gray-200 p-2.5"
+            />
+            <input
+              name="telefone"
+              type="text"
+              placeholder="Telefone"
+              value={dadosEntrega.telefone}
+              onChange={handleFormChange}
+              className="w-full rounded-xl border border-gray-200 p-2.5"
+            />
+            <textarea
+              name="notas"
+              placeholder="Notas para o estafeta (opcional)"
+              value={dadosEntrega.notas}
+              onChange={handleFormChange}
+              rows={2}
+              className="w-full rounded-xl border border-gray-200 p-2.5"
+            />
 
-            <div style={{ display: "grid", gap: "6px", border: "1px solid #eee", borderRadius: "12px", padding: "12px" }}>
-              <strong>Horario de entrega</strong>
-              <select value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)}>
+            <div className="grid gap-1.5 rounded-xl border border-gray-100 p-3">
+              <strong className="flex items-center gap-1.5 text-gray-900">
+                <Clock className="h-4 w-4" aria-hidden="true" />
+                Horario de entrega
+              </strong>
+              <select value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)} className="w-full rounded-xl border border-gray-200 p-2">
                 <option value="ASAP">Imediato (ASAP)</option>
                 <option value="SCHEDULED">Escolher hora especifica</option>
               </select>
@@ -1036,9 +1103,12 @@ export default function Carrinho() {
               )}
             </div>
 
-            <div style={{ display: "grid", gap: "6px", border: "1px solid #eee", borderRadius: "12px", padding: "12px" }}>
-              <strong>Metodo de pagamento</strong>
-              <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <div className="grid gap-1.5 rounded-xl border border-gray-100 p-3">
+              <strong className="flex items-center gap-1.5 text-gray-900">
+                <Wallet className="h-4 w-4" aria-hidden="true" />
+                Metodo de pagamento
+              </strong>
+              <label className="flex items-center gap-2">
                 <input
                   type="radio"
                   name="payment_method"
@@ -1046,9 +1116,10 @@ export default function Carrinho() {
                   checked={paymentMethod === "CASH"}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 />
+                <Banknote className="h-4 w-4 text-gray-500" aria-hidden="true" />
                 Dinheiro
               </label>
-              <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <label className="flex items-center gap-2">
                 <input
                   type="radio"
                   name="payment_method"
@@ -1056,12 +1127,13 @@ export default function Carrinho() {
                   checked={paymentMethod === "MBWAY"}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 />
+                <Smartphone className="h-4 w-4 text-gray-500" aria-hidden="true" />
                 MB WAY
               </label>
             </div>
           </div>
 
-          {checkoutError && <p style={{ color: "#c62828", marginTop: "12px", marginBottom: 0, fontWeight: 600 }}>{checkoutError}</p>}
+          {checkoutError && <p className="mb-0 mt-3 font-semibold text-red-700">{checkoutError}</p>}
           <button className="btn-checkout-final" onClick={handleCheckout} disabled={checkoutDisabled}>{checkoutLoading ? "A processar pedido..." : "Finalizar Pedido"}</button>
         </div>
       </div>
