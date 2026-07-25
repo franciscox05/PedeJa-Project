@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Mail, Lock, LogIn } from "lucide-react";
 import Logo from "../components/Logo";
-import "../css/components/LoginInterfaces.css";
 import { useAuth } from "../context/AuthContext";
 import { getDefaultPathByRole, resolveUserRole } from "../utils/roles";
 import { useAlert } from "../context/AlertContext";
@@ -52,47 +52,74 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="auth-page-shell">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <Logo />
-      <div className="auth-form">
-        <h2>Entrar</h2>
-        <hr />
+      <div className="w-full max-w-[400px] rounded-2xl bg-white p-8 shadow-lg">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-black text-gray-900">Bem-vindo de volta!</h1>
+          <p className="mt-1 text-sm text-gray-500">Entra para continuar a pedir</p>
+        </div>
 
-        {error && <div className="auth-page-feedback error">{error}</div>}
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
 
-        <form className="form" onSubmit={handleLogin}>
-          <label htmlFor="identifier">Email ou Telemóvel:</label>
-          <input
-            id="identifier"
-            type="text"
-            placeholder="Email ou Telemóvel"
-            required
-            value={formData.identifier}
-            onChange={handleChange}
-          />
+        <form className="space-y-4" onSubmit={handleLogin}>
+          <div>
+            <label htmlFor="identifier" className="mb-1.5 block text-sm font-semibold text-gray-700">
+              Email ou Telemóvel
+            </label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+              <input
+                id="identifier"
+                type="text"
+                placeholder="Email ou Telemóvel"
+                required
+                value={formData.identifier}
+                onChange={handleChange}
+                className="h-12 w-full rounded-xl border-2 border-gray-100 bg-gray-50 pl-10 pr-3 text-sm outline-none transition-colors focus:border-[#e62429] focus:bg-white"
+              />
+            </div>
+          </div>
 
-          <label htmlFor="password">Password:</label>
-          <input
-            id="password"
-            type="password"
-            placeholder="Password"
-            required
-            value={formData.password}
-            onChange={handleChange}
-          />
+          <div>
+            <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-gray-700">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+              <input
+                id="password"
+                type="password"
+                placeholder="Password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                className="h-12 w-full rounded-xl border-2 border-gray-100 bg-gray-50 pl-10 pr-3 text-sm outline-none transition-colors focus:border-[#e62429] focus:bg-white"
+              />
+            </div>
+          </div>
 
-          <input type="submit" value={loading ? "A entrar..." : "Entrar"} disabled={loading} />
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#e62429] text-sm font-bold text-white transition-colors hover:bg-[#c91b20] disabled:opacity-60"
+          >
+            <LogIn className="h-4 w-4" aria-hidden="true" />
+            {loading ? "A entrar..." : "Entrar"}
+          </button>
         </form>
 
-        <div className="NaoTemConta">
+        <div className="mt-5 text-center text-sm text-gray-500">
           <p>
-            Não tem conta? <Link to="/registo"><strong>Criar agora</strong></Link>
+            Não tem conta? <Link to="/registo" className="font-bold text-[#e62429] hover:underline">Criar agora</Link>
           </p>
-        </div>
-        <div>
-          <p>
+          <p className="mt-1.5">
             Esqueceu-se da password?{" "}
-            <Link to="/recuperar-password"><strong>Recuperar</strong></Link>
+            <Link to="/recuperar-password" className="font-bold text-[#e62429] hover:underline">Recuperar</Link>
           </p>
         </div>
       </div>

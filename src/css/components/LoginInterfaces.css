@@ -30,108 +30,10 @@
   justify-content: center;
 }
 
-/* --- TÍTULOS --- */
-.auth-form h2 {
-  margin-top: 0;
-  color: #333;
-  font-size: 1.7rem;
-  font-weight: 700;
-  margin-bottom: 5px;
-}
-
-.auth-form hr {
-  border: 0;
-  height: 1px;
-  background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
-  margin-bottom: 20px; 
-}
-
-/* --- FORMULÁRIO --- */
-.form {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-/* --- LABELS --- */
-.auth-form label {
-  font-size: 0.9rem; 
-  font-weight: 600;
-  color: #555;
-  margin-bottom: 4px;
-  margin-left: 5px;
-  text-align: left;
-  width: 100%;
-}
-
-/* --- INPUTS (Tamanho Confortável) --- */
-.auth-form input[type="text"],
-.auth-form input[type="email"],
-.auth-form input[type="password"],
-.auth-form input[type="phone"],
-.auth-form input[type="tel"] {
-  width: 100%;
-  padding: 12px 14px; 
-  margin-bottom: 12px; 
-  border: 2px solid #eee;
-  border-radius: 10px;
-  background-color: #f9f9f9;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-  outline: none;
-}
-
-.auth-form input:focus {
-  border-color: #e62429;
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(230, 36, 41, 0.1);
-}
-
-/* --- BOTÃO DE SUBMETER --- */
-.auth-form input[type="submit"] {
-  width: 100%;
-  padding: 14px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  background-color: #e62429;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.2s ease;
-  box-shadow: 0 4px 6px rgba(230, 36, 41, 0.2);
-}
-
-.auth-form input[type="submit"]:hover {
-  background-color: #c91b20;
-  transform: translateY(-2px);
-}
-
-.auth-form input[type="submit"]:active {
-  transform: translateY(1px);
-  box-shadow: none;
-}
-
-/* --- TEXTOS DE RODAPÉ --- */
-.auth-form p {
-  font-size: 0.9rem;
-  color: #666;
-  margin-top: 10px;
-  margin-bottom: 5px;
-  line-height: 1.4;
-}
-
-.auth-form strong {
-  color: #e62429;
-  cursor: pointer;
-}
-
-.auth-form strong:hover {
-  text-decoration: underline;
-}
+/* As paginas roteadas de auth (/login, /registo, /recuperar-password,
+   /nova-password) passaram a ser feitas com classes Tailwind diretamente
+   no componente. O modal de login/logout inline (.auth-overlay/.auth-modal,
+   usado por LogoutConfirm.jsx) continua a usar este CSS. */
 
 /* --- BOTÃO FECHAR (X) --- */
 .close-menu-red {
@@ -498,51 +400,6 @@
   margin: 0 auto;
   align-self: center;
   justify-self: center;
-}
-
-/* --- PÁGINAS DE AUTH ROTEADAS (/login, /registo, /recuperar-password, /nova-password) --- */
-.auth-page-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  padding: 40px 20px;
-  background: #f7f7f8;
-}
-
-.auth-page-logo {
-  height: 42px;
-  width: auto;
-  cursor: pointer;
-}
-
-.auth-page-shell .auth-form {
-  background: white;
-  padding: 35px;
-  border-radius: 18px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-.auth-page-feedback {
-  font-size: 0.9rem;
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  text-align: left;
-}
-
-.auth-page-feedback.error {
-  background: #fdecea;
-  color: #c0392b;
-}
-
-.auth-page-feedback.success {
-  background: #eafaf1;
-  color: #1e8449;
 }
 
 @media (max-width: 575.98px) {

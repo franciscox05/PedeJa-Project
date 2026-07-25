@@ -1,10 +1,23 @@
 import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { User, Mail, Phone, Lock, UserPlus } from "lucide-react";
 import Logo from "../components/Logo";
-import "../css/components/LoginInterfaces.css";
 import { supabase } from "../services/supabaseClient.js";
 import { syncAuthUserForEmail } from "../services/passwordResetService";
 import { useAlert } from "../context/AlertContext";
+
+const inputClass =
+  "h-12 w-full rounded-xl border-2 border-gray-100 bg-gray-50 pl-10 pr-3 text-sm outline-none transition-colors focus:border-[#e62429] focus:bg-white";
+
+function IconField(props) {
+  const { icon: FieldIcon, ...inputProps } = props;
+  return (
+    <div className="relative">
+      <FieldIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+      <input className={inputClass} {...inputProps} />
+    </div>
+  );
+}
 
 export default function RegistoPage() {
   const navigate = useNavigate();
@@ -81,32 +94,30 @@ export default function RegistoPage() {
   };
 
   return (
-    <div className="auth-page-shell">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <Logo />
-      <div className="auth-form">
-        <h2>Criar Conta</h2>
-        <hr />
+      <div className="w-full max-w-[400px] rounded-2xl bg-white p-8 shadow-lg">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-black text-gray-900">Criar Conta</h1>
+          <p className="mt-1 text-sm text-gray-500">Regista-te para começar a pedir</p>
+        </div>
 
-        {error && <div className="auth-page-feedback error">{error}</div>}
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700">{error}</div>
+        )}
         {success && (
-          <div className="auth-page-feedback success">Conta criada com sucesso! A redirecionar para o login...</div>
+          <div className="mb-4 rounded-lg bg-green-50 px-3 py-2.5 text-sm font-medium text-green-700">
+            Conta criada com sucesso! A redirecionar para o login...
+          </div>
         )}
 
-        <form onSubmit={handleRegister} className="form">
-          <label htmlFor="username">Nome:</label>
-          <input type="text" id="username" placeholder="Nome" required value={formData.username} onChange={handleChange} />
-
-          <label htmlFor="email">Email:</label>
-          <input type="email" id="email" placeholder="Email" required value={formData.email} onChange={handleChange} />
-
-          <label htmlFor="telefone">Telemóvel:</label>
-          <input type="tel" id="telefone" placeholder="Telemóvel" value={formData.telefone} onChange={handleChange} />
-
-          <label htmlFor="senha">Password:</label>
-          <input type="password" id="senha" placeholder="Password" required value={formData.senha} onChange={handleChange} />
-
-          <label htmlFor="confirmacaoSenha">Confirmar Password:</label>
-          <input
+        <form onSubmit={handleRegister} className="space-y-3">
+          <IconField icon={User} type="text" id="username" placeholder="Nome" required value={formData.username} onChange={handleChange} />
+          <IconField icon={Mail} type="email" id="email" placeholder="Email" required value={formData.email} onChange={handleChange} />
+          <IconField icon={Phone} type="tel" id="telefone" placeholder="Telemóvel" value={formData.telefone} onChange={handleChange} />
+          <IconField icon={Lock} type="password" id="senha" placeholder="Password" required value={formData.senha} onChange={handleChange} />
+          <IconField
+            icon={Lock}
             type="password"
             id="confirmacaoSenha"
             placeholder="Confirmar Password"
@@ -115,15 +126,22 @@ export default function RegistoPage() {
             onChange={handleChange}
           />
 
-          <p className="muted" style={{ marginTop: "-4px" }}>
+          <p className="text-xs text-gray-500">
             Contas de restaurante são associadas pelo administrador após o registo.
           </p>
 
-          <input type="submit" value={loading ? "A processar..." : "Criar Conta"} disabled={loading || success} />
+          <button
+            type="submit"
+            disabled={loading || success}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#e62429] text-sm font-bold text-white transition-colors hover:bg-[#c91b20] disabled:opacity-60"
+          >
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            {loading ? "A processar..." : "Criar Conta"}
+          </button>
         </form>
 
-        <p>
-          Já tem conta? <Link to="/login"><strong>Fazer Login</strong></Link>
+        <p className="mt-5 text-center text-sm text-gray-500">
+          Já tem conta? <Link to="/login" className="font-bold text-[#e62429] hover:underline">Fazer Login</Link>
         </p>
       </div>
     </div>
