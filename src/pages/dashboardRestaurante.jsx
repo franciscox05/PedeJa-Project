@@ -53,7 +53,7 @@ function getDeliveryStatusView(status) {
     CREATED: "Criada",
     PENDING: "Pendente",
     CONFIRMED: "Confirmada",
-    ASSIGNED: "Atribuida",
+    ASSIGNED: "Atribuída",
     DISPATCHED: "Enviado",
     OUT_FOR_DELIVERY: "Em entrega",
     DELIVERED: "Entregue",
@@ -147,8 +147,8 @@ function buildWindowInput({ rangeMode, periodDays, customRange }) {
 
 const RESTAURANT_DASHBOARD_TABS = [
   { id: "dashboard", label: "Dashboard", description: "Fila de pedidos e entregas da loja", icon: "dashboard" },
-  { id: "restaurants", label: "Gestao de Restaurantes", description: "Configuracao operacional da loja", icon: "restaurants" },
-  { id: "promotions", label: "Promocoes", description: "Campanhas e futuras ativacoes", icon: "promotions" },
+  { id: "restaurants", label: "Gestão de Restaurantes", description: "Configuração operacional da loja", icon: "restaurants" },
+  { id: "promotions", label: "Promoções", description: "Campanhas e futuras ativações", icon: "promotions" },
 ];
 
 export default function DashboardRestaurante() {
@@ -279,7 +279,7 @@ export default function DashboardRestaurante() {
       } catch (error) {
         if (!active) return;
         setAdminStores([]);
-        setStoreSettingsError(error?.message || "Nao foi possivel carregar as lojas.");
+        setStoreSettingsError(error?.message || "Não foi possível carregar as lojas.");
       }
     };
 
@@ -370,7 +370,7 @@ export default function DashboardRestaurante() {
       } catch (error) {
         if (!active) return;
         setStoreSettingsRows([]);
-        setStoreSettingsError(error?.message || "Nao foi possivel carregar as definicoes da loja.");
+        setStoreSettingsError(error?.message || "Não foi possível carregar as definições da loja.");
       } finally {
         if (active) setStoreSettingsLoading(false);
       }
@@ -400,7 +400,7 @@ export default function DashboardRestaurante() {
         if (!active) return;
         setCatalogErrorByStore((prev) => ({
           ...prev,
-          [String(scopedStoreId)]: error?.message || "Nao foi possivel carregar o catalogo da loja.",
+          [String(scopedStoreId)]: error?.message || "Não foi possível carregar o catálogo da loja.",
         }));
       } finally {
         if (active) {
@@ -523,7 +523,7 @@ export default function DashboardRestaurante() {
       setOrderDetailModal({
         open: true,
         loading: false,
-        error: error?.message || "Nao foi possivel carregar os detalhes do pedido.",
+        error: error?.message || "Não foi possível carregar os detalhes do pedido.",
         data: null,
       });
     }
@@ -571,7 +571,7 @@ export default function DashboardRestaurante() {
 
   const handleToggleAutoAccept = async (store, nextValue) => {
     if (!admin) {
-      throw new Error("Apenas o admin pode alterar a aceitacao automatica.");
+      throw new Error("Apenas o admin pode alterar a aceitação automática.");
     }
 
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
@@ -582,7 +582,7 @@ export default function DashboardRestaurante() {
 
   const handleToggleAutoAssign = async (store, nextValue) => {
     if (!admin) {
-      throw new Error("Apenas o admin pode alterar a atribuicao automatica.");
+      throw new Error("Apenas o admin pode alterar a atribuição automática.");
     }
 
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, {
@@ -593,7 +593,7 @@ export default function DashboardRestaurante() {
 
   const handleSaveCommissionSettings = async (store, payload) => {
     if (!admin) {
-      throw new Error("Apenas o admin pode alterar a comissao.");
+      throw new Error("Apenas o admin pode alterar a comissão.");
     }
 
     const updatedStore = await updateRestaurantAdminSettings(store.idloja, payload, extractUserId(user));
@@ -611,7 +611,7 @@ export default function DashboardRestaurante() {
     <DashboardSidebarLayout
       kicker="Store Operations"
       title={storeName || "Restaurante"}
-      subtitle="Acompanha pedidos, configuracao operacional e futuras campanhas."
+      subtitle="Acompanha pedidos, configuração operacional e futuras campanhas."
       tabs={RESTAURANT_DASHBOARD_TABS}
       activeTab={activeTab}
       onTabChange={setActiveTab}
@@ -619,7 +619,7 @@ export default function DashboardRestaurante() {
       footer={(
         <div>
           <p className="muted dashboard-sidebar-footer-label">Loja atual</p>
-          <strong>{storeName || "Sem associacao"}</strong>
+          <strong>{storeName || "Sem associação"}</strong>
           <p className="muted dashboard-sidebar-footer-meta">
             {scopedStoreId ? `#${scopedStoreId}` : "Sem loja"}
           </p>
@@ -644,9 +644,9 @@ export default function DashboardRestaurante() {
                 setPeriodDays(Number(event.target.value));
               }}
             >
-              <option value={7}>Ultimos 7 dias</option>
-              <option value={30}>Ultimos 30 dias</option>
-              <option value={90}>Ultimos 90 dias</option>
+              <option value={7}>Últimos 7 dias</option>
+              <option value={30}>Últimos 30 dias</option>
+              <option value={90}>Últimos 90 dias</option>
               <option value="custom">Intervalo personalizado</option>
             </select>
             {rangeMode === "custom" ? (
@@ -655,13 +655,13 @@ export default function DashboardRestaurante() {
                   <span className="muted">De</span>
                   <DatePickerCustom
                     mode="datetime"
-                    placeholder="Selecionar inicio"
+                    placeholder="Selecionar início"
                     value={customRange.from}
                     onChange={(value) => setCustomRange((prev) => ({ ...prev, from: value }))}
                   />
                 </label>
                 <label className="dashboard-range-field">
-                  <span className="muted">Ate</span>
+                  <span className="muted">Até</span>
                   <DatePickerCustom
                     mode="datetime"
                     placeholder="Selecionar fim"
@@ -676,7 +676,7 @@ export default function DashboardRestaurante() {
             <button className="btn-dashboard" onClick={() => navigate(`/menu-manager${scopedStoreId ? `?loja=${scopedStoreId}` : ""}`)}>
               Gerir menu
             </button>
-            <button className="btn-dashboard" onClick={goToWebsite}>Inicio</button>
+            <button className="btn-dashboard" onClick={goToWebsite}>Início</button>
           </>
         )}
       />
@@ -742,7 +742,7 @@ export default function DashboardRestaurante() {
         <div className="dashboard-stack">
           <DashboardPanel
             title="Dados da loja"
-            description="Horario semanal, morada, contacto, NIF e imagens editam-se na pagina de perfil da loja."
+            description="Horário semanal, morada, contacto, NIF e imagens editam-se na página de perfil da loja."
           >
             <button
               type="button"
@@ -754,10 +754,10 @@ export default function DashboardRestaurante() {
           </DashboardPanel>
 
           <RestaurantManagementPanel
-            title="Gestao de Restaurantes"
+            title="Gestão de Restaurantes"
             subtitle={admin
-              ? "Escolhe o modo de comissao e define overrides globais, por categoria ou por prato."
-              : "Vista apenas de leitura. O admin gere estas definicoes da loja."}
+              ? "Escolhe o modo de comissão e define overrides globais, por categoria ou por prato."
+              : "Vista apenas de leitura. O admin gere estas definições da loja."}
             stores={storeSettingsRows}
             loading={storeSettingsLoading}
             error={storeSettingsError}
@@ -766,7 +766,7 @@ export default function DashboardRestaurante() {
             showCommissions={false}
             showCommissionSettings={false}
             showOperationalSettings={false}
-            emptyText="Sem configuracao de loja disponivel."
+            emptyText="Sem configuração de loja disponível."
             commissionCatalogByStore={commissionCatalogByStore}
             catalogLoadingByStore={catalogLoadingByStore}
             catalogErrorByStore={catalogErrorByStore}
@@ -808,12 +808,12 @@ export default function DashboardRestaurante() {
               <div className="metric-foot">Apenas entregues (sem taxa de entrega)</div>
             </article>
             <article className="metric-card premium">
-              <div className="metric-label">Ticket medio</div>
+              <div className="metric-label">Ticket médio</div>
               <div className="metric-value">{state.metrics.avgTicket.toFixed(2)}EUR</div>
-              <div className="metric-foot">Valor medio por pedido entregue</div>
+              <div className="metric-foot">Valor médio por pedido entregue</div>
             </article>
             <article className="metric-card premium">
-              <div className="metric-label">Concluido</div>
+              <div className="metric-label">Concluído</div>
               <div className="metric-value">{state.metrics.deliveredRate.toFixed(1)}%</div>
               <div className="metric-foot">Pedidos entregues</div>
             </article>
@@ -889,10 +889,10 @@ export default function DashboardRestaurante() {
                     <th>Pedido</th>
                     <th>Cliente</th>
                     <th>Entrega prevista</th>
-                    <th>Operacao</th>
+                    <th>Operação</th>
                     <th>Total</th>
                     <th>Estado</th>
-                    <th>Acoes</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -954,7 +954,7 @@ export default function DashboardRestaurante() {
 
           <DashboardPanel
             title="Fila de pedidos imediatos"
-            description="Pedidos a trabalhar agora, incluindo os agendados que ja entraram na janela operacional."
+            description="Pedidos a trabalhar agora, incluindo os agendados que já entraram na janela operacional."
           >
 
             <div className="table-wrap">
@@ -967,7 +967,7 @@ export default function DashboardRestaurante() {
                     <th>Estado</th>
                     <th>Estafeta</th>
                     <th>Tracking</th>
-                    <th>Acoes</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -997,7 +997,7 @@ export default function DashboardRestaurante() {
                         <td>{Number(order.total || 0).toFixed(2)}EUR</td>
                         <td>
                           <span className={getEstadoInternoTagClass(estadoInterno)}>{getEstadoInternoLabelPt(estadoInterno)}</span>
-                          {hasDriverAlert ? <span className="table-alert-indicator" title="Pedido aceite sem estafeta ha mais de 10 minutos.">!</span> : null}
+                          {hasDriverAlert ? <span className="table-alert-indicator" title="Pedido aceite sem estafeta há mais de 10 minutos.">!</span> : null}
                         </td>
                         <td>{driverText}</td>
                         <td>
@@ -1054,7 +1054,7 @@ export default function DashboardRestaurante() {
 
           <DashboardPanel
             title="Entregas Recentes"
-            description="Estados traduzidos para uma leitura mais rapida."
+            description="Estados traduzidos para uma leitura mais rápida."
           >
             <div className="table-wrap">
               <table className="ops-table">
@@ -1118,13 +1118,13 @@ export default function DashboardRestaurante() {
       {activeTab === "promotions" ? (
         <section className="panel empty-state-panel">
           <div>
-            <p className="kicker">Promocoes</p>
-            <h3>Gestao de Campanhas</h3>
-            <p className="muted">Container preparado para uma futura area de campanhas do restaurante.</p>
+            <p className="kicker">Promoções</p>
+            <h3>Gestão de Campanhas</h3>
+            <p className="muted">Container preparado para uma futura área de campanhas do restaurante.</p>
           </div>
           <div>
             <button type="button" className="btn-dashboard secondary" disabled>
-              Criar Nova Promocao
+              Criar Nova Promoção
             </button>
           </div>
         </section>

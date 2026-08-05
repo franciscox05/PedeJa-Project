@@ -66,7 +66,7 @@ export default function DashboardBanners() {
       const rows = await fetchBanners(callerUserId);
       setBanners(rows);
     } catch (err) {
-      setError(err?.message || "Nao foi possivel carregar os banners.");
+      setError(err?.message || "Não foi possível carregar os banners.");
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ export default function DashboardBanners() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.image_url.trim()) {
-      showError("Imagem do banner e obrigatoria.");
+      showError("Imagem do banner é obrigatória.");
       return;
     }
 
@@ -126,14 +126,14 @@ export default function DashboardBanners() {
       resetForm();
       await load();
     } catch (err) {
-      showError(err?.message || "Nao foi possivel guardar o banner.");
+      showError(err?.message || "Não foi possível guardar o banner.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (banner) => {
-    const confirmed = window.confirm(`Eliminar o banner "${banner.title || "(sem titulo)"}"? Esta acao nao pode ser desfeita.`);
+    const confirmed = window.confirm(`Eliminar o banner "${banner.title || "(sem título)"}"? Esta ação não pode ser desfeita.`);
     if (!confirmed) return;
 
     setBusyId(banner.id);
@@ -142,7 +142,7 @@ export default function DashboardBanners() {
       toast.success("Banner eliminado.");
       await load();
     } catch (err) {
-      showError(err?.message || "Nao foi possivel eliminar o banner.");
+      showError(err?.message || "Não foi possível eliminar o banner.");
     } finally {
       setBusyId(null);
     }
@@ -154,7 +154,7 @@ export default function DashboardBanners() {
       activeTab="banners"
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Marketing"
-      title="Gestao de Banners"
+      title="Gestão de Banners"
       subtitle="Banners promocionais mostrados na pagina inicial."
       storageKey="dashboard-admin-sidebar-collapsed"
     >
@@ -185,7 +185,7 @@ export default function DashboardBanners() {
             <div className="stat-hero-body">
               <div className="metric-label">Ativos</div>
               <div className="metric-value">{activeCount}</div>
-              <div className="metric-foot">Visiveis na home agora</div>
+              <div className="metric-foot">Visíveis na home agora</div>
             </div>
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#c2410c" }}>
@@ -195,7 +195,7 @@ export default function DashboardBanners() {
             <div className="stat-hero-body">
               <div className="metric-label">Agendados</div>
               <div className="metric-value">{scheduledCount}</div>
-              <div className="metric-foot">Com inicio ainda por chegar</div>
+              <div className="metric-foot">Com início ainda por chegar</div>
             </div>
           </article>
         </section>
@@ -212,7 +212,7 @@ export default function DashboardBanners() {
         >
           <form onSubmit={handleSubmit} className="dashboard-form-grid">
             <label className="dashboard-form-field">
-              <span>Titulo</span>
+              <span>Título</span>
               <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </label>
             <label className="dashboard-form-field">
@@ -228,7 +228,7 @@ export default function DashboardBanners() {
               <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
             </label>
             <label className="dashboard-form-field">
-              <span>Inicio</span>
+              <span>Início</span>
               <input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} />
             </label>
             <label className="dashboard-form-field">
@@ -243,18 +243,18 @@ export default function DashboardBanners() {
 
             {form.image_url ? (
               <div className="dashboard-form-field dashboard-form-field--full">
-                <span>Pre-visualizacao</span>
+                <span>Pré-visualização</span>
                 <div className="menu-card-media" style={{ height: 160, borderRadius: 12 }}>
-                  <img src={form.image_url} alt="Pre-visualizacao do banner" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                  <img src={form.image_url} alt="Pré-visualização do banner" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 </div>
               </div>
             ) : null}
 
             <div className="dashboard-form-actions">
               <button className="btn-dashboard" type="submit" disabled={saving}>
-                {saving ? "A gravar..." : editingId ? "Guardar alteracoes" : "Criar banner"}
+                {saving ? "A gravar..." : editingId ? "Guardar alterações" : "Criar banner"}
               </button>
-              {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edicao</button>}
+              {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edição</button>}
             </div>
           </form>
         </DashboardPanel>
@@ -293,7 +293,7 @@ export default function DashboardBanners() {
                       {!expired && scheduled ? <span className="tag warn menu-card-visibility-tag">Agendado</span> : null}
                     </div>
                     <div className="menu-card-body">
-                      <h4>{banner.title || "(sem titulo)"}</h4>
+                      <h4>{banner.title || "(sem título)"}</h4>
                       <div className="menu-card-meta">
                         <span>Ordem: {banner.sort_order}</span>
                         {banner.link_url ? <span className="muted">Com link</span> : null}

@@ -150,7 +150,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
       && normalizeAddressIdentity(address.label) === normalizedLabel
     ));
     if (sameLabel) {
-      throw new Error(`Ja existe uma morada com a etiqueta "${nextLabel}".`);
+      throw new Error(`Já existe uma morada com a etiqueta "${nextLabel}".`);
     }
 
     const sameAddress = addresses.find((address) => (
@@ -158,7 +158,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
       && normalizeAddressIdentity(address.address_line) === normalizedAddress
     ));
     if (sameAddress) {
-      throw new Error(`Ja existe uma morada guardada com este endereco (${sameAddress.label}).`);
+      throw new Error(`Já existe uma morada guardada com este endereço (${sameAddress.label}).`);
     }
   };
 
@@ -299,7 +299,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
       }
       setShowMapPicker(true);
     } catch (error) {
-      showError(`Nao foi possivel abrir o editor de mapa: ${error.message}`);
+      showError(`Não foi possível abrir o editor de mapa: ${error.message}`);
     } finally {
       setRowLoadingId(null);
     }
@@ -448,7 +448,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
           )}
         </div>
 
-        <p className="profile-address-hint">Sugestoes e mapa limitados a freguesias de Barcelos.</p>
+        <p className="profile-address-hint">Sugestões e mapa limitados a freguesias de Barcelos.</p>
 
         {suggestions.length > 0 && (
           <div className="profile-suggestions-list">
@@ -484,11 +484,11 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
         </label>
 
         <button type="submit" className="profile-btn primary" disabled={saving}>
-          {saving ? (isEditing ? "A atualizar..." : "A guardar...") : (isEditing ? "Guardar alteracoes" : "Guardar morada")}
+          {saving ? (isEditing ? "A atualizar..." : "A guardar...") : (isEditing ? "Guardar alterações" : "Guardar morada")}
         </button>
         {isEditing ? (
           <button type="button" className="profile-btn ghost" onClick={cancelEditing}>
-            Cancelar edicao
+            Cancelar edição
           </button>
         ) : null}
       </form>
@@ -496,7 +496,7 @@ export default function AddressManager({ userId, onDefaultAddressChange }) {
       <LocationPickerModal
         isOpen={showMapPicker}
         title={editAddress ? `Editar morada: ${editAddress.label}` : "Selecionar morada no mapa"}
-        subtitle={editAddress ? "Ajusta o pino para corrigir a localizacao desta morada." : "Marca a tua localizacao exata para evitar erros de entrega."}
+        subtitle={editAddress ? "Ajusta o pino para corrigir a localização desta morada." : "Marca a tua localização exata para evitar erros de entrega."}
         initialLat={form.lat}
         initialLng={form.lng}
         deliveryPricingConfig={globalDeliveryPricingConfig}

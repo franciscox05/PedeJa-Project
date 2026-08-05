@@ -20,7 +20,7 @@ const DAY_LABELS = {
 
 function summarizeSchedule(schedule) {
   const weekly = Array.isArray(schedule?.weekly) ? schedule.weekly : [];
-  if (weekly.length === 0) return "Horario nao definido.";
+  if (weekly.length === 0) return "Horário não definido.";
 
   return weekly
     .map((block) => {
@@ -68,7 +68,7 @@ function RestauranteCard({
     : restaurante.statusCor;
 
   const currentStatusText = restaurante.isIndisponivel
-    ? "Indisponivel"
+    ? "Indisponível"
     : restaurante.status;
 
   const statusImage = restaurante.isIndisponivel
@@ -145,7 +145,7 @@ function RestauranteCard({
           </div>
 
           <div className="card-footer-info">
-            <button className="footer-info-btn" onClick={handleInfoClick} title="Mais informacoes">
+            <button className="footer-info-btn" onClick={handleInfoClick} title="Mais informações">
               <img src={iconInfo} className="info-icon-img" alt="Info" />
               <span className="footer-text">Info</span>
             </button>
@@ -175,7 +175,7 @@ function RestauranteCard({
             <div className="store-details-blocks">
               <div className="store-details-block">
                 <span>Morada</span>
-                <p>{restaurante.morada || "Morada nao definida"}</p>
+                <p>{restaurante.morada || "Morada não definida"}</p>
               </div>
 
               <div className="store-details-block">
@@ -184,13 +184,13 @@ function RestauranteCard({
               </div>
 
               <div className="store-details-block">
-                <span>Horario</span>
+                <span>Horário</span>
                 <p>{scheduleSummary}</p>
               </div>
 
               {restaurante.statusDetalhe ? (
                 <div className="store-details-block">
-                  <span>Horario especial</span>
+                  <span>Horário especial</span>
                   <p>{restaurante.statusDetalhe}</p>
                 </div>
               ) : null}
@@ -204,7 +204,7 @@ function RestauranteCard({
             <div className="store-details-actions">
               <button className="btn-details secondary" onClick={handleCloseDetails}>Fechar</button>
               <button className="btn-details primary" onClick={handleOpenStore} disabled={restaurante.isIndisponivel}>
-                {restaurante.isIndisponivel ? "Indisponivel" : "Abrir restaurante"}
+                {restaurante.isIndisponivel ? "Indisponível" : "Abrir restaurante"}
               </button>
             </div>
           </div>

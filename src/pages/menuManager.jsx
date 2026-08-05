@@ -34,7 +34,7 @@ const MENU_MANAGER_TABS = { CATALOG: "pratos", LIBRARY: "biblioteca" };
 const LIBRARY_TYPE_OPTIONS = [
   { value: "extra", label: "Extra" },
   { value: "complementar", label: "Complementar" },
-  { value: "sugestao", label: "Sugestao" },
+  { value: "sugestao", label: "Sugestão" },
 ];
 
 const formatCurrency = (value) => `${Number(value || 0).toFixed(2)}EUR`;
@@ -66,10 +66,10 @@ const validateLibraryGroupDraft = (draft, { hasStore }) => {
     }))
     .filter((option) => option.name);
   if (!hasStore) return "Define a loja antes de gerir a biblioteca.";
-  if (title.length < 2) return "O grupo precisa de um titulo com pelo menos 2 caracteres.";
-  if (!Number.isFinite(maxSelections) || maxSelections < 1) return "O maximo de selecoes tem de ser pelo menos 1.";
+  if (title.length < 2) return "O grupo precisa de um título com pelo menos 2 caracteres.";
+  if (!Number.isFinite(maxSelections) || maxSelections < 1) return "O máximo de seleções tem de ser pelo menos 1.";
   if (validOptions.length === 0) return "Adiciona pelo menos um item ao grupo.";
-  if (validOptions.some((option) => !Number.isFinite(option.price) || option.price < 0)) return "Todos os itens precisam de um preco valido.";
+  if (validOptions.some((option) => !Number.isFinite(option.price) || option.price < 0)) return "Todos os itens precisam de um preço válido.";
   return "";
 };
 const createEmptyForm = () => ({
@@ -428,7 +428,7 @@ export default function MenuManager() {
     const sourceGroupId = group?.library_group_id || group?.id;
     if (!sourceGroupId) return;
 
-    const suggestedName = `${group?.title || "Grupo"} (Copia)`;
+    const suggestedName = `${group?.title || "Grupo"} (Cópia)`;
     const duplicatedName = window.prompt("Nome do grupo duplicado:", suggestedName);
     if (!duplicatedName || !duplicatedName.trim()) return;
 
@@ -557,7 +557,7 @@ export default function MenuManager() {
 
       closeQuickGroupCreator();
     } catch (err) {
-      setError(err.message || "Erro ao criar grupo de opcoes.");
+      setError(err.message || "Erro ao criar grupo de opções.");
     } finally {
       setQuickGroupSaving(false);
     }
@@ -593,9 +593,9 @@ export default function MenuManager() {
     const preco = Number(String(form.preco || "").replace(",", "."));
     if (!scopedLoja) return "Define a loja antes de criar um prato.";
     if (nome.length < 2) return "O nome do prato deve ter pelo menos 2 caracteres.";
-    if (!Number.isFinite(preco) || preco < 0) return "Preco invalido. Usa um valor igual ou superior a 0.";
-    if (String(form.desc || "").length > 700) return "Descricao demasiado longa (maximo 700 caracteres).";
-    if (imageFile && !String(imageFile.type || "").startsWith("image/")) return "O ficheiro selecionado nao e uma imagem valida.";
+    if (!Number.isFinite(preco) || preco < 0) return "Preço inválido. Usa um valor igual ou superior a 0.";
+    if (String(form.desc || "").length > 700) return "Descrição demasiado longa (máximo 700 caracteres).";
+    if (imageFile && !String(imageFile.type || "").startsWith("image/")) return "O ficheiro selecionado não é uma imagem válida.";
     return "";
   };
 
@@ -705,7 +705,7 @@ export default function MenuManager() {
       if (idtipomenu) setForm((prev) => ({ ...prev, idtipomenu: String(idtipomenu) }));
       setNewCategoryName("");
     } catch (err) {
-      setError(err.message || "Nao foi possivel criar categoria.");
+      setError(err.message || "Não foi possível criar categoria.");
     } finally {
       setCreatingCategory(false);
     }
@@ -724,7 +724,7 @@ export default function MenuManager() {
   const handleSaveCategory = async (categoryValue) => {
     const sourceOption = storeCategoryOptions.find((item) => String(item.value) === String(categoryValue));
     if (!sourceOption) {
-      setError("Categoria invalida.");
+      setError("Categoria inválida.");
       return;
     }
 
@@ -736,7 +736,7 @@ export default function MenuManager() {
 
     const sourceId = Number(sourceOption.value);
     if (!Number.isFinite(sourceId)) {
-      setError("Categoria invalida.");
+      setError("Categoria inválida.");
       return;
     }
 
@@ -763,7 +763,7 @@ export default function MenuManager() {
   const handleDeleteCategory = async (option) => {
     const sourceId = Number(option?.value);
     if (!Number.isFinite(sourceId)) {
-      setError("Categoria invalida.");
+      setError("Categoria inválida.");
       return;
     }
     if (!window.confirm(`Apagar categoria "${option?.label || "sem nome"}" nesta loja?`)) return;
@@ -831,7 +831,7 @@ export default function MenuManager() {
   };
 
   const handleDeleteLibraryGroup = async (group) => {
-    if (!window.confirm(`Apagar o grupo "${group?.title || "sem titulo"}" da biblioteca?`)) return;
+    if (!window.confirm(`Apagar o grupo "${group?.title || "sem título"}" da biblioteca?`)) return;
 
     setLibrarySaving(true);
     setError("");
@@ -920,13 +920,13 @@ export default function MenuManager() {
         <div className="menu-toolbar-grid">
           <label>
             <span className="muted">Pesquisar prato</span>
-            <input type="text" placeholder="Nome ou descricao" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+            <input type="text" placeholder="Nome ou descrição" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
           </label>
           <label>
             <span className="muted">Estado</span>
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
               <option value="ALL">Todos</option>
-              <option value="ACTIVE">Disponiveis</option>
+              <option value="ACTIVE">Disponíveis</option>
               <option value="SOLD_OUT">Esgotados</option>
               <option value="HIDDEN">Escondidos ao cliente</option>
             </select>
@@ -943,8 +943,8 @@ export default function MenuManager() {
             <select value={sortMode} onChange={(e) => setSortMode(e.target.value)}>
               <option value="RECENT">Mais recentes</option>
               <option value="NAME_ASC">Nome A-Z</option>
-              <option value="PRICE_ASC">Preco crescente</option>
-              <option value="PRICE_DESC">Preco decrescente</option>
+              <option value="PRICE_ASC">Preço crescente</option>
+              <option value="PRICE_DESC">Preço decrescente</option>
               <option value="STOCK">Disponibilidade</option>
             </select>
           </label>
@@ -975,13 +975,13 @@ export default function MenuManager() {
             </label>
 
             <label>
-              <span className="muted">Descricao</span>
-              <textarea placeholder="Descricao do prato" value={form.desc} onChange={(e) => setForm((prev) => ({ ...prev, desc: e.target.value }))} rows={3} />
+              <span className="muted">Descrição</span>
+              <textarea placeholder="Descrição do prato" value={form.desc} onChange={(e) => setForm((prev) => ({ ...prev, desc: e.target.value }))} rows={3} />
             </label>
 
             <div className="menu-form-row">
               <label>
-                <span className="muted">Preco</span>
+                <span className="muted">Preço</span>
                 <input type="number" step="0.01" min="0" placeholder="0.00" value={form.preco} onChange={(e) => setForm((prev) => ({ ...prev, preco: e.target.value }))} required />
               </label>
 
@@ -991,7 +991,7 @@ export default function MenuManager() {
                   <option value="">Sem categoria</option>
                   {storeCategoryOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
-                {storeCategoryOptions.length === 0 && <span className="muted menu-form-hint">Sem categorias. Cria no card "Gestao de categorias".</span>}
+                {storeCategoryOptions.length === 0 && <span className="muted menu-form-hint">Sem categorias. Cria no card "Gestão de categorias".</span>}
               </label>
             </div>
 
@@ -1001,23 +1001,23 @@ export default function MenuManager() {
                   <span className="muted">Biblioteca global</span>
                   <h4>O cliente pode escolher algo neste prato?</h4>
                   <p className="menu-builder-caption muted">
-                    Ex: bebida, acompanhamento ou tamanho num menu/combo. Cria um grupo de opcoes uma vez e reutiliza-o
-                    em varios pratos -- evita teres de criar um prato separado so para a batata frita ou a bebida.
+                    Ex: bebida, acompanhamento ou tamanho num menu/combo. Cria um grupo de opções uma vez e reutiliza-o
+                    em vários pratos -- evita teres de criar um prato separado só para a batata frita ou a bebida.
                   </p>
                 </div>
                 <div className="menu-card-actions">
                   <button className="btn-dashboard small" type="button" onClick={() => setQuickGroupOpen((prev) => !prev)}>
-                    {quickGroupOpen ? "Fechar criador" : "+ Criar grupo de opcoes"}
+                    {quickGroupOpen ? "Fechar criador" : "+ Criar grupo de opções"}
                   </button>
                   <button className="btn-dashboard secondary small" type="button" onClick={() => setActiveTab(MENU_MANAGER_TABS.LIBRARY)}>
                     Gerir biblioteca
                   </button>
                   <button className="btn-dashboard small" type="button" onClick={() => openModifierManager({ idmenu: editingId, nome: form.nome })} disabled={!editingId}>
-                    Opcoes avancadas (condicionais)
+                    Opções avançadas (condicionais)
                   </button>
                 </div>
               </div>
-              {!editingId && <p className="menu-builder-caption muted">As opcoes avancadas (com dependencias entre itens) só ficam disponiveis depois de guardares o prato -- o criador rapido acima funciona mesmo antes de guardar.</p>}
+              {!editingId && <p className="menu-builder-caption muted">As opções avançadas (com dependências entre itens) só ficam disponíveis depois de guardares o prato -- o criador rápido acima funciona mesmo antes de guardar.</p>}
 
               {quickGroupOpen ? (
                 <div className="menu-quick-group-creator">
@@ -1045,12 +1045,12 @@ export default function MenuManager() {
                     <label className="menu-form-checkbox">
                       <input type="checkbox" checked={quickGroupForm.required} onChange={(e) => patchQuickGroupForm({ required: e.target.checked })} />
                       <span className="menu-form-checkbox-box">
-                        <strong>Escolha obrigatoria</strong>
+                        <strong>Escolha obrigatória</strong>
                         <small className="muted">Liga para combos onde o cliente tem mesmo de escolher (ex: a bebida do menu).</small>
                       </span>
                     </label>
                     <label>
-                      <span className="muted">Maximo de selecoes</span>
+                      <span className="muted">Máximo de seleções</span>
                       <input
                         type="number"
                         min="1"
@@ -1073,7 +1073,7 @@ export default function MenuManager() {
                           />
                         </label>
                         <label>
-                          <span className="muted">Preco extra</span>
+                          <span className="muted">Preço extra</span>
                           <input
                             type="number"
                             step="0.01"
@@ -1113,7 +1113,7 @@ export default function MenuManager() {
               ) : libraryGroups.length === 0 ? (
                 !quickGroupOpen && (
                   <div className="menu-builder-empty">
-                    <p className="muted">Ainda nao existem grupos na biblioteca.</p>
+                    <p className="muted">Ainda não existem grupos na biblioteca.</p>
                     <button className="btn-dashboard secondary small" type="button" onClick={() => setQuickGroupOpen(true)}>
                       Criar primeiro grupo
                     </button>
@@ -1128,7 +1128,7 @@ export default function MenuManager() {
                         {formLinkedLibraryGroups.map((group) => <span className="tag soft" key={group.library_group_id || group.id}>{group.title}</span>)}
                       </div>
                     ) : (
-                      <p className="muted">Este prato ainda nao tem grupos ligados.</p>
+                      <p className="muted">Este prato ainda não tem grupos ligados.</p>
                     )}
                     {formLegacyGroups.length > 0 && <p className="muted">Este prato ainda preserva {formLegacyGroups.length} grupo(s) antigo(s) inline.</p>}
                   </div>
@@ -1173,14 +1173,14 @@ export default function MenuManager() {
               <input type="checkbox" checked={form.visivel} onChange={(e) => setForm((prev) => ({ ...prev, visivel: e.target.checked }))} />
               <span className="menu-form-checkbox-box">
                 <strong>Mostrar na app do cliente</strong>
-                <small className="muted">Se desligado, o prato continua no catalogo mas fica escondido ao cliente.</small>
+                <small className="muted">Se desligado, o prato continua no catálogo mas fica escondido ao cliente.</small>
               </span>
             </label>
 
             <label className="menu-form-checkbox">
               <input type="checkbox" checked={form.ativo} onChange={(e) => setForm((prev) => ({ ...prev, ativo: e.target.checked }))} />
               <span className="menu-form-checkbox-box">
-                <strong>Disponivel para venda</strong>
+                <strong>Disponível para venda</strong>
                 <small className="muted">Desliga para marcar como esgotado sem apagar o prato.</small>
               </span>
             </label>
@@ -1199,14 +1199,14 @@ export default function MenuManager() {
 
             <div className="menu-form-actions">
               <button className="btn-dashboard" type="submit" disabled={saving}>
-                {saving ? "A gravar..." : editingId ? "Guardar alteracoes" : "Criar prato"}
+                {saving ? "A gravar..." : editingId ? "Guardar alterações" : "Criar prato"}
               </button>
-              {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edicao</button>}
+              {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edição</button>}
             </div>
           </form>
 
           <div className="menu-category-inline">
-            <h3>Gestao de categorias</h3>
+            <h3>Gestão de categorias</h3>
             <p className="muted" style={{ marginBottom: 10 }}>Cria, edita e remove categorias apenas desta loja.</p>
             <div className="menu-category-creator">
               <span className="muted">Criar nova categoria</span>
@@ -1227,7 +1227,7 @@ export default function MenuManager() {
               <div className="menu-category-list">
                 <div className="menu-category-list-head">
                   <h4>Categorias</h4>
-                  <span className="muted">Editar e eliminar categorias disponiveis para a loja</span>
+                  <span className="muted">Editar e eliminar categorias disponíveis para a loja</span>
                 </div>
                 {storeCategoryOptions.length === 0 ? (
                   <p className="muted">Sem categorias.</p>
@@ -1292,22 +1292,22 @@ export default function MenuManager() {
                   <article className="menu-card" key={item.idmenu}>
                     <div className="menu-card-media">
                       {item.imagem ? <img src={item.imagem} alt={item.nome} /> : <div className="menu-card-placeholder">Sem imagem</div>}
-                      <span className={item.ativo !== false ? "tag ok" : "tag warn"}>{item.ativo !== false ? "Disponivel" : "Esgotado"}</span>
-                      <span className={`tag soft menu-card-visibility-tag ${item.visivel !== false ? "" : "warn"}`}>{item.visivel !== false ? "Visivel" : "Oculto"}</span>
+                      <span className={item.ativo !== false ? "tag ok" : "tag warn"}>{item.ativo !== false ? "Disponível" : "Esgotado"}</span>
+                      <span className={`tag soft menu-card-visibility-tag ${item.visivel !== false ? "" : "warn"}`}>{item.visivel !== false ? "Visível" : "Oculto"}</span>
                     </div>
                     <div className="menu-card-body">
                       <h4>{item.nome}</h4>
-                      <p className="muted menu-card-desc">{item.desc || "Sem descricao"}</p>
-                      {missingDetails && <p className="menu-card-hint">Completa descricao e imagem para melhorar o card na pagina de lojas.</p>}
+                      <p className="muted menu-card-desc">{item.desc || "Sem descrição"}</p>
+                      {missingDetails && <p className="menu-card-hint">Completa descrição e imagem para melhorar o card na página de lojas.</p>}
                       <div className="menu-card-meta menu-card-meta-stack">
                         <span>{tipoNome}</span>
-                        <span>{linkedGroupsCount} grupos de opcoes</span>
+                        <span>{linkedGroupsCount} grupos de opções</span>
                         <strong>{formatCurrency(item.preco)}</strong>
                       </div>
                       <div className="menu-card-actions">
                         <button className="btn-dashboard small" type="button" onClick={() => startEdit(item)}>{missingDetails ? "Completar dados" : "Editar"}</button>
-                        <button className="btn-dashboard small" type="button" onClick={() => openModifierManager(item)}>Gerir opcoes</button>
-                        <button className="btn-dashboard small secondary" type="button" onClick={() => handleToggle(item)}>{item.ativo !== false ? "Marcar esgotado" : "Marcar disponivel"}</button>
+                        <button className="btn-dashboard small" type="button" onClick={() => openModifierManager(item)}>Gerir opções</button>
+                        <button className="btn-dashboard small secondary" type="button" onClick={() => handleToggle(item)}>{item.ativo !== false ? "Marcar esgotado" : "Marcar disponível"}</button>
                         <button className="btn-dashboard small secondary" type="button" onClick={() => handleToggleVisibility(item)}>{item.visivel !== false ? "Esconder prato" : "Mostrar na app"}</button>
                         <button className="btn-dashboard small secondary" type="button" onClick={() => handleDelete(item.idmenu, item.nome)}>Apagar</button>
                       </div>
@@ -1420,7 +1420,7 @@ export default function MenuManager() {
 
           <div className="menu-form-actions">
             <button className="btn-dashboard" type="submit" disabled={librarySaving}>{librarySaving ? "A gravar..." : libraryEditingId ? "Guardar grupo" : "Criar grupo"}</button>
-            {libraryEditingId && <button className="btn-dashboard secondary" type="button" onClick={resetLibraryForm}>Cancelar edicao</button>}
+            {libraryEditingId && <button className="btn-dashboard secondary" type="button" onClick={resetLibraryForm}>Cancelar edição</button>}
           </div>
         </form>
       </article>
@@ -1456,7 +1456,7 @@ export default function MenuManager() {
         {libraryLoading ? (
           <p className="muted">A carregar biblioteca...</p>
         ) : orderedLibraryGroups.length === 0 ? (
-          <p className="muted">Ainda nao existem grupos globais para esta loja.</p>
+          <p className="muted">Ainda não existem grupos globais para esta loja.</p>
         ) : (
           <div className="menu-library-list">
             {orderedLibraryGroups.map((group) => {
@@ -1539,7 +1539,7 @@ export default function MenuManager() {
                         return (
                           <>
                             <p className="muted">
-                              Escolhe outros pratos que devem ter este mesmo grupo de opcoes (ex: os restantes menus/combos parecidos).
+                              Escolhe outros pratos que devem ter este mesmo grupo de opções (ex: os restantes menus/combos parecidos).
                             </p>
                             <input
                               type="text"
@@ -1549,7 +1549,7 @@ export default function MenuManager() {
                             />
                             {candidates.length === 0 ? (
                               <p className="muted">
-                                {(menus || []).length === 0 ? "Sem pratos nesta loja." : "Todos os pratos ja tem este grupo, ou nenhum corresponde a pesquisa."}
+                                {(menus || []).length === 0 ? "Sem pratos nesta loja." : "Todos os pratos já têm este grupo, ou nenhum corresponde à pesquisa."}
                               </p>
                             ) : (
                               <div className="menu-category-list-grid">

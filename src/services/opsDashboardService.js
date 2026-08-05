@@ -348,7 +348,7 @@ function normalizeCommissionValue(value) {
 
   const parsed = Number(String(value).replace(",", "."));
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
-    throw new Error("A comissao PedeJa deve estar entre 0 e 100.");
+    throw new Error("A comissão PedeJa deve estar entre 0 e 100.");
   }
 
   return Number(parsed.toFixed(2));
@@ -431,12 +431,12 @@ export async function fetchStoresWithAdminSettings({ lojaId = null } = {}) {
 export async function updateRestaurantAdminSettings(lojaId, patch = {}, callerUserId = null) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   if (normalizedLojaId === null) {
-    throw new Error("Loja invalida para atualizar configuracao.");
+    throw new Error("Loja inválida para atualizar configuração.");
   }
 
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para atualizar esta loja.");
+    throw new Error("Sessão inválida: inicia sessão novamente para atualizar esta loja.");
   }
 
   const updatePayload = {};
@@ -486,7 +486,7 @@ export async function updateRestaurantAdminSettings(lojaId, patch = {}, callerUs
       );
 
       if (!sanitizedDeliveryConfig) {
-        throw new Error("A configuracao de entrega da loja esta invalida.");
+        throw new Error("A configuração de entrega da loja está inválida.");
       }
 
       updatePayload.configuracao_entrega = sanitizedDeliveryConfig;
@@ -497,7 +497,7 @@ export async function updateRestaurantAdminSettings(lojaId, patch = {}, callerUs
   if (Object.prototype.hasOwnProperty.call(patch, "horario_funcionamento")) {
     const sanitizedSchedule = sanitizeScheduleWithExceptions(patch.horario_funcionamento);
     if (!sanitizedSchedule) {
-      throw new Error("O horario da loja esta invalido.");
+      throw new Error("O horário da loja está inválido.");
     }
 
     updatePayload.horario_funcionamento = sanitizedSchedule;
@@ -516,7 +516,7 @@ export async function updateRestaurantAdminSettings(lojaId, patch = {}, callerUs
 
   if (error) {
     if (isMissingStoreSettingsColumnError(error)) {
-      throw new Error("As colunas de configuracao da loja ainda nao existem. Executa as migrations mais recentes do dashboard/entrega.");
+      throw new Error("As colunas de configuração da loja ainda não existem. Executa as migrations mais recentes do dashboard/entrega.");
     }
 
     throw error;
@@ -567,12 +567,12 @@ export async function saveGlobalDeliveryPricingSettings(configuracaoEntrega, cal
   );
 
   if (!sanitizedDeliveryConfig) {
-    throw new Error("A configuracao global de entrega esta invalida.");
+    throw new Error("A configuração global de entrega está inválida.");
   }
 
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para atualizar configuracoes globais.");
+    throw new Error("Sessão inválida: inicia sessão novamente para atualizar configurações globais.");
   }
 
   const { data, error } = await supabase.rpc("admin_upsert_platform_setting", {
@@ -583,7 +583,7 @@ export async function saveGlobalDeliveryPricingSettings(configuracaoEntrega, cal
 
   if (error) {
     if (isMissingPlatformSettingsTableError(error)) {
-      throw new Error("A tabela de configuracoes globais ainda nao existe. Executa a migration mais recente da entrega global.");
+      throw new Error("A tabela de configurações globais ainda não existe. Executa a migration mais recente da entrega global.");
     }
 
     throw error;
@@ -606,7 +606,7 @@ export async function saveGlobalAutoAssignSettings(value, callerUserId) {
 
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para atualizar configuracoes globais.");
+    throw new Error("Sessão inválida: inicia sessão novamente para atualizar configurações globais.");
   }
 
   const { data, error } = await supabase.rpc("admin_upsert_platform_setting", {
@@ -617,7 +617,7 @@ export async function saveGlobalAutoAssignSettings(value, callerUserId) {
 
   if (error) {
     if (isMissingPlatformSettingsTableError(error)) {
-      throw new Error("A tabela de configuracoes globais ainda nao existe. Executa a migration mais recente da plataforma.");
+      throw new Error("A tabela de configurações globais ainda não existe. Executa a migration mais recente da plataforma.");
     }
 
     throw error;
@@ -667,7 +667,7 @@ export async function saveGlobalCommissionSettings(percent, callerUserId) {
 
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para atualizar configuracoes globais.");
+    throw new Error("Sessão inválida: inicia sessão novamente para atualizar configurações globais.");
   }
 
   const { data, error } = await supabase.rpc("admin_upsert_platform_setting", {
@@ -678,7 +678,7 @@ export async function saveGlobalCommissionSettings(percent, callerUserId) {
 
   if (error) {
     if (isMissingPlatformSettingsTableError(error)) {
-      throw new Error("A tabela de configuracoes globais ainda nao existe. Executa a migration mais recente da plataforma.");
+      throw new Error("A tabela de configurações globais ainda não existe. Executa a migration mais recente da plataforma.");
     }
 
     throw error;
@@ -958,7 +958,7 @@ function withTransitionTimestampPatch(currentOrder, normalizedEstado, timestamp)
 async function queryOrdersRaw({ since = null, lojaId = null, limit = 220, callerUserId = null } = {}) {
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    return { data: null, error: new Error("Sessao invalida: inicia sessao novamente.") };
+    return { data: null, error: new Error("Sessão inválida: inicia sessão novamente.") };
   }
 
   const response = await supabase.rpc("list_orders_for_viewer", {
@@ -992,7 +992,7 @@ async function fetchOrdersForDashboard({ since = null, until = null, lojaId = nu
 async function fetchDeliveriesForDashboard({ since = null, until = null, limit = 220, callerUserId = null } = {}) {
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    return { data: null, error: new Error("Sessao invalida: inicia sessao novamente.") };
+    return { data: null, error: new Error("Sessão inválida: inicia sessão novamente.") };
   }
 
   const scoped = await supabase.rpc("list_deliveries_for_viewer", {
@@ -1183,7 +1183,7 @@ export async function fetchAdminCustomerInsights(input = 30, callerUserId = null
   const { since, until } = normalizeDashboardWindow(input);
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente.");
+    throw new Error("Sessão inválida: inicia sessão novamente.");
   }
 
   try {
@@ -1353,7 +1353,7 @@ export async function fetchAdminCustomerInsights(input = 30, callerUserId = null
         avgSpentPerCustomer: 0,
       },
       customers: [],
-      error: error?.message || "Nao foi possivel carregar analytics de clientes.",
+      error: error?.message || "Não foi possível carregar analytics de clientes.",
     };
   }
 }
@@ -1429,7 +1429,7 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
 
   const callerUserId = Number(options.callerUserId);
   if (!Number.isFinite(callerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para atualizar este pedido.");
+    throw new Error("Sessão inválida: inicia sessão novamente para atualizar este pedido.");
   }
 
   const mappedFromLegacy = mapLegacyStatusToEstadoInterno(estadoInterno);
@@ -1449,7 +1449,7 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
   ];
 
   if (!validEstados.includes(normalizedEstado)) {
-    throw new Error(`Estado interno invalido: ${estadoInterno}`);
+    throw new Error(`Estado interno inválido: ${estadoInterno}`);
   }
 
   const normalizedLojaId = normalizeLojaId(lojaId);
@@ -1480,7 +1480,7 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
     throw lookupError;
   }
   if (!currentOrder) {
-    throw new Error("Pedido nao encontrado para esta loja.");
+    throw new Error("Pedido não encontrado para esta loja.");
   }
 
   const legacyStatus = mapEstadoInternoToLegacyStatus(normalizedEstado);
@@ -1523,7 +1523,7 @@ export async function updateOrderWorkflowStatus(orderId, estadoInterno, lojaId =
     throw error;
   }
   if (!data) {
-    throw new Error("Pedido nao encontrado para esta loja.");
+    throw new Error("Pedido não encontrado para esta loja.");
   }
 
   return { order: data };
@@ -1538,7 +1538,7 @@ export async function updateOrderStatus(orderId, status, lojaId = null, callerUs
 
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para atualizar este pedido.");
+    throw new Error("Sessão inválida: inicia sessão novamente para atualizar este pedido.");
   }
 
   const { data, error } = await supabase.rpc("orders_apply_authorized_patch", {
@@ -1549,7 +1549,7 @@ export async function updateOrderStatus(orderId, status, lojaId = null, callerUs
 
   if (error) throw error;
   if (!data) {
-    throw new Error("Pedido nao encontrado para esta loja.");
+    throw new Error("Pedido não encontrado para esta loja.");
   }
 
   return { order: { id: orderId, status } };
@@ -1563,7 +1563,7 @@ export async function fetchDevDashboard(periodDays = 7, callerUserId = null) {
       events: [],
       deliveries: [],
       metrics: { webhookEvents: 0, failedDeliveries: 0, latestDeliveryStatus: "N/A" },
-      error: "Sessao invalida: inicia sessao novamente.",
+      error: "Sessão inválida: inicia sessão novamente.",
     };
   }
 
@@ -1746,7 +1746,7 @@ async function resolveExistingStoreIdForApproval({ request, ownerUserId, current
 export async function updateRestaurantSignupRequest(requestId, status, reviewedBy = null) {
   const callerUserId = Number(reviewedBy);
   if (!Number.isFinite(callerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para rever candidaturas.");
+    throw new Error("Sessão inválida: inicia sessão novamente para rever candidaturas.");
   }
 
   const { data: request, error: requestError } = await supabase.rpc("admin_get_restaurant_signup_request", {

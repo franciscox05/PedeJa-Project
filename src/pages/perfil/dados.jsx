@@ -90,7 +90,7 @@ export default function ProfileDados() {
       </div>
 
       <div className="profile-field">
-        <label htmlFor="telemovel">Telemovel</label>
+        <label htmlFor="telemovel">Telemóvel</label>
         <input
           type="tel"
           id="telemovel"
@@ -123,7 +123,7 @@ export default function ProfileDados() {
               Cancelar
             </button>
             <button type="submit" className="profile-btn primary" disabled={loading}>
-              {loading ? "A guardar..." : "Guardar alteracoes"}
+              {loading ? "A guardar..." : "Guardar alterações"}
             </button>
           </>
         )}

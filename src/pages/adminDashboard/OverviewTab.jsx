@@ -65,14 +65,14 @@ export default function OverviewTab({
           onClick={() => navigate(`/dashboard/admin/receita?days=${periodDays}`)}
           onKeyDown={(event) => handleRowKeyDown(event, () => navigate(`/dashboard/admin/receita?days=${periodDays}`))}
         >
-          <div className="metric-label">Comissao ganha</div>
+          <div className="metric-label">Comissão ganha</div>
           <div className="metric-value">
             {commissionEarned?.loading ? "..." : `${safeFixed(commissionEarned?.value, 2)}EUR`}
           </div>
           <div className="metric-foot">
             {commissionEarned?.error
-              ? "Nao foi possivel calcular"
-              : `O que a PedeJa realmente ganhou nos ultimos ${periodDays} dias`}
+              ? "Não foi possível calcular"
+              : `O que a PedeJa realmente ganhou nos últimos ${periodDays} dias`}
           </div>
         </article>
         <article className="metric-card premium">
@@ -86,12 +86,12 @@ export default function OverviewTab({
           <div className="metric-foot">Ainda fora da fila imediata</div>
         </article>
         <article className="metric-card premium">
-          <div className="metric-label">Ticket medio</div>
+          <div className="metric-label">Ticket médio</div>
           <div className="metric-value">{safeFixed(state?.metrics?.avgTicket, 2)}EUR</div>
           <div className="metric-foot">Valor por pedido</div>
         </article>
         <article className="metric-card premium">
-          <div className="metric-label">Entrega concluida</div>
+          <div className="metric-label">Entrega concluída</div>
           <div className="metric-value">{safeFixed(state?.metrics?.deliveredRate, 1)}%</div>
           <div className="metric-foot">Qualidade operacional</div>
         </article>
@@ -109,8 +109,8 @@ export default function OverviewTab({
 
       {safeSlaAlerts.length > 0 || safeRequests.length > 0 || driverAlertOrders.length > 0 || failedDeliveries.length > 0 ? (
         <DashboardPanel
-          title="Precisa de atencao"
-          description="Resumo rapido do que esta a bloquear a operacao agora."
+          title="Precisa de atenção"
+          description="Resumo rápido do que está a bloquear a operação agora."
           className="attention-panel"
         >
           <div className="attention-chip-row">
@@ -169,7 +169,7 @@ export default function OverviewTab({
       <DashboardPanel
         id="immediate-orders-panel"
         title="Pedidos imediatos"
-        description="Pedidos ativos agora, incluindo os agendados que ja entraram na janela operacional."
+        description="Pedidos ativos agora, incluindo os agendados que já entraram na janela operacional."
       >
         <div className="table-wrap">
           <table className="ops-table">
@@ -182,7 +182,7 @@ export default function OverviewTab({
                 <th>Estado</th>
                 <th>Estafeta</th>
                 <th>Tracking</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -225,7 +225,7 @@ export default function OverviewTab({
                       <span className={getEstadoInternoTagClass(estadoInterno)}>
                         {getEstadoInternoLabelPt(estadoInterno)}
                       </span>
-                      {hasDriverAlert ? <span className="table-alert-indicator" title="Pedido aceite sem estafeta ha mais de 10 minutos.">!</span> : null}
+                      {hasDriverAlert ? <span className="table-alert-indicator" title="Pedido aceite sem estafeta há mais de 10 minutos.">!</span> : null}
                     </td>
                     <td>{driverText}</td>
                     <td>
@@ -304,10 +304,10 @@ export default function OverviewTab({
                 <th>Loja</th>
                 <th>Cliente</th>
                 <th>Entrega prevista</th>
-                <th>Operacao</th>
+                <th>Operação</th>
                 <th>Total</th>
                 <th>Estado</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -431,7 +431,7 @@ export default function OverviewTab({
       <DashboardPanel
         id="dashboard-tab-sla-panel"
         title="Alertas SLA"
-        description="Lista filtrada so com os pedidos acima do tempo limite por estado -- util para ires direto ao que esta atrasado sem teres de percorrer a tabela de Pedidos imediatos toda."
+        description="Lista filtrada só com os pedidos acima do tempo limite por estado -- útil para ires direto ao que está atrasado sem teres de percorrer a tabela de Pedidos imediatos toda."
         className="sla-panel"
       >
         <div className="table-wrap">

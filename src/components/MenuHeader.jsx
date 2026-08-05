@@ -36,7 +36,7 @@ function resolveStoreImage(value, folder) {
 
 function summarizeSchedule(schedule) {
   const weekly = Array.isArray(schedule?.weekly) ? schedule.weekly : [];
-  if (!weekly.length) return "Horario nao definido";
+  if (!weekly.length) return "Horário não definido";
 
   return weekly
     .slice(0, 2)
@@ -50,7 +50,7 @@ function summarizeSchedule(schedule) {
 
 function MenuHeader({ lojaInfo }) {
   const nome = lojaInfo?.nome || "Restaurante";
-  const status = lojaInfo?.status || "Indisponivel";
+  const status = lojaInfo?.status || "Indisponível";
   const bannerImage = resolveStoreImage(lojaInfo?.imagemfundo, "fundo");
   const logoImage = resolveStoreImage(lojaInfo?.icon, "icon");
 
@@ -79,8 +79,8 @@ function MenuHeader({ lojaInfo }) {
           </span>
 
           <div className="menu-hero-meta">
-            <span><b>Horario:</b> {summarizeSchedule(lojaInfo?.horario_funcionamento)}</span>
-            {lojaInfo?.statusDetalhe ? <span><b>Excecao:</b> {lojaInfo.statusDetalhe}</span> : null}
+            <span><b>Horário:</b> {summarizeSchedule(lojaInfo?.horario_funcionamento)}</span>
+            {lojaInfo?.statusDetalhe ? <span><b>Exceção:</b> {lojaInfo.statusDetalhe}</span> : null}
             {lojaInfo?.morada ? <span><b>Morada:</b> {lojaInfo.morada}</span> : null}
           </div>
         </div>

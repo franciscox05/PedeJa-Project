@@ -40,7 +40,7 @@ function buildAddressLine({ rua, porta, codigo_postal, cidade, address_line }) {
   }
 
   if (!rua || !porta || !codigo_postal || !cidade) {
-    throw new Error("Preenche Rua, Porta, Codigo Postal e Cidade.");
+    throw new Error("Preenche Rua, Porta, Código Postal e Cidade.");
   }
 
   return `${String(rua).trim()}, ${String(porta).trim()}, ${String(codigo_postal).trim()} ${String(cidade).trim()}, Portugal`;
@@ -90,7 +90,7 @@ export async function fetchUserAddresses(userId) {
 export async function saveUserAddress(address) {
   const normalizedUserId = normalizeUserId(address?.user_id);
   if (!normalizedUserId) {
-    throw new Error("Utilizador invalido para guardar morada.");
+    throw new Error("Utilizador inválido para guardar morada.");
   }
 
   const label = String(address?.label || "Outro").trim() || "Outro";
@@ -123,7 +123,7 @@ export async function setDefaultAddress(userId, addressId) {
   const normalizedAddressId = Number(addressId);
 
   if (!normalizedUserId || !Number.isFinite(normalizedAddressId)) {
-    throw new Error("Dados invalidos para definir morada principal.");
+    throw new Error("Dados inválidos para definir morada principal.");
   }
 
   const { error } = await supabase.rpc("customer_set_default_address", {
@@ -137,12 +137,12 @@ export async function setDefaultAddress(userId, addressId) {
 export async function updateUserAddress(address) {
   const normalizedAddressId = Number(address?.id || address?.idmorada);
   if (!Number.isFinite(normalizedAddressId) || normalizedAddressId <= 0) {
-    throw new Error("Morada invalida para editar.");
+    throw new Error("Morada inválida para editar.");
   }
 
   const normalizedUserId = normalizeUserId(address?.user_id);
   if (!normalizedUserId) {
-    throw new Error("Utilizador invalido para editar morada.");
+    throw new Error("Utilizador inválido para editar morada.");
   }
 
   const label = String(address?.label || "Outro").trim() || "Outro";
@@ -174,7 +174,7 @@ export async function deleteUserAddress(userId, addressId) {
   const normalizedAddressId = Number(addressId);
 
   if (!normalizedUserId || !Number.isFinite(normalizedAddressId) || normalizedAddressId <= 0) {
-    throw new Error("Dados invalidos para apagar morada.");
+    throw new Error("Dados inválidos para apagar morada.");
   }
 
   const { error } = await supabase.rpc("customer_delete_address", {
@@ -276,18 +276,18 @@ export async function geocodePortugalAddress(addressLine, { barcelosOnly = false
 export async function updateAddressCoordinates(addressId, { lat, lng, place_id = null, user_id = null }) {
   const normalizedAddressId = Number(addressId);
   if (!Number.isFinite(normalizedAddressId) || normalizedAddressId <= 0) {
-    throw new Error("ID de morada invalido.");
+    throw new Error("ID de morada inválido.");
   }
 
   const normalizedUserId = normalizeUserId(user_id);
   if (!normalizedUserId) {
-    throw new Error("Utilizador invalido para atualizar coordenadas da morada.");
+    throw new Error("Utilizador inválido para atualizar coordenadas da morada.");
   }
 
   const parsedLat = Number(lat);
   const parsedLng = Number(lng);
   if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) {
-    throw new Error("Coordenadas invalidas.");
+    throw new Error("Coordenadas inválidas.");
   }
 
   const { error } = await supabase.rpc("customer_upsert_address", {

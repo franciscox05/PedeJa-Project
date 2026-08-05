@@ -82,7 +82,7 @@ export function getDeliveryStatusView(status) {
     CREATED: "Criada",
     PENDING: "Pendente",
     CONFIRMED: "Confirmada",
-    ASSIGNED: "Atribuida",
+    ASSIGNED: "Atribuída",
     DISPATCHED: "Enviado",
     OUT_FOR_DELIVERY: "Em entrega",
     DELIVERED: "Entregue",

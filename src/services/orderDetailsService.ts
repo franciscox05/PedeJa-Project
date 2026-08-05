@@ -137,7 +137,7 @@ function statusLabelPt(status: unknown) {
     PENDING: "Pendente",
     CREATED: "Criado",
     CONFIRMED: "Confirmado",
-    PREPARING: "Em preparacao",
+    PREPARING: "Em preparação",
     READY_FOR_PICKUP: "Pronto para recolha",
     OUT_FOR_DELIVERY: "Em entrega",
     DISPATCHED: "Enviado",
@@ -230,7 +230,7 @@ function resolvePaymentMethod(order: Record<string, unknown>) {
   if (!value) return null;
   if (value === "CASH" || value === "DINHEIRO") return "Dinheiro";
   if (value === "MBWAY") return "MB WAY";
-  if (value === "CREDIT_CARD") return "Cartao";
+  if (value === "CREDIT_CARD") return "Cartão";
   return value;
 }
 
@@ -350,7 +350,7 @@ function buildTimeline({
   if (assignedAt) {
     pushUnique({
       type: "DRIVER_ASSIGNED",
-      label: "Estafeta atribuido",
+      label: "Estafeta atribuído",
       status: "ASSIGNED",
       created_at: assignedAt,
       payload: null,
@@ -426,16 +426,16 @@ export async function fetchOrderDetails(
 ): Promise<OrderDetailsResult> {
   const normalizedOrderId = Number(orderId);
   if (!Number.isFinite(normalizedOrderId)) {
-    throw new Error("ID de pedido invalido.");
+    throw new Error("ID de pedido inválido.");
   }
 
   const { data: order, error: orderError } = await fetchOrderRecordWithCompatibility(normalizedOrderId);
 
   if (orderError) throw orderError;
-  if (!order) throw new Error("Pedido nao encontrado.");
+  if (!order) throw new Error("Pedido não encontrado.");
 
   if (!canUserAccessOrder(order, user, { allowGuestState })) {
-    throw new Error("Sem permissao para ver este pedido.");
+    throw new Error("Sem permissão para ver este pedido.");
   }
 
   const [itemsRes, lojaRes] = await Promise.all([

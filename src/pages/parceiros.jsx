@@ -331,7 +331,7 @@ export default function Parceiros() {
 
   const validateBeforeSubmit = () => {
     if (!user) {
-      return "Precisas de iniciar sessao para continuar.";
+      return "Precisas de iniciar sessão para continuar.";
     }
 
     if (!form.restauranteNome.trim()) {
@@ -340,12 +340,12 @@ export default function Parceiros() {
 
     const nifDigits = digitsOnly(form.nif);
     if (nifDigits.length < 9 || nifDigits.length > 15) {
-      return "Indica um NIF valido (9 a 15 digitos).";
+      return "Indica um NIF válido (9 a 15 dígitos).";
     }
 
     const phoneDigits = digitsOnly(form.telefone);
     if (phoneDigits.length < 9 || phoneDigits.length > 15) {
-      return "Indica um contacto valido (9 a 15 digitos).";
+      return "Indica um contacto válido (9 a 15 dígitos).";
     }
 
     if (!form.idtipoloja) {
@@ -353,19 +353,19 @@ export default function Parceiros() {
     }
 
     if (!addressQuery.trim() || addressQuery.trim().length < 8) {
-      return "Indica uma morada completa valida.";
+      return "Indica uma morada completa válida.";
     }
 
     const validBlocks = scheduleBlocks.filter((block) => block.days.length > 0 && block.open && block.close && block.open !== block.close);
     if (validBlocks.length === 0) {
-      return "Adiciona pelo menos um bloco de horario valido.";
+      return "Adiciona pelo menos um bloco de horário válido.";
     }
 
     const hasBackground = Boolean(imageState.backgroundFile || imageState.backgroundUrl);
     const hasIcon = Boolean(imageState.iconFile || imageState.iconUrl);
 
     if (!hasBackground || !hasIcon) {
-      return "Imagem de fundo e icon sao obrigatorios para publicar no card dos restaurantes.";
+      return "Imagem de fundo e icon são obrigatórios para publicar no card dos restaurantes.";
     }
 
     return "";
@@ -424,7 +424,7 @@ const handleSubmit = async (e) => {
       }
 
       if (!resolvedLocation.lat || !resolvedLocation.lng) {
-        setStatus({ type: "error", message: "Nao foi possivel obter coordenadas validas para a morada." });
+        setStatus({ type: "error", message: "Não foi possível obter coordenadas válidas para a morada." });
         setLoading(false);
         return;
       }
@@ -466,7 +466,7 @@ const handleSubmit = async (e) => {
         setStatus({ type: "success", message: "Dados da loja atualizados com sucesso." });
       } else {
         await submitPartnerRequest(payload);
-        setStatus({ type: "success", message: "Candidatura enviada com sucesso. A equipa PedeJa vai validar os teus dados." });
+        setStatus({ type: "success", message: "Candidatura enviada com sucesso. A equipa PedeJá vai validar os teus dados." });
 
         setForm({ restauranteNome: "", nif: "", telefone: "", idtipoloja: "" });
         setScheduleBlocks([createBlock(1)]);
@@ -630,7 +630,7 @@ const handleSubmit = async (e) => {
                   setAddressQuery(e.target.value);
                   setLocation({ lat: null, lng: null, place_id: null });
                 }}
-                placeholder="Rua, porta, codigo postal e cidade"
+                placeholder="Rua, porta, código postal e cidade"
                 required
               />
               <div className="address-tools">
@@ -647,7 +647,7 @@ const handleSubmit = async (e) => {
                 <p className={`coords-hint ${hasLocationCoordinates ? "ok" : ""}`}>
                   {hasLocationCoordinates
                     ? `Coordenadas: ${Number(location.lat).toFixed(6)}, ${Number(location.lng).toFixed(6)}`
-                    : "Sem coordenadas. Usa o mapa para marcar com precisao."}
+                    : "Sem coordenadas. Usa o mapa para marcar com precisão."}
                 </p>
               </div>
               {addressSuggestions.length > 0 ? (
@@ -659,13 +659,13 @@ const handleSubmit = async (e) => {
                   ))}
                 </div>
               ) : (
-                addressQuery.length >= 3 && <p className="hint">Sem sugestoes. Podes introduzir coordenadas manualmente.</p>
+                addressQuery.length >= 3 && <p className="hint">Sem sugestões. Podes introduzir coordenadas manualmente.</p>
               )}
-              <p className="hint">Sugestoes e mapa limitados a Portugal Continental e zona Barcelos.</p>
+              <p className="hint">Sugestões e mapa limitados a Portugal Continental e zona Barcelos.</p>
             </div>
 
             <div className="form-field full">
-              <label>Coordenadas (opcional, se a morada nao aparecer)</label>
+              <label>Coordenadas (opcional, se a morada não aparecer)</label>
               <div className="coords-row">
                 <input
                   type="text"
@@ -727,10 +727,10 @@ const handleSubmit = async (e) => {
           )}
 
             <div className="form-field full">
-              <label>Horario de funcionamento</label>
+              <label>Horário de funcionamento</label>
               <div className="schedule-builder">
                 <p className="schedule-help">
-                  Define os turnos em que a loja abre. Podes criar mais do que um bloco para fazer pausa de almoco.
+                  Define os turnos em que a loja abre. Podes criar mais do que um bloco para fazer pausa de almoço.
                 </p>
                 {scheduleBlocks.map((block) => (
                   <div key={block.id} className="schedule-block">
@@ -816,7 +816,7 @@ const handleSubmit = async (e) => {
             )}
 
             <button className="btn-primary" type="submit" disabled={loading}>
-              {loading ? "A guardar..." : isEditMode ? "Guardar alteracoes" : "Enviar candidatura"}
+              {loading ? "A guardar..." : isEditMode ? "Guardar alterações" : "Enviar candidatura"}
             </button>
           </form>
         )}
@@ -825,8 +825,8 @@ const handleSubmit = async (e) => {
 
       <LocationPickerModal
         isOpen={showMapPicker}
-        title={isEditMode ? "Ajustar localizacao da loja" : "Selecionar localizacao do estabelecimento"}
-        subtitle="Marca no mapa a entrada do estabelecimento para evitar erros de geolocalizacao."
+        title={isEditMode ? "Ajustar localização da loja" : "Selecionar localização do estabelecimento"}
+        subtitle="Marca no mapa a entrada do estabelecimento para evitar erros de geolocalização."
         initialLat={normalizeCoordinate(location.lat) || normalizeCoordinate(manualCoords.lat)}
         initialLng={normalizeCoordinate(location.lng) || normalizeCoordinate(manualCoords.lng)}
         showDeliveryPricing={false}

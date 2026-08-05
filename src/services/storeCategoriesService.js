@@ -40,10 +40,10 @@ export async function setStoreCategories({ callerUserId, lojaId, categoryIds }) 
   const normalizedLojaId = Number(lojaId);
 
   if (!Number.isFinite(normalizedCallerId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente.");
+    throw new Error("Sessão inválida: inicia sessão novamente.");
   }
   if (!Number.isFinite(normalizedLojaId)) {
-    throw new Error("Loja invalida.");
+    throw new Error("Loja inválida.");
   }
 
   const { error } = await supabase.rpc("set_store_categories", {

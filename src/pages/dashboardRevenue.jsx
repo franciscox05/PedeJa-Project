@@ -99,7 +99,7 @@ export default function DashboardRevenue() {
     } catch (error) {
       setState({
         loading: false,
-        error: error?.message || "Nao foi possivel carregar o detalhe da receita.",
+        error: error?.message || "Não foi possível carregar o detalhe da receita.",
         data: null,
       });
     }
@@ -125,7 +125,7 @@ export default function DashboardRevenue() {
         if (active) {
           setState({
             loading: false,
-            error: error?.message || "Nao foi possivel carregar o detalhe da receita.",
+            error: error?.message || "Não foi possível carregar o detalhe da receita.",
             data: null,
           });
         }
@@ -142,11 +142,11 @@ export default function DashboardRevenue() {
       activeTab="receita"
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Receita"
-      title="PedeJa Control Center"
-      subtitle="Origem da receita faturada, comissao e performance por loja/estafeta."
+      title="PedeJá Control Center"
+      subtitle="Origem da receita faturada, comissão e performance por loja/estafeta."
       footer={(
         <div>
-          <p className="muted dashboard-sidebar-footer-label">Analise</p>
+          <p className="muted dashboard-sidebar-footer-label">Análise</p>
           <strong>Receita detalhada</strong>
           <p className="muted dashboard-sidebar-footer-meta">{periodDays} dias</p>
         </div>
@@ -157,13 +157,13 @@ export default function DashboardRevenue() {
         <DashboardPageHeader
           kicker="Receita"
           title="Origem da receita"
-          subtitle="Visao geral por tipo de loja, loja individual e comissao estimada."
+          subtitle="Visão geral por tipo de loja, loja individual e comissão estimada."
           actions={(
             <>
               <select value={periodDays} onChange={(event) => setSearchParams({ days: String(Number(event.target.value)) })}>
-                <option value={7}>Ultimos 7 dias</option>
-                <option value={30}>Ultimos 30 dias</option>
-                <option value={90}>Ultimos 90 dias</option>
+                <option value={7}>Últimos 7 dias</option>
+                <option value={30}>Últimos 30 dias</option>
+                <option value={90}>Últimos 90 dias</option>
               </select>
               <button className="btn-dashboard" onClick={() => load(periodDays)}>Atualizar</button>
               <button className="btn-dashboard secondary" onClick={() => navigate(`/dashboard/admin/performance?days=${periodDays}`)}>
@@ -190,7 +190,7 @@ export default function DashboardRevenue() {
                 <div className="stat-hero-body">
                   <div className="metric-label">Faturado ao cliente</div>
                   <div className="metric-value">{formatMoney(revenueData.overview.totalGrossRevenue)}</div>
-                  <div className="metric-foot">Valor bruto cobrado no periodo</div>
+                  <div className="metric-foot">Valor bruto cobrado no período</div>
                 </div>
               </article>
               <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
@@ -200,7 +200,7 @@ export default function DashboardRevenue() {
                 <div className="stat-hero-body">
                   <div className="metric-label">Base das lojas</div>
                   <div className="metric-value">{formatMoney(revenueData.overview.totalBaseValue)}</div>
-                  <div className="metric-foot">Preco base estimado dos artigos</div>
+                  <div className="metric-foot">Preço base estimado dos artigos</div>
                 </div>
               </article>
               <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#7e22ce" }}>
@@ -208,9 +208,9 @@ export default function DashboardRevenue() {
                   <span className="material-icons" aria-hidden="true">percent</span>
                 </div>
                 <div className="stat-hero-body">
-                  <div className="metric-label">Comissao PedeJa</div>
+                  <div className="metric-label">Comissão PedeJá</div>
                   <div className="metric-value">{formatMoney(revenueData.overview.totalCommissionProfit)}</div>
-                  <div className="metric-foot">Lucro estimado em markup/comissao</div>
+                  <div className="metric-foot">Lucro estimado em markup/comissão</div>
                 </div>
               </article>
               <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#c2410c" }}>
@@ -234,7 +234,7 @@ export default function DashboardRevenue() {
                     Origem da receita por tipo
                   </>
                 )}
-                description="Peso de cada categoria de negocio no total faturado."
+                description="Peso de cada categoria de negócio no total faturado."
               >
                 {typeSplitChartData.length === 0 ? (
                   <DashboardEmptyState label="Sem dados de receita para mostrar." />
@@ -267,10 +267,10 @@ export default function DashboardRevenue() {
                 title={(
                   <>
                     <span className="material-icons panel-title-icon" aria-hidden="true">leaderboard</span>
-                    Top lojas por faturacao
+                    Top lojas por faturação
                   </>
                 )}
-                description="As lojas que mais faturaram no periodo selecionado."
+                description="As lojas que mais faturaram no período selecionado."
               >
                 {topStoresChartData.length === 0 ? (
                   <DashboardEmptyState label="Sem lojas com receita para mostrar." />
@@ -303,9 +303,9 @@ export default function DashboardRevenue() {
                 )}
               >
                 <p className="muted">
-                  O valor de <strong>{formatMoney(revenueData.overview.totalGrossRevenue)}</strong> inclui o preco final dos artigos
-                  com markup e a taxa de entrega. A base das lojas representa o preco original estimado do menu, e a diferenca fica
-                  na comissao PedeJa.
+                  O valor de <strong>{formatMoney(revenueData.overview.totalGrossRevenue)}</strong> inclui o preço final dos artigos
+                  com markup e a taxa de entrega. A base das lojas representa o preço original estimado do menu, e a diferença fica
+                  na comissão PedeJá.
                 </p>
                 <div className="insight-pills">
                   <span className="tag ok">Restaurantes: {formatMoney(revenueData.overview.restaurantGrossRevenue)}</span>
@@ -320,13 +320,13 @@ export default function DashboardRevenue() {
                     <span className="insight-card-icon insight-card-icon--amber">
                       <span className="material-icons" aria-hidden="true">verified</span>
                     </span>
-                    Qualidade da leitura da comissao
+                    Qualidade da leitura da comissão
                   </span>
                 )}
               >
                 <p className="muted">
-                  Quando o prato ainda existe no catalogo, a leitura usa o preco base atual. Caso contrario, a comissao e inferida
-                  pela configuracao ativa da loja, para te dar uma explicacao util de onde vem o valor faturado.
+                  Quando o prato ainda existe no catálogo, a leitura usa o preço base atual. Caso contrário, a comissão é inferida
+                  pela configuração ativa da loja, para te dar uma explicação útil de onde vem o valor faturado.
                 </p>
                 <div className="coverage-bar">
                   <span
@@ -350,11 +350,11 @@ export default function DashboardRevenue() {
                 <div className="coverage-grid">
                   <div>
                     <strong>{coverage?.exactItems || 0}</strong>
-                    <span>Itens lidos diretamente do catalogo</span>
+                    <span>Itens lidos diretamente do catálogo</span>
                   </div>
                   <div>
                     <strong>{coverage?.estimatedItems || 0}</strong>
-                    <span>Itens inferidos pela comissao atual</span>
+                    <span>Itens inferidos pela comissão atual</span>
                   </div>
                   <div>
                     <strong>{coverage?.unresolvedItems || 0}</strong>
@@ -382,11 +382,11 @@ export default function DashboardRevenue() {
                     </div>
                     <div>
                       <strong>{formatMoney(collectiveRestaurants.commissionProfit)}</strong>
-                      <span>Comissao estimada</span>
+                      <span>Comissão estimada</span>
                     </div>
                     <div>
                       <strong>{formatMoney(collectiveRestaurants.avgOrderValue)}</strong>
-                      <span>Ticket medio</span>
+                      <span>Ticket médio</span>
                     </div>
                   </div>
                 ) : (
@@ -402,7 +402,7 @@ export default function DashboardRevenue() {
                   Receita por tipo de loja
                 </>
               )}
-              description="Coletivo por categoria de negocio: restaurantes e restantes tipos de loja."
+              description="Coletivo por categoria de negócio: restaurantes e restantes tipos de loja."
             >
               <div className="table-wrap">
                 <table className="ops-table">
@@ -412,9 +412,9 @@ export default function DashboardRevenue() {
                       <th>Pedidos</th>
                       <th>Faturado</th>
                       <th>Base lojas</th>
-                      <th>Comissao</th>
+                      <th>Comissão</th>
                       <th>Entrega</th>
-                      <th>Ticket medio</th>
+                      <th>Ticket médio</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -458,7 +458,7 @@ export default function DashboardRevenue() {
                   Receita por loja
                 </>
               )}
-              description="Vista individual por loja, para comparar faturacao, base e lucro real de comissao."
+              description="Vista individual por loja, para comparar faturação, base e lucro real de comissão."
             >
               <div className="table-wrap">
                 <table className="ops-table">
@@ -469,7 +469,7 @@ export default function DashboardRevenue() {
                       <th>Pedidos</th>
                       <th>Faturado</th>
                       <th>Base lojas</th>
-                      <th>Comissao</th>
+                      <th>Comissão</th>
                       <th>Entrega</th>
                     </tr>
                   </thead>

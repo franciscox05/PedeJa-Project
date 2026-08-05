@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import Logo from "../components/Logo";
@@ -8,6 +8,7 @@ import Voltar from "../components/Voltar";
 import MenuGlobal from "../components/MenuGlobal";
 import InHouseTrackingMap from "../components/order/InHouseTrackingMap";
 import DeliveryRatingCard from "../components/order/DeliveryRatingCard";
+import OrderRatingCard from "../components/order/OrderRatingCard";
 import { groupSelectedMenuOptionsForDisplay } from "../services/menuOptionsService";
 import { updateOrderWorkflowStatus } from "../services/opsDashboardService";
 import { fetchOrderDetails, getStatusTone } from "../services/orderDetailsService";
@@ -120,6 +121,16 @@ export default function PedidoConfirmado() {
     if (message) showError(message);
   }, [showError]);
   const [cancelTick, setCancelTick] = useState(() => Date.now());
+  // Evita que um pedido de rede lento/tardio (ex: apos logout, quando a
+  // permissao ja foi perdida) reponha estado ou dispare o alerta global
+  // depois de a pagina ja ter sido abandonada.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const allowGuestState = Boolean(location.state?.allow_guest_access);
   const fromCheckout = Boolean(location.state?.from_checkout);
@@ -156,12 +167,15 @@ export default function PedidoConfirmado() {
         user,
         allowGuestState,
       });
+      if (!isMountedRef.current) return;
       setDetails(data);
       setError("");
     } catch (err) {
+      if (!isMountedRef.current) return;
       setError(err.message || "Nao foi possivel carregar os detalhes do pedido.");
       setDetails(null);
     } finally {
+      if (!isMountedRef.current) return;
       if (!silent) setLoading(false);
       if (silent) setRefreshing(false);
     }
@@ -467,6 +481,14 @@ export default function PedidoConfirmado() {
                   </div>
                 </article>
               </section>
+
+              {viewerIsCustomer && customerOrderEstadoInterno === "entregue" && details.order?.id ? (
+                <OrderRatingCard
+                  orderId={details.order.id}
+                  callerUserId={extractUserId(user)}
+                  storeName={details.store?.nome}
+                />
+              ) : null}
 
               {viewerIsCustomer && customerOrderEstadoInterno === "entregue" && details.order?.id ? (
                 <DeliveryRatingCard

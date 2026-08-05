@@ -143,12 +143,12 @@ export default function Carrinho() {
 
     if (!newAddress.rua.trim()) return "Preencha a Rua.";
     if (!newAddress.porta.trim()) return "Preencha a Porta.";
-    if (!newAddress.codigoPostal.trim()) return "Preencha o Codigo Postal.";
+    if (!newAddress.codigoPostal.trim()) return "Preencha o Código Postal.";
     if (!newAddress.cidade.trim()) return "Preencha a Cidade.";
 
     const postalRegex = /^\d{4}-\d{3}$/;
     if (!postalRegex.test(newAddress.codigoPostal.trim())) {
-      return "Codigo Postal invalido. Use o formato 0000-000.";
+      return "Código Postal inválido. Use o formato 0000-000.";
     }
 
     return "";
@@ -191,7 +191,7 @@ export default function Carrinho() {
       }
 
       if (response.error) throw response.error;
-      if (!response.data) throw new Error("Loja nao encontrada para calcular entrega.");
+      if (!response.data) throw new Error("Loja não encontrada para calcular entrega.");
       setGlobalDeliveryPricingConfig(globalDeliveryPricing?.config || null);
 
       const effectiveDeliveryPricingConfig = resolveEffectiveDeliveryPricingConfig(
@@ -231,7 +231,7 @@ export default function Carrinho() {
         fee: 0,
         distanceKm: null,
         tier: null,
-        reason: error?.message || "Nao foi possivel carregar coordenadas da loja.",
+        reason: error?.message || "Não foi possível carregar coordenadas da loja.",
       });
     } finally {
       setStoreOriginLoading(false);
@@ -370,7 +370,7 @@ export default function Carrinho() {
 
     const userId = extractUserId(user);
     if (!userId) {
-      setCouponError("Inicia sessao para usar um cupao de desconto.");
+      setCouponError("Inicia sessão para usar um cupão de desconto.");
       return;
     }
 
@@ -382,7 +382,7 @@ export default function Carrinho() {
       setCouponInput("");
     } catch (error) {
       setAppliedCoupon(null);
-      setCouponError(error?.message || "Cupao invalido.");
+      setCouponError(error?.message || "Cupão inválido.");
     } finally {
       setCouponChecking(false);
     }
@@ -409,7 +409,7 @@ export default function Carrinho() {
       } catch (error) {
         if (!cancelled) {
           setAppliedCoupon(null);
-          setCouponError(error?.message || "O cupao deixou de ser valido para o novo valor do carrinho.");
+          setCouponError(error?.message || "O cupão deixou de ser válido para o novo valor do carrinho.");
         }
       }
     }, 400);
@@ -504,7 +504,7 @@ export default function Carrinho() {
         fee: 0,
         distanceKm: null,
         tier: null,
-        reason: "Morada sem coordenadas validas.",
+        reason: "Morada sem coordenadas válidas.",
       };
     }
 
@@ -546,7 +546,7 @@ export default function Carrinho() {
             fee: 0,
             distanceKm: null,
             tier: null,
-            reason: "Nao foi possivel validar a morada selecionada.",
+            reason: "Não foi possível validar a morada selecionada.",
           });
           return;
         }
@@ -610,7 +610,7 @@ export default function Carrinho() {
             fee: 0,
             distanceKm: null,
             tier: null,
-            reason: `Morada fora das freguesias de Barcelos ou nao encontrada. Limite: ${deliveryMaxKm} km.`,
+            reason: `Morada fora das freguesias de Barcelos ou não encontrada. Limite: ${deliveryMaxKm} km.`,
           });
           return;
         }
@@ -661,10 +661,10 @@ export default function Carrinho() {
     }
 
     if (deliveryMode === "SCHEDULED") {
-      if (!scheduledAt) return "Escolha o horario de entrega.";
+      if (!scheduledAt) return "Escolha o horário de entrega.";
       const selectedDate = new Date(scheduledAt);
       if (Number.isNaN(selectedDate.getTime()) || selectedDate.getTime() <= Date.now()) {
-        return "Escolha um horario de entrega no futuro.";
+        return "Escolha um horário de entrega no futuro.";
       }
     }
 
@@ -698,7 +698,7 @@ export default function Carrinho() {
 
         const geocoded = await geocodeNewAddress(composedAddress);
         if (!geocoded) {
-          throw new Error("Nao foi possivel validar a nova morada.");
+          throw new Error("Não foi possível validar a nova morada.");
         }
 
         quoteToUse = await calculateQuoteForCoordinates(geocoded);
@@ -744,7 +744,7 @@ export default function Carrinho() {
       } else if (selectedAddress) {
         const coords = await ensureExistingAddressCoordinates(selectedAddress);
         if (!coords) {
-          throw new Error("Nao foi possivel validar a morada guardada.");
+          throw new Error("Não foi possível validar a morada guardada.");
         }
 
         quoteToUse = await calculateQuoteForCoordinates(coords);
@@ -798,7 +798,7 @@ export default function Carrinho() {
         },
       });
     } catch (error) {
-      setCheckoutError(error.message || "Nao foi possivel finalizar o pedido.");
+      setCheckoutError(error.message || "Não foi possível finalizar o pedido.");
     } finally {
       setCheckoutLoading(false);
     }
@@ -807,7 +807,7 @@ export default function Carrinho() {
   if (cart.length === 0) {
     return (
       <div className="cart-page-wrapper" style={{ display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
-        <h2 style={{ color: "#333", marginTop: "20px" }}>O seu carrinho esta vazio</h2>
+        <h2 style={{ color: "#333", marginTop: "20px" }}>O seu carrinho está vazio</h2>
         <button onClick={handleVoltar} className="btn-checkout-final" style={{ width: "auto", padding: "15px 40px", boxShadow: "none" }}>
           Voltar aos Restaurantes
         </button>
@@ -849,7 +849,7 @@ export default function Carrinho() {
                   ))}
                   {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim() ? (
                     <p style={{ margin: "4px 0 0", color: "#475569", fontSize: "0.9rem", fontStyle: "italic" }}>
-                      <strong>Instrucoes:</strong> {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim()}
+                      <strong>Instruções:</strong> {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim()}
                     </p>
                   ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px" }}>
@@ -883,7 +883,7 @@ export default function Carrinho() {
           <div style={{ marginTop: "10px", display: "grid", gap: "6px" }}>
             {appliedCoupon ? (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #d1fae5", background: "#ecfdf5", borderRadius: "10px", padding: "10px" }}>
-                <span style={{ color: "#166534", fontWeight: 600 }}>Cupao {appliedCoupon.code} aplicado</span>
+                <span style={{ color: "#166534", fontWeight: 600 }}>Cupão {appliedCoupon.code} aplicado</span>
                 <button type="button" onClick={handleRemoveCoupon} style={{ border: "none", background: "none", color: "#166534", textDecoration: "underline", cursor: "pointer" }}>
                   Remover
                 </button>
@@ -892,7 +892,7 @@ export default function Carrinho() {
               <div style={{ display: "flex", gap: "8px" }}>
                 <input
                   type="text"
-                  placeholder="Codigo de desconto"
+                  placeholder="Código de desconto"
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value)}
                   style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }}
@@ -922,7 +922,7 @@ export default function Carrinho() {
               Zona de entrega{storeOrigin.nome ? ` - ${storeOrigin.nome}` : ""}
             </strong>
             {storeOriginLoading || deliveryLoading ? (
-              <span style={{ color: "#0f172a" }}>A validar morada e distancia real de conducao...</span>
+              <span style={{ color: "#0f172a" }}>A validar morada e distância real de condução...</span>
             ) : deliveryQuote.deliverable ? (
               <span style={{ color: "#166534" }}>
                 Dentro da zona ({formatDistanceKm(deliveryQuote.distanceKm)} por estrada).
@@ -974,7 +974,7 @@ export default function Carrinho() {
                 </button>
                 <input type="text" placeholder="Rua" value={newAddress.rua} onChange={(e) => setNewAddress((prev) => ({ ...prev, rua: e.target.value }))} />
                 <input type="text" placeholder="Porta" value={newAddress.porta} onChange={(e) => setNewAddress((prev) => ({ ...prev, porta: e.target.value }))} />
-                <input type="text" placeholder="Codigo Postal (0000-000)" value={newAddress.codigoPostal} onChange={(e) => setNewAddress((prev) => ({ ...prev, codigoPostal: e.target.value }))} />
+                <input type="text" placeholder="Código Postal (0000-000)" value={newAddress.codigoPostal} onChange={(e) => setNewAddress((prev) => ({ ...prev, codigoPostal: e.target.value }))} />
                 <input type="text" placeholder="Cidade (Barcelos)" value={newAddress.cidade} onChange={(e) => setNewAddress((prev) => ({ ...prev, cidade: e.target.value }))} />
                 {isFiniteCoordinate(newAddressGeo?.lat) && isFiniteCoordinate(newAddressGeo?.lng) ? (
                   <p style={{ margin: 0, color: "#334155", fontWeight: 600, fontSize: "0.88rem" }}>
@@ -1000,10 +1000,10 @@ export default function Carrinho() {
             <textarea name="notas" placeholder="Notas para o estafeta (opcional)" value={dadosEntrega.notas} onChange={handleFormChange} rows={2} style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }} />
 
             <div style={{ display: "grid", gap: "6px", border: "1px solid #eee", borderRadius: "12px", padding: "12px" }}>
-              <strong>Horario de entrega</strong>
+              <strong>Horário de entrega</strong>
               <select value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)}>
                 <option value="ASAP">Imediato (ASAP)</option>
-                <option value="SCHEDULED">Escolher hora especifica</option>
+                <option value="SCHEDULED">Escolher hora específica</option>
               </select>
               {deliveryMode === "SCHEDULED" && (
                 <DatePickerCustom
@@ -1017,7 +1017,7 @@ export default function Carrinho() {
             </div>
 
             <div style={{ display: "grid", gap: "6px", border: "1px solid #eee", borderRadius: "12px", padding: "12px" }}>
-              <strong>Metodo de pagamento</strong>
+              <strong>Método de pagamento</strong>
               <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <input
                   type="radio"
@@ -1048,7 +1048,7 @@ export default function Carrinho() {
 
       <LocationPickerModal
         isOpen={showMapPicker}
-        title="Selecionar localizacao de entrega"
+        title="Selecionar localização de entrega"
         subtitle="Marca o ponto exato no mapa para guardar morada e coordenadas sem erro."
         initialLat={newAddressGeo?.lat ?? null}
         initialLng={newAddressGeo?.lng ?? null}

@@ -24,7 +24,7 @@ export default function CarrierAssignModal({ carrierModal, onClose, onAssign }) 
               <article key={carrier.id} className="admin-carrier-card">
                 <div>
                   <strong>{carrier.name || `Estafeta ${carrier.id}`}</strong>
-                  <p className="muted">{carrier.phone || "Sem telemovel"} - {carrier.status || "-"}</p>
+                  <p className="muted">{carrier.phone || "Sem telemóvel"} - {carrier.status || "-"}</p>
                 </div>
                 <button
                   className="btn-dashboard small"

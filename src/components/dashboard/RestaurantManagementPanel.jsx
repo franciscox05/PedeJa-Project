@@ -21,7 +21,7 @@ function parseCommissionValue(value, { allowBlank = false } = {}) {
 
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
-    throw new Error("A comissao PedeJa deve ser um numero entre 0 e 100.");
+    throw new Error("A comissão PedeJá deve ser um número entre 0 e 100.");
   }
 
   return Number(parsed.toFixed(2));
@@ -108,7 +108,7 @@ function buildAutoAssignDraft(store) {
 }
 
 export default function RestaurantManagementPanel({
-  title = "Gestao de Restaurantes",
+  title = "Gestão de Restaurantes",
   subtitle = "",
   stores = [],
   loading = false,
@@ -118,7 +118,7 @@ export default function RestaurantManagementPanel({
   showCommissions = true,
   showCommissionSettings = true,
   showOperationalSettings = true,
-  emptyText = "Sem restaurantes disponiveis.",
+  emptyText = "Sem restaurantes disponíveis.",
   toolbar = null,
   globalAutoAssignEnabled = false,
   globalAutoAssignLoading = false,
@@ -300,14 +300,14 @@ export default function RestaurantManagementPanel({
       setSavedAutoAssignMap((prev) => ({ ...prev, [rowKey]: true }));
       setFeedback({
         tone: "success",
-        message: `Alteracoes guardadas para ${store.nome || `Loja ${store.idloja}`}.`,
+        message: `Alterações guardadas para ${store.nome || `Loja ${store.idloja}`}.`,
       });
     } catch (saveError) {
       setSavedStoreMap((prev) => ({ ...prev, [rowKey]: false }));
       setSavedAutoAssignMap((prev) => ({ ...prev, [rowKey]: false }));
       setFeedback({
         tone: "error",
-        message: saveError?.message || "Nao foi possivel guardar as alteracoes desta loja.",
+        message: saveError?.message || "Não foi possível guardar as alterações desta loja.",
       });
     } finally {
       setSavingStoreId("");
@@ -325,13 +325,13 @@ export default function RestaurantManagementPanel({
       setSavedGlobalAutoAssign(true);
       setFeedback({
         tone: "success",
-        message: "Criterios globais de atribuicao automatica atualizados.",
+        message: "Critérios globais de atribuição automática atualizados.",
       });
     } catch (saveError) {
       setSavedGlobalAutoAssign(false);
       setFeedback({
         tone: "error",
-        message: saveError?.message || "Nao foi possivel guardar os criterios globais de atribuicao automatica.",
+        message: saveError?.message || "Não foi possível guardar os critérios globais de atribuição automática.",
       });
     } finally {
       setSavingAutoAssignId("");
@@ -350,13 +350,13 @@ export default function RestaurantManagementPanel({
       setSavedGlobalCommission(true);
       setFeedback({
         tone: "success",
-        message: "Comissao base da plataforma atualizada.",
+        message: "Comissão base da plataforma atualizada.",
       });
     } catch (saveError) {
       setSavedGlobalCommission(false);
       setFeedback({
         tone: "error",
-        message: saveError?.message || "Nao foi possivel guardar a comissao base da plataforma.",
+        message: saveError?.message || "Não foi possível guardar a comissão base da plataforma.",
       });
     } finally {
       setSavingGlobalCommission(false);
@@ -384,8 +384,8 @@ export default function RestaurantManagementPanel({
         <section className="restaurant-settings-card restaurant-settings-card--global">
           <div className="restaurant-settings-card-top">
             <div>
-              <p className="kicker">Configuracao da plataforma · afeta todas as lojas</p>
-              <h4>Atribuicao automatica geral</h4>
+              <p className="kicker">Configuração da plataforma · afeta todas as lojas</p>
+              <h4>Atribuição automática geral</h4>
               <p className="muted">
                 Quando ligada, todas as lojas passam a atribuir estafeta automaticamente.
               </p>
@@ -408,9 +408,9 @@ export default function RestaurantManagementPanel({
                     handler: (_, nextValue) => onToggleGlobalAutoAssign(nextValue),
                     nextValue: !globalAutoAssignEnabled,
                     successMessage: globalAutoAssignEnabled
-                      ? "A atribuicao automatica geral foi desligada."
-                      : "A atribuicao automatica geral foi ligada para todas as lojas.",
-                    errorMessage: "Nao foi possivel atualizar a atribuicao automatica geral.",
+                      ? "A atribuição automática geral foi desligada."
+                      : "A atribuição automática geral foi ligada para todas as lojas.",
+                    errorMessage: "Não foi possível atualizar a atribuição automática geral.",
                   })}
                 />
                 <span className="dashboard-switch-track">
@@ -426,9 +426,9 @@ export default function RestaurantManagementPanel({
           {typeof onSaveGlobalAutoAssignSettings === "function" ? (
             <div className="commission-editor-card">
               <div className="commission-editor-header">
-                <h5>Criterios do modo geral</h5>
+                <h5>Critérios do modo geral</h5>
                 <p className="muted">
-                  Combina um ou varios criterios para decidir automaticamente qual o melhor estafeta.
+                  Combina um ou vários critérios para decidir automaticamente qual o melhor estafeta.
                 </p>
               </div>
 
@@ -467,7 +467,7 @@ export default function RestaurantManagementPanel({
                   disabled={!canEdit || loading || globalAutoAssignLoading || savingAutoAssignId === "global"}
                   onClick={handleSaveGlobalAutoAssign}
                 >
-                  {savingAutoAssignId === "global" ? "A guardar..." : savedGlobalAutoAssign ? "Guardado" : "Guardar criterios globais"}
+                  {savingAutoAssignId === "global" ? "A guardar..." : savedGlobalAutoAssign ? "Guardado" : "Guardar critérios globais"}
                 </button>
               </div>
             </div>
@@ -479,18 +479,18 @@ export default function RestaurantManagementPanel({
         <section className="restaurant-settings-card restaurant-settings-card--global">
           <div className="restaurant-settings-card-top">
             <div>
-              <p className="kicker">Configuracao da plataforma · afeta todas as lojas</p>
-              <h4>Comissao base da plataforma</h4>
+              <p className="kicker">Configuração da plataforma · afeta todas as lojas</p>
+              <h4>Comissão base da plataforma</h4>
               <p className="muted">
-                Aplica-se a qualquer loja que ainda nao tenha uma comissao propria definida.
-                Lojas com override proprio (por loja, categoria ou prato) nao sao afetadas.
+                Aplica-se a qualquer loja que ainda não tenha uma comissão própria definida.
+                Lojas com override próprio (por loja, categoria ou prato) não são afetadas.
               </p>
             </div>
           </div>
 
           <div className="restaurant-settings-controls">
             <div className="restaurant-setting-field">
-              <span className="restaurant-setting-label">Comissao base (%)</span>
+              <span className="restaurant-setting-label">Comissão base (%)</span>
               <input
                 type="number"
                 min="0"
@@ -514,7 +514,7 @@ export default function RestaurantManagementPanel({
               disabled={!canEdit || loading || platformCommissionLoading || savingGlobalCommission}
               onClick={handleSaveGlobalCommission}
             >
-              {savingGlobalCommission ? "A guardar..." : savedGlobalCommission ? "Guardado" : "Guardar comissao base"}
+              {savingGlobalCommission ? "A guardar..." : savedGlobalCommission ? "Guardado" : "Guardar comissão base"}
             </button>
           </div>
         </section>
@@ -553,7 +553,7 @@ export default function RestaurantManagementPanel({
               </div>
 
               {operationalUiEnabled || commissionUiEnabled ? (
-                <nav className="restaurant-card-jump-nav" aria-label={`Saltar para seccao da loja ${store.nome || store.idloja}`}>
+                <nav className="restaurant-card-jump-nav" aria-label={`Saltar para secção da loja ${store.nome || store.idloja}`}>
                   <span className="restaurant-card-jump-label">Ir para:</span>
                   {operationalUiEnabled ? (
                     <button type="button" className="restaurant-card-jump-link" onClick={() => scrollToStoreSection(rowKey, "operacional")}>
@@ -564,13 +564,13 @@ export default function RestaurantManagementPanel({
                   {isAdmin && operationalUiEnabled && typeof onSaveAutoAssignConfig === "function" ? (
                     <button type="button" className="restaurant-card-jump-link" onClick={() => scrollToStoreSection(rowKey, "auto-assign")}>
                       <span className="material-icons" aria-hidden="true">arrow_downward</span>
-                      Auto-atribuicao
+                      Auto-atribuição
                     </button>
                   ) : null}
                   {commissionUiEnabled ? (
                     <button type="button" className="restaurant-card-jump-link" onClick={() => scrollToStoreSection(rowKey, "comissao")}>
                       <span className="material-icons" aria-hidden="true">arrow_downward</span>
-                      Comissao
+                      Comissão
                     </button>
                   ) : null}
                 </nav>
@@ -579,7 +579,7 @@ export default function RestaurantManagementPanel({
               {operationalUiEnabled ? (
                 <div id={`restaurant-store-${rowKey}-operacional`} className="restaurant-settings-controls">
                   <div className="restaurant-setting-field">
-                    <span className="restaurant-setting-label">Aceitacao automatica</span>
+                    <span className="restaurant-setting-label">Aceitação automática</span>
                     <label className={`dashboard-switch${!canEdit ? " is-disabled" : ""}`}>
                       <input
                         type="checkbox"
@@ -589,8 +589,8 @@ export default function RestaurantManagementPanel({
                           store,
                           handler: onToggleAutoAccept,
                           nextValue: !store.aceitacao_automatica_pedidos,
-                          successMessage: `Aceitacao automatica atualizada para ${store.nome || `Loja ${store.idloja}`}.`,
-                          errorMessage: "Nao foi possivel atualizar a aceitacao automatica.",
+                          successMessage: `Aceitação automática atualizada para ${store.nome || `Loja ${store.idloja}`}.`,
+                          errorMessage: "Não foi possível atualizar a aceitação automática.",
                         })}
                       />
                       <span className="dashboard-switch-track">
@@ -603,7 +603,7 @@ export default function RestaurantManagementPanel({
                   </div>
 
                   <div className="restaurant-setting-field">
-                    <span className="restaurant-setting-label">Atribuicao automatica</span>
+                    <span className="restaurant-setting-label">Atribuição automática</span>
                     <label className={`dashboard-switch${!canEdit ? " is-disabled" : ""}`}>
                       <input
                         type="checkbox"
@@ -613,8 +613,8 @@ export default function RestaurantManagementPanel({
                           store,
                           handler: onToggleAutoAssign,
                           nextValue: !store.atribuicao_automatica_estafeta,
-                          successMessage: `Atribuicao automatica atualizada para ${store.nome || `Loja ${store.idloja}`}.`,
-                          errorMessage: "Nao foi possivel atualizar a atribuicao automatica.",
+                          successMessage: `Atribuição automática atualizada para ${store.nome || `Loja ${store.idloja}`}.`,
+                          errorMessage: "Não foi possível atualizar a atribuição automática.",
                         })}
                       />
                       <span className="dashboard-switch-track">
@@ -628,7 +628,7 @@ export default function RestaurantManagementPanel({
 
                   {commissionUiEnabled ? (
                     <div className="restaurant-setting-field">
-                      <span className="restaurant-setting-label">Comissao propria desta loja</span>
+                      <span className="restaurant-setting-label">Comissão própria desta loja</span>
                       <label className={`dashboard-switch${!canEdit ? " is-disabled" : ""}`}>
                         <input
                           type="checkbox"
@@ -644,7 +644,7 @@ export default function RestaurantManagementPanel({
                         </span>
                         <span className="dashboard-switch-text">
                           {draft.hasOwnOverride
-                            ? "Valor proprio"
+                            ? "Valor próprio"
                             : `A usar ${formatCommissionDraft(platformCommissionPercent)}% da plataforma`}
                         </span>
                       </label>
@@ -653,7 +653,7 @@ export default function RestaurantManagementPanel({
 
                   {commissionUiEnabled ? (
                     <div className="restaurant-setting-field">
-                      <span className="restaurant-setting-label">Comissao global (%)</span>
+                      <span className="restaurant-setting-label">Comissão global (%)</span>
                       <input
                         type="number"
                         min="0"
@@ -673,13 +673,13 @@ export default function RestaurantManagementPanel({
               ) : (
                 <div className="restaurant-settings-controls">
                   <div className="restaurant-setting-readonly">
-                    <span className="restaurant-setting-label">Aceitacao automatica</span>
+                    <span className="restaurant-setting-label">Aceitação automática</span>
                     <span className={`tag ${store.aceitacao_automatica_pedidos ? "ok" : "warn"}`}>
                       {store.aceitacao_automatica_pedidos ? "Ativada" : "Manual"}
                     </span>
                   </div>
                   <div className="restaurant-setting-readonly">
-                    <span className="restaurant-setting-label">Atribuicao automatica</span>
+                    <span className="restaurant-setting-label">Atribuição automática</span>
                     <span className={`tag ${(globalAutoAssignEnabled || store.atribuicao_automatica_estafeta) ? "ok" : "warn"}`}>
                       {globalAutoAssignEnabled ? "Geral" : (store.atribuicao_automatica_estafeta ? "Ligada" : "Manual")}
                     </span>
@@ -690,11 +690,11 @@ export default function RestaurantManagementPanel({
               {isAdmin && operationalUiEnabled && typeof onSaveAutoAssignConfig === "function" ? (
                 <div id={`restaurant-store-${rowKey}-auto-assign`} className="commission-editor-card">
                   <div className="commission-editor-header">
-                    <h5>Criterios por loja</h5>
+                    <h5>Critérios por loja</h5>
                     <p className="muted">
                       {globalAutoAssignEnabled
-                        ? "O modo geral esta ativo. Estes criterios ficam guardados para quando a loja voltar ao modo individual."
-                        : "Escolhe um ou varios criterios para o auto-assign desta loja."}
+                        ? "O modo geral está ativo. Estes critérios ficam guardados para quando a loja voltar ao modo individual."
+                        : "Escolhe um ou vários critérios para o auto-assign desta loja."}
                     </p>
                   </div>
 
@@ -730,7 +730,7 @@ export default function RestaurantManagementPanel({
 
               {commissionUiEnabled ? (
                 <>
-                  <div id={`restaurant-store-${rowKey}-comissao`} className="commission-mode-tabs" role="tablist" aria-label={`Modo de comissao da loja ${store.nome || store.idloja}`}>
+                  <div id={`restaurant-store-${rowKey}-comissao`} className="commission-mode-tabs" role="tablist" aria-label={`Modo de comissão da loja ${store.nome || store.idloja}`}>
                     {availableTabs.map((mode) => (
                       <button
                         key={mode.id}
@@ -756,14 +756,14 @@ export default function RestaurantManagementPanel({
                   {draft.mode === "category" ? (
                     <div className="commission-editor-card">
                       <div className="commission-editor-header">
-                        <h5>Comissao por categoria</h5>
-                        <p className="muted">Se um campo ficar vazio, a categoria usa a comissao global.</p>
+                        <h5>Comissão por categoria</h5>
+                        <p className="muted">Se um campo ficar vazio, a categoria usa a comissão global.</p>
                       </div>
 
                       {catalogLoading ? <p className="muted">A carregar categorias do menu...</p> : null}
                       {!catalogLoading && catalogError ? <p className="shipday-inline-error">{catalogError}</p> : null}
                       {!catalogLoading && !catalogError && catalog.categories.length === 0 ? (
-                        <p className="muted">Ainda nao existem categorias no menu desta loja.</p>
+                        <p className="muted">Ainda não existem categorias no menu desta loja.</p>
                       ) : null}
 
                       {!catalogLoading && !catalogError && catalog.categories.length > 0 ? (
@@ -798,14 +798,14 @@ export default function RestaurantManagementPanel({
                   {draft.mode === "item" ? (
                     <div className="commission-editor-card">
                       <div className="commission-editor-header">
-                        <h5>Comissao por prato</h5>
+                        <h5>Comissão por prato</h5>
                         <p className="muted">O prato usa primeiro este override. Sem valor, cai para categoria e depois global.</p>
                       </div>
 
                       {catalogLoading ? <p className="muted">A carregar pratos do menu...</p> : null}
                       {!catalogLoading && catalogError ? <p className="shipday-inline-error">{catalogError}</p> : null}
                       {!catalogLoading && !catalogError && catalog.items.length === 0 ? (
-                        <p className="muted">Ainda nao existem pratos no menu desta loja.</p>
+                        <p className="muted">Ainda não existem pratos no menu desta loja.</p>
                       ) : null}
 
                       {!catalogLoading && !catalogError && catalog.items.length > 0 ? (
@@ -852,7 +852,7 @@ export default function RestaurantManagementPanel({
                   >
                     {savingStoreId === rowKey
                       ? "A guardar..."
-                      : (rowSaved && rowAutoAssignSaved ? "Guardado" : "Guardar alteracoes desta loja")}
+                      : (rowSaved && rowAutoAssignSaved ? "Guardado" : "Guardar alterações desta loja")}
                   </button>
                 </div>
               ) : null}

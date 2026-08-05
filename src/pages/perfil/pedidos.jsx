@@ -81,7 +81,7 @@ export default function ProfilePedidos() {
   const paginatedOrders = orderedOrders.slice((page - 1) * ORDERS_PER_PAGE, page * ORDERS_PER_PAGE);
 
   if (loading) {
-    return <p className="profile-note">A carregar resumo e historico de pedidos...</p>;
+    return <p className="profile-note">A carregar resumo e histórico de pedidos...</p>;
   }
 
   return (
@@ -96,7 +96,7 @@ export default function ProfilePedidos() {
           <strong>{ordersData.summary.openOrders}</strong>
         </article>
         <article className="profile-summary-card">
-          <span>Concluidos</span>
+          <span>Concluídos</span>
           <strong>{ordersData.summary.completedOrders}</strong>
         </article>
         <article className="profile-summary-card">
@@ -106,7 +106,7 @@ export default function ProfilePedidos() {
       </div>
 
       {ordersData.orders.length === 0 ? (
-        <p className="profile-note">Ainda nao tens pedidos registados.</p>
+        <p className="profile-note">Ainda não tens pedidos registados.</p>
       ) : (
         <div className="profile-orders-section">
           <div className="profile-orders-header">
@@ -121,7 +121,7 @@ export default function ProfilePedidos() {
                 >
                   Anterior
                 </button>
-                <span>Pagina {page} de {totalPages}</span>
+                <span>Página {page} de {totalPages}</span>
                 <button
                   type="button"
                   className="profile-order-link"

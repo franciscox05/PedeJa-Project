@@ -5,15 +5,15 @@ const PING_INTERVAL_MS = 30000;
 
 function resolveGeoErrorMessage(geoError) {
   if (geoError?.code === 1) {
-    return "Permissao de localizacao negada. Ativa-a nas definicoes do navegador para o admin te conseguir acompanhar no mapa.";
+    return "Permissão de localização negada. Ativa-a nas definições do navegador para o admin te conseguir acompanhar no mapa.";
   }
   if (geoError?.code === 2) {
-    return "Localizacao indisponivel neste momento (sinal fraco ou GPS desligado).";
+    return "Localização indisponível neste momento (sinal fraco ou GPS desligado).";
   }
   if (geoError?.code === 3) {
-    return "Pedido de localizacao demorou demasiado tempo. Vamos tentar novamente.";
+    return "Pedido de localização demorou demasiado tempo. Vamos tentar novamente.";
   }
-  return "Nao foi possivel obter a tua localizacao.";
+  return "Não foi possível obter a tua localização.";
 }
 
 const SUPPORTS_GEOLOCATION = typeof navigator !== "undefined" && Boolean(navigator.geolocation);
@@ -37,7 +37,7 @@ export function useEstafetaLocationPing(callerUserId, online) {
             .then(() => setPingState({ status: "ok", errorMessage: "" }))
             .catch((error) => {
               console.error("useEstafetaLocationPing: falha ao atualizar localizacao", { error: error?.message });
-              setPingState({ status: "error", errorMessage: "Nao foi possivel enviar a tua localizacao ao servidor." });
+              setPingState({ status: "error", errorMessage: "Não foi possível enviar a tua localização ao servidor." });
             });
         },
         (geoError) => {
@@ -57,7 +57,7 @@ export function useEstafetaLocationPing(callerUserId, online) {
     return { status: "idle", errorMessage: "" };
   }
   if (!SUPPORTS_GEOLOCATION) {
-    return { status: "error", errorMessage: "Este navegador nao suporta partilha de localizacao." };
+    return { status: "error", errorMessage: "Este navegador não suporta partilha de localização." };
   }
   return pingState;
 }

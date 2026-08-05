@@ -47,7 +47,7 @@ export default function ProfileFavoritos() {
       setStores((prev) => prev.filter((store) => String(store.id) !== String(storeId)));
       window.dispatchEvent(new Event("pedeja-favorites-updated"));
     } catch (error) {
-      showError(error?.message || "Nao foi possivel atualizar os favoritos.");
+      showError(error?.message || "Não foi possível atualizar os favoritos.");
     } finally {
       setBusyId("");
     }
@@ -58,7 +58,7 @@ export default function ProfileFavoritos() {
   }
 
   if (stores.length === 0) {
-    return <p className="profile-note">Ainda nao adicionaste restaurantes aos favoritos.</p>;
+    return <p className="profile-note">Ainda não adicionaste restaurantes aos favoritos.</p>;
   }
 
   return (
@@ -69,7 +69,7 @@ export default function ProfileFavoritos() {
             <div>
               <p className="profile-order-id">Loja favorita</p>
               <h4>{store.nome}</h4>
-              <p className="profile-order-date">{store.morada || "Morada nao definida"}</p>
+              <p className="profile-order-date">{store.morada || "Morada não definida"}</p>
             </div>
 
             <div className="profile-order-meta">

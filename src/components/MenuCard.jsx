@@ -168,9 +168,9 @@ export default function MenuCard({ prato }) {
             <span className="material-icons" style={{ fontSize: "50px", color: "#ff9800", marginBottom: "15px" }}>
               warning_amber
             </span>
-            <h3 style={{ margin: "0 0 10px 0", color: "#333" }}>Atencao</h3>
+            <h3 style={{ margin: "0 0 10px 0", color: "#333" }}>Atenção</h3>
             <p style={{ color: "#666", marginBottom: "25px", fontSize: "0.95rem" }}>
-              Ja tens produtos de outro restaurante no carrinho. Desejas limpar o carrinho e iniciar um novo pedido aqui?
+              Já tens produtos de outro restaurante no carrinho. Desejas limpar o carrinho e iniciar um novo pedido aqui?
             </p>
             <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
               <button

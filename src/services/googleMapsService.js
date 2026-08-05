@@ -17,7 +17,7 @@ export function loadGoogleMapsApi() {
 
   googleMapsLoaderPromise = new Promise((resolve, reject) => {
     if (typeof window === "undefined" || typeof document === "undefined") {
-      reject(new Error("Google Maps so pode ser carregado no browser."));
+      reject(new Error("Google Maps só pode ser carregado no browser."));
       return;
     }
 
@@ -41,7 +41,7 @@ export function loadGoogleMapsApi() {
     script.defer = true;
     script.onload = () => {
       if (!isGoogleReady()) {
-        reject(new Error("Google Maps foi carregado, mas a API nao ficou disponivel."));
+        reject(new Error("Google Maps foi carregado, mas a API não ficou disponível."));
         return;
       }
       resolve(window.google.maps);
@@ -80,7 +80,7 @@ export function geocodeCoordsWithGoogle(lat, lng) {
     const parsedLat = Number(lat);
     const parsedLng = Number(lng);
     if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) {
-      reject(new Error("Coordenadas invalidas."));
+      reject(new Error("Coordenadas inválidas."));
       return;
     }
 
@@ -99,7 +99,7 @@ export function geocodeCoordsWithGoogle(lat, lng) {
           },
           (results, status) => {
             if (status !== "OK" || !Array.isArray(results) || !results.length) {
-              reject(new Error("Nao foi possivel resolver a morada desse ponto."));
+              reject(new Error("Não foi possível resolver a morada desse ponto."));
               return;
             }
 
@@ -128,7 +128,7 @@ export function geocodeAddressWithGoogle(addressLine) {
   return new Promise((resolve, reject) => {
     const normalized = String(addressLine || "").trim();
     if (!normalized) {
-      reject(new Error("Morada invalida."));
+      reject(new Error("Morada inválida."));
       return;
     }
 
@@ -142,7 +142,7 @@ export function geocodeAddressWithGoogle(addressLine) {
           },
           (results, status) => {
             if (status !== "OK" || !Array.isArray(results) || !results.length) {
-              reject(new Error("Nao foi possivel geocodificar a morada."));
+              reject(new Error("Não foi possível geocodificar a morada."));
               return;
             }
 
@@ -151,7 +151,7 @@ export function geocodeAddressWithGoogle(addressLine) {
             const lat = location?.lat?.();
             const lng = location?.lng?.();
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-              reject(new Error("Google Maps devolveu coordenadas invalidas."));
+              reject(new Error("Google Maps devolveu coordenadas inválidas."));
               return;
             }
 
@@ -187,7 +187,7 @@ function getDrivingDistanceMatrixElement(origin, destination) {
       || !Number.isFinite(destinationLat)
       || !Number.isFinite(destinationLng)
     ) {
-      reject(new Error("Coordenadas invalidas para calcular a distancia."));
+      reject(new Error("Coordenadas inválidas para calcular a distância."));
       return;
     }
 
@@ -209,7 +209,7 @@ function getDrivingDistanceMatrixElement(origin, destination) {
 
             const element = response?.rows?.[0]?.elements?.[0];
             if (!element || element.status !== "OK") {
-              reject(new Error("Nao foi possivel calcular distancia de conducao para esta morada."));
+              reject(new Error("Não foi possível calcular distância de condução para esta morada."));
               return;
             }
 
@@ -225,7 +225,7 @@ export function getDrivingDistanceKm(origin, destination) {
   return getDrivingDistanceMatrixElement(origin, destination).then((element) => {
     const meters = Number(element.distance?.value);
     if (!Number.isFinite(meters)) {
-      throw new Error("Distancia de conducao invalida.");
+      throw new Error("Distância de condução inválida.");
     }
     return meters / 1000;
   });
@@ -240,7 +240,7 @@ export function getDrivingRoute(origin, destination) {
     const meters = Number(element.distance?.value);
     const seconds = Number(element.duration?.value);
     if (!Number.isFinite(meters) || !Number.isFinite(seconds)) {
-      throw new Error("Distancia/tempo de conducao invalidos.");
+      throw new Error("Distância/tempo de condução inválidos.");
     }
     return { distanceKm: meters / 1000, durationMinutes: seconds / 60 };
   });

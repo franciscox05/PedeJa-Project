@@ -53,7 +53,7 @@ export default function DashboardCategorias() {
       setCategories(rows);
       setUsageCounts(counts);
     } catch (err) {
-      setError(err?.message || "Nao foi possivel carregar as categorias.");
+      setError(err?.message || "Não foi possível carregar as categorias.");
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export default function DashboardCategorias() {
       toast.success("Categoria criada.");
       await load();
     } catch (err) {
-      showError(err?.message || "Nao foi possivel criar a categoria.");
+      showError(err?.message || "Não foi possível criar a categoria.");
     } finally {
       setCreating(false);
     }
@@ -99,7 +99,7 @@ export default function DashboardCategorias() {
       cancelEdit();
       await load();
     } catch (err) {
-      showError(err?.message || "Nao foi possivel atualizar a categoria.");
+      showError(err?.message || "Não foi possível atualizar a categoria.");
     } finally {
       setBusyId(null);
     }
@@ -108,9 +108,9 @@ export default function DashboardCategorias() {
   const handleDelete = async (category) => {
     const usage = usageCounts.get(Number(category.idcategoria)) || 0;
     const usageWarning = usage > 0
-      ? ` Esta categoria esta atribuida a ${usage} loja${usage === 1 ? "" : "s"} -- essa atribuicao tambem sera removida.`
+      ? ` Esta categoria está atribuída a ${usage} loja${usage === 1 ? "" : "s"} -- essa atribuição também será removida.`
       : "";
-    const confirmed = window.confirm(`Eliminar a categoria "${category.categoria}"? Esta acao nao pode ser desfeita.${usageWarning}`);
+    const confirmed = window.confirm(`Eliminar a categoria "${category.categoria}"? Esta ação não pode ser desfeita.${usageWarning}`);
     if (!confirmed) return;
 
     setBusyId(category.idcategoria);
@@ -119,7 +119,7 @@ export default function DashboardCategorias() {
       toast.success("Categoria eliminada.");
       await load();
     } catch (err) {
-      showError(err?.message || "Nao foi possivel eliminar a categoria.");
+      showError(err?.message || "Não foi possível eliminar a categoria.");
     } finally {
       setBusyId(null);
     }
@@ -130,19 +130,19 @@ export default function DashboardCategorias() {
       tabs={ADMIN_DASHBOARD_TABS}
       activeTab="categorias"
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
-      kicker="Catalogo"
-      title="Gestao de Categorias"
+      kicker="Catálogo"
+      title="Gestão de Categorias"
       subtitle="Taxonomia de categorias usada nos filtros de lojas."
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <div className="dashboard-tab-section">
         <DashboardPageHeader
-          kicker="Catalogo"
+          kicker="Catálogo"
           title="Categorias"
           subtitle={(
             <>
-              Cria, edita e remove categorias (tags de classificacao, ex: "Sushi", "Pizza") usadas nos filtros do site.
-              A atribuicao a lojas especificas faz-se em "Gestao de Restaurantes {'>'} Dados da Loja".
+              Cria, edita e remove categorias (tags de classificação, ex: "Sushi", "Pizza") usadas nos filtros do site.
+              A atribuição a lojas específicas faz-se em "Gestão de Restaurantes {'>'} Dados da Loja".
             </>
           )}
         />
@@ -157,7 +157,7 @@ export default function DashboardCategorias() {
             <div className="stat-hero-body">
               <div className="metric-label">Categorias criadas</div>
               <div className="metric-value">{categories.length}</div>
-              <div className="metric-foot">Disponiveis para atribuir a lojas</div>
+              <div className="metric-foot">Disponíveis para atribuir a lojas</div>
             </div>
           </article>
         </section>

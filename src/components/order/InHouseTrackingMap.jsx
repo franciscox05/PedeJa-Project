@@ -142,7 +142,7 @@ export default function InHouseTrackingMap({ orderId, callerUserId, isLive, fall
           <p className="pedido-muted">
             {tracking.estafeta
               ? `${tracking.estafeta.nome || "O teu estafeta"} está a caminho.`
-              : "Ainda sem estafeta atribuido para acompanhar."}
+              : "Ainda sem estafeta atribuído para acompanhar."}
           </p>
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function InHouseTrackingMap({ orderId, callerUserId, isLive, fall
           <div ref={mapElementRef} className="pedido-tracking-map-target" />
         </div>
       ) : (
-        <p className="pedido-muted">Sem coordenadas disponiveis para mostrar o mapa agora.</p>
+        <p className="pedido-muted">Sem coordenadas disponíveis para mostrar o mapa agora.</p>
       )}
     </div>
   );

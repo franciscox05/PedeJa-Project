@@ -184,7 +184,7 @@ export default function Restaurantes() {
       });
       window.dispatchEvent(new Event("pedeja-favorites-updated"));
     } catch (error) {
-      showError(error?.message || "Nao foi possivel atualizar os favoritos.");
+      showError(error?.message || "Não foi possível atualizar os favoritos.");
     } finally {
       setFavoriteBusyId("");
     }

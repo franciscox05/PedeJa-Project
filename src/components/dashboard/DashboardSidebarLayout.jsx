@@ -17,6 +17,8 @@ const ICON_PATHS = {
   geoboard: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 3.06A9.01 9.01 0 0 0 12.94 3V1h-2v2A9.01 9.01 0 0 0 3 11.94H1v2h2A9.01 9.01 0 0 0 11.06 21v2h2v-2A9.01 9.01 0 0 0 21 12.94h2v-2ZM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z",
   performance: "M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6Z",
   receita: "M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4Z",
+  avaliacoes: "M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21Z",
+  recrutamento: "M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm-8-2V7H5v3H2v2h3v3h2v-3h3v-2Zm8 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z",
 };
 
 function SidebarIcon({ name }) {
@@ -158,9 +160,6 @@ export default function DashboardSidebarLayout({
                           <span className="dashboard-sidebar-tab-label-row">
                             <span className="dashboard-sidebar-tab-label">
                               {tab.label}
-                              {tab.route ? (
-                                <span className="dashboard-sidebar-tab-route-indicator" aria-hidden="true" title="Abre noutra pagina">↗</span>
-                              ) : null}
                             </span>
                             {typeof tab.badge === "number" && tab.badge > 0 ? (
                               <span className="dashboard-sidebar-tab-badge">{tab.badge}</span>

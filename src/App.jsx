@@ -19,6 +19,8 @@ import DashboardCategorias from "./pages/dashboardCategorias";
 import DashboardBanners from "./pages/dashboardBanners";
 import DashboardCupoes from "./pages/dashboardCupoes";
 import DashboardPromocoes from "./pages/dashboardPromocoes";
+import DashboardAvaliacoes from "./pages/dashboardAvaliacoes";
+import DashboardRecrutamento from "./pages/dashboardRecrutamento";
 import NaoEncontrado from "./pages/naoEncontrado";
 import MenuManager from "./pages/menuManager";
 import Parceiros from "./pages/parceiros";
@@ -114,7 +116,8 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
       <Toaster
-        position="top-right"
+        position="top-center"
+        containerStyle={{ zIndex: 10000, top: 16 }}
         toastOptions={{
           duration: 4500,
           style: {
@@ -286,6 +289,24 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <DashboardPromocoes />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/avaliacoes"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <DashboardAvaliacoes />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/admin/recrutamento"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <DashboardRecrutamento />
               </ProtectedRoute>
             }
           />

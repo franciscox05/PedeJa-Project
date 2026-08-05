@@ -75,7 +75,7 @@ export default function DashboardCupoes() {
       const rows = await fetchCouponsAdmin(callerUserId);
       setCoupons(rows);
     } catch (err) {
-      setError(err?.message || "Nao foi possivel carregar os cupoes.");
+      setError(err?.message || "Não foi possível carregar os cupões.");
     } finally {
       setLoading(false);
     }
@@ -117,7 +117,7 @@ export default function DashboardCupoes() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.code.trim() || !form.discount_value) {
-      showError("Codigo e valor de desconto sao obrigatorios.");
+      showError("Código e valor de desconto são obrigatórios.");
       return;
     }
 
@@ -137,31 +137,31 @@ export default function DashboardCupoes() {
     try {
       if (editingId) {
         await updateCoupon(callerUserId, editingId, payload);
-        toast.success("Cupao atualizado.");
+        toast.success("Cupão atualizado.");
       } else {
         await createCoupon(callerUserId, payload);
-        toast.success("Cupao criado.");
+        toast.success("Cupão criado.");
       }
       resetForm();
       await load();
     } catch (err) {
-      showError(err?.message || "Nao foi possivel guardar o cupao.");
+      showError(err?.message || "Não foi possível guardar o cupão.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (coupon) => {
-    const confirmed = window.confirm(`Eliminar o cupao "${coupon.code}"? Esta acao nao pode ser desfeita e o codigo deixa de funcionar de imediato.`);
+    const confirmed = window.confirm(`Eliminar o cupão "${coupon.code}"? Esta ação não pode ser desfeita e o código deixa de funcionar de imediato.`);
     if (!confirmed) return;
 
     setBusyId(coupon.id);
     try {
       await deleteCoupon(callerUserId, coupon.id);
-      toast.success("Cupao eliminado.");
+      toast.success("Cupão eliminado.");
       await load();
     } catch (err) {
-      showError(err?.message || "Nao foi possivel eliminar o cupao.");
+      showError(err?.message || "Não foi possível eliminar o cupão.");
     } finally {
       setBusyId(null);
     }
@@ -173,15 +173,15 @@ export default function DashboardCupoes() {
       activeTab="cupoes"
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Marketing"
-      title="Gestao de Cupoes"
-      subtitle="Codigos de desconto aplicaveis no checkout."
+      title="Gestão de Cupões"
+      subtitle="Códigos de desconto aplicáveis no checkout."
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <div className="dashboard-tab-section">
         <DashboardPageHeader
           kicker="Marketing"
-          title="Cupoes"
-          subtitle="Cria codigos de desconto com limites de uso e validade."
+          title="Cupões"
+          subtitle="Cria códigos de desconto com limites de uso e validade."
         />
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
@@ -192,7 +192,7 @@ export default function DashboardCupoes() {
               <span className="material-icons" aria-hidden="true">confirmation_number</span>
             </div>
             <div className="stat-hero-body">
-              <div className="metric-label">Cupoes criados</div>
+              <div className="metric-label">Cupões criados</div>
               <div className="metric-value">{coupons.length}</div>
               <div className="metric-foot">No total</div>
             </div>
@@ -212,9 +212,9 @@ export default function DashboardCupoes() {
               <span className="material-icons" aria-hidden="true">redeem</span>
             </div>
             <div className="stat-hero-body">
-              <div className="metric-label">Utilizacoes totais</div>
+              <div className="metric-label">Utilizações totais</div>
               <div className="metric-value">{totalUses}</div>
-              <div className="metric-foot">Somatorio de todos os cupoes</div>
+              <div className="metric-foot">Somatório de todos os cupões</div>
             </div>
           </article>
         </section>
@@ -225,13 +225,13 @@ export default function DashboardCupoes() {
               <span className="material-icons panel-title-icon" aria-hidden="true">
                 {editingId ? "edit" : "add_circle"}
               </span>
-              {editingId ? "Editar cupao" : "Novo cupao"}
+              {editingId ? "Editar cupão" : "Novo cupão"}
             </>
           )}
         >
           <form onSubmit={handleSubmit} className="dashboard-form-grid">
             <label className="dashboard-form-field">
-              <span>Codigo *</span>
+              <span>Código *</span>
               <input type="text" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} disabled={!!editingId} required />
             </label>
             <label className="dashboard-form-field">
@@ -246,11 +246,11 @@ export default function DashboardCupoes() {
               <input type="number" step="0.01" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: e.target.value })} required />
             </label>
             <label className="dashboard-form-field">
-              <span>Valor minimo de encomenda</span>
+              <span>Valor mínimo de encomenda</span>
               <input type="number" step="0.01" value={form.min_order_value} onChange={(e) => setForm({ ...form, min_order_value: e.target.value })} />
             </label>
             <label className="dashboard-form-field">
-              <span>Limite total de utilizacoes (vazio = ilimitado)</span>
+              <span>Limite total de utilizações (vazio = ilimitado)</span>
               <input type="number" value={form.max_uses_total} onChange={(e) => setForm({ ...form, max_uses_total: e.target.value })} />
             </label>
             <label className="dashboard-form-field">
@@ -258,7 +258,7 @@ export default function DashboardCupoes() {
               <input type="number" value={form.max_uses_per_customer} onChange={(e) => setForm({ ...form, max_uses_per_customer: e.target.value })} />
             </label>
             <label className="dashboard-form-field">
-              <span>Inicio</span>
+              <span>Início</span>
               <input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} />
             </label>
             <label className="dashboard-form-field">
@@ -273,9 +273,9 @@ export default function DashboardCupoes() {
 
             <div className="dashboard-form-actions">
               <button className="btn-dashboard" type="submit" disabled={saving}>
-                {saving ? "A gravar..." : editingId ? "Guardar alteracoes" : "Criar cupao"}
+                {saving ? "A gravar..." : editingId ? "Guardar alterações" : "Criar cupão"}
               </button>
-              {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edicao</button>}
+              {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edição</button>}
             </div>
           </form>
         </DashboardPanel>
@@ -284,24 +284,24 @@ export default function DashboardCupoes() {
           title={(
             <>
               <span className="material-icons panel-title-icon" aria-hidden="true">list_alt</span>
-              Cupoes existentes
+              Cupões existentes
             </>
           )}
         >
           {loading ? (
             <DashboardLoadingState />
           ) : coupons.length === 0 ? (
-            <DashboardEmptyState label="Sem cupoes para mostrar." />
+            <DashboardEmptyState label="Sem cupões para mostrar." />
           ) : (
             <div className="table-wrap">
               <table className="ops-table">
                 <thead>
                   <tr>
-                    <th>Codigo</th>
+                    <th>Código</th>
                     <th>Desconto</th>
-                    <th>Utilizacoes</th>
+                    <th>Utilizações</th>
                     <th>Estado</th>
-                    <th>Acoes</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -27,7 +27,7 @@ export default function ProfileSeguranca() {
     e.preventDefault();
 
     if (!formData.senhaAtual) {
-      showError("Introduz a tua password atual para confirmar a alteracao.");
+      showError("Introduz a tua password atual para confirmar a alteração.");
       return;
     }
 
@@ -42,7 +42,7 @@ export default function ProfileSeguranca() {
     }
 
     if (formData.novaSenha !== formData.confirmarSenha) {
-      showError("As novas passwords nao coincidem!");
+      showError("As novas passwords não coincidem!");
       return;
     }
 
@@ -75,7 +75,7 @@ export default function ProfileSeguranca() {
   return (
     <form onSubmit={handleSave} className="profile-form-grid profile-security-form">
       <p className="profile-note">
-        Atualiza a password da conta. Os restantes dados do perfil mantem-se inalterados.
+        Atualiza a password da conta. Os restantes dados do perfil mantêm-se inalterados.
       </p>
 
       <div className="profile-field">

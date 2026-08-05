@@ -62,7 +62,7 @@ export default function OrderDetailsModal({
           <div>
             <p className="kicker">Pedido</p>
             <h3>{order ? `Detalhes do pedido #${order.id}` : "Detalhes do pedido"}</h3>
-            <p className="muted">Consulta rapida de itens, observacoes, morada e contacto do cliente.</p>
+            <p className="muted">Consulta rápida de itens, observações, morada e contacto do cliente.</p>
           </div>
           <div className="order-details-modal-actions">
             {canAssignCarrier && onAssignCarrier ? (
@@ -127,7 +127,7 @@ export default function OrderDetailsModal({
               <div className="order-detail-card">
                 <h4>Entrega</h4>
                 <p>{customerAddress}</p>
-                <p>{order.customer_notes || "Sem observacoes do cliente."}</p>
+                <p>{order.customer_notes || "Sem observações do cliente."}</p>
               </div>
 
               <div className="order-detail-card">
@@ -139,7 +139,7 @@ export default function OrderDetailsModal({
 
               <div className="order-detail-card">
                 <h4>Estafeta</h4>
-                <p><strong>{driver?.name || "Sem estafeta atribuido."}</strong></p>
+                <p><strong>{driver?.name || "Sem estafeta atribuído."}</strong></p>
                 <p>{driver?.phone || "-"}</p>
                 <p>{driver?.vehicle || "-"}</p>
               </div>
