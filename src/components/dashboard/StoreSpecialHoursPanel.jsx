@@ -25,7 +25,7 @@ function createEmptyException() {
 function buildDraft(store) {
   const sanitized = sanitizeScheduleWithExceptions(store?.horario_funcionamento);
   return {
-    weeklyLabel: sanitized ? formatScheduleLabel(sanitized) : "Horario nao definido",
+    weeklyLabel: sanitized ? formatScheduleLabel(sanitized) : "Horário não definido",
     exceptions: Array.isArray(sanitized?.exceptions) ? sanitized.exceptions : [],
   };
 }
@@ -35,24 +35,24 @@ function validateDraft(draft) {
 
   for (const exception of exceptions) {
     if (!String(exception.startDate || "").trim()) {
-      return "Cada excecao precisa de data inicial.";
+      return "Cada exceção precisa de data inicial.";
     }
 
     if (!String(exception.endDate || "").trim()) {
-      return "Cada excecao precisa de data final.";
+      return "Cada exceção precisa de data final.";
     }
 
     if (String(exception.endDate) < String(exception.startDate)) {
-      return "A data final nao pode ser anterior a data inicial.";
+      return "A data final não pode ser anterior à data inicial.";
     }
 
     if (String(exception.type) === "custom_hours") {
       if (!String(exception.open || "").trim() || !String(exception.close || "").trim()) {
-        return "Os horarios especiais precisam de hora de abertura e fecho.";
+        return "Os horários especiais precisam de hora de abertura e fecho.";
       }
 
       if (String(exception.open) === String(exception.close)) {
-        return "No horario especial, a abertura e o fecho nao podem ser iguais.";
+        return "No horário especial, a abertura e o fecho não podem ser iguais.";
       }
     }
   }
@@ -148,7 +148,7 @@ export default function StoreSpecialHoursPanel({
     });
 
     if (!nextSchedule) {
-      setFeedback({ tone: "error", message: "Nao foi possivel preparar o horario especial da loja." });
+      setFeedback({ tone: "error", message: "Não foi possível preparar o horário especial da loja." });
       return;
     }
 
@@ -160,13 +160,13 @@ export default function StoreSpecialHoursPanel({
       setSavedStoreMap((prev) => ({ ...prev, [rowKey]: true }));
       setFeedback({
         tone: "success",
-        message: `Horarios especiais atualizados para ${store.nome || `Loja ${store.idloja}`}.`,
+        message: `Horários especiais atualizados para ${store.nome || `Loja ${store.idloja}`}.`,
       });
     } catch (error) {
       setSavedStoreMap((prev) => ({ ...prev, [rowKey]: false }));
       setFeedback({
         tone: "error",
-        message: error?.message || "Nao foi possivel guardar os horarios especiais.",
+        message: error?.message || "Não foi possível guardar os horários especiais.",
       });
     } finally {
       setSavingStoreId("");
@@ -177,9 +177,9 @@ export default function StoreSpecialHoursPanel({
     <article className="panel restaurant-settings-panel">
       <div className="restaurant-settings-header">
         <div>
-          <h3>Horarios especiais</h3>
+          <h3>Horários especiais</h3>
           <p className="muted">
-            Ferias, folgas excecionais ou aberturas especiais para datas concretas. O horario
+            Férias, folgas excecionais ou aberturas especiais para datas concretas. O horário
             semanal normal (os dias e turnos habituais) edita-se em "Dados da Loja".
           </p>
         </div>
@@ -223,12 +223,12 @@ export default function StoreSpecialHoursPanel({
                   disabled={!canEdit || loading || savingStoreId === rowKey}
                   onClick={() => handleSave(store)}
                 >
-                  {savingStoreId === rowKey ? "A guardar..." : rowSaved ? "Guardado" : "Guardar horarios especiais"}
+                  {savingStoreId === rowKey ? "A guardar..." : rowSaved ? "Guardado" : "Guardar horários especiais"}
                 </button>
               </div>
 
               {(draft.exceptions || []).length === 0 ? (
-                <p className="muted">Sem ferias ou folgas excecionais configuradas.</p>
+                <p className="muted">Sem férias ou folgas excecionais configuradas.</p>
               ) : (
                 <div className="special-hours-list">
                   {(draft.exceptions || []).map((exception) => (
@@ -238,7 +238,7 @@ export default function StoreSpecialHoursPanel({
                           <span className="muted">Motivo</span>
                           <input
                             type="text"
-                            placeholder="Ex: Ferias, folga, evento privado"
+                            placeholder="Ex: Férias, folga, evento privado"
                             value={exception.label || ""}
                             disabled={!canEdit || loading}
                             onChange={(event) => updateException(rowKey, exception.id, { label: event.target.value })}
@@ -328,7 +328,7 @@ export default function StoreSpecialHoursPanel({
                   disabled={!canEdit || loading}
                   onClick={() => addException(rowKey)}
                 >
-                  Adicionar ferias / excecao
+                  Adicionar férias / exceção
                 </button>
               </div>
             </section>

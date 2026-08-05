@@ -86,7 +86,7 @@ export default function ProfilePedidos() {
   const paginatedOrders = orderedOrders.slice((page - 1) * ORDERS_PER_PAGE, page * ORDERS_PER_PAGE);
 
   if (loading) {
-    return <p className="text-sm text-gray-500">A carregar resumo e historico de pedidos...</p>;
+    return <p className="text-sm text-gray-500">A carregar resumo e histórico de pedidos...</p>;
   }
 
   return (
@@ -101,7 +101,7 @@ export default function ProfilePedidos() {
           <strong className="text-xl text-gray-900">{ordersData.summary.openOrders}</strong>
         </article>
         <article className="grid gap-1.5 rounded-xl border border-gray-100 bg-white p-3">
-          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Concluidos</span>
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Concluídos</span>
           <strong className="text-xl text-gray-900">{ordersData.summary.completedOrders}</strong>
         </article>
         <article className="grid gap-1.5 rounded-xl border border-gray-100 bg-white p-3">
@@ -111,7 +111,7 @@ export default function ProfilePedidos() {
       </div>
 
       {ordersData.orders.length === 0 ? (
-        <p className="text-sm text-gray-500">Ainda nao tens pedidos registados.</p>
+        <p className="text-sm text-gray-500">Ainda não tens pedidos registados.</p>
       ) : (
         <div className="grid gap-2.5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -127,7 +127,7 @@ export default function ProfilePedidos() {
                   <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
                   Anterior
                 </button>
-                <span>Pagina {page} de {totalPages}</span>
+                <span>Página {page} de {totalPages}</span>
                 <button
                   type="button"
                   className="flex items-center gap-1 font-bold text-[#c91b20] hover:underline disabled:opacity-40 disabled:no-underline"

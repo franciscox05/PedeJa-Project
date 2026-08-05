@@ -108,7 +108,7 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
         });
       } catch (error) {
         if (!cancelled) {
-          setStatus({ type: "error", message: error?.message || "Nao foi possivel carregar os dados da loja." });
+          setStatus({ type: "error", message: error?.message || "Não foi possível carregar os dados da loja." });
         }
       } finally {
         if (!cancelled) setLoadingProfile(false);
@@ -244,16 +244,16 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
     if (!form.nome.trim()) return "Indica o nome do estabelecimento.";
 
     const nifDigits = digitsOnly(form.nif);
-    if (nifDigits.length < 9 || nifDigits.length > 15) return "Indica um NIF valido (9 a 15 digitos).";
+    if (nifDigits.length < 9 || nifDigits.length > 15) return "Indica um NIF válido (9 a 15 dígitos).";
 
     const phoneDigits = digitsOnly(form.telefone);
-    if (phoneDigits.length < 9 || phoneDigits.length > 15) return "Indica um contacto valido (9 a 15 digitos).";
+    if (phoneDigits.length < 9 || phoneDigits.length > 15) return "Indica um contacto válido (9 a 15 dígitos).";
 
     if (!form.idtipoloja) return "Seleciona o tipo de loja.";
-    if (!addressQuery.trim() || addressQuery.trim().length < 8) return "Indica uma morada completa valida.";
+    if (!addressQuery.trim() || addressQuery.trim().length < 8) return "Indica uma morada completa válida.";
 
     const validBlocks = scheduleBlocks.filter((block) => block.days.length > 0 && block.open && block.close && block.open !== block.close);
-    if (validBlocks.length === 0) return "Adiciona pelo menos um turno valido no horario semanal.";
+    if (validBlocks.length === 0) return "Adiciona pelo menos um turno válido no horário semanal.";
 
     return "";
   };
@@ -281,7 +281,7 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
       }
 
       if (!resolvedLocation.lat || !resolvedLocation.lng) {
-        setStatus({ type: "error", message: "Nao foi possivel obter coordenadas validas para a morada." });
+        setStatus({ type: "error", message: "Não foi possível obter coordenadas válidas para a morada." });
         setSaving(false);
         return;
       }
@@ -330,7 +330,7 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
   }
 
   if (!storeProfile) {
-    return <p className="muted">Nao foi possivel carregar os dados desta loja.</p>;
+    return <p className="muted">Não foi possível carregar os dados desta loja.</p>;
   }
 
   return (
@@ -396,7 +396,7 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
             setAddressQuery(event.target.value);
             setLocation({ lat: null, lng: null, place_id: null });
           }}
-          placeholder="Rua, porta, codigo postal e cidade"
+          placeholder="Rua, porta, código postal e cidade"
         />
         <div className="store-profile-address-tools">
           <button type="button" className="btn-dashboard small secondary" onClick={handleOpenMapPicker} disabled={openingMap}>
@@ -405,7 +405,7 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
           <span className={`store-profile-coords-hint${hasLocationCoordinates ? " is-ok" : ""}`}>
             {hasLocationCoordinates
               ? `Coordenadas: ${Number(location.lat).toFixed(6)}, ${Number(location.lng).toFixed(6)}`
-              : "Sem coordenadas. Usa o mapa para marcar com precisao."}
+              : "Sem coordenadas. Usa o mapa para marcar com precisão."}
           </span>
         </div>
         {addressSuggestions.length > 0 ? (
@@ -523,7 +523,7 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
             <h4>Categorias da loja</h4>
             <p className="muted">
               Tags usadas nos filtros do site para os clientes encontrarem esta loja (ex: "Sushi", "Pizza").
-              Nao confundir com as categorias do menu (Entradas, Principais...), essas gerem-se na gestao do menu.
+              Não confundir com as categorias do menu (Entradas, Principais...), essas gerem-se na gestão do menu.
             </p>
           </div>
         </div>
@@ -532,8 +532,8 @@ export default function StoreProfileEditor({ lojaId, callerUserId, onSaved }) {
 
       <LocationPickerModal
         isOpen={showMapPicker}
-        title="Ajustar localizacao da loja"
-        subtitle="Marca no mapa a entrada do estabelecimento para evitar erros de geolocalizacao."
+        title="Ajustar localização da loja"
+        subtitle="Marca no mapa a entrada do estabelecimento para evitar erros de geolocalização."
         initialLat={normalizeCoordinate(location.lat) || normalizeCoordinate(manualCoords.lat)}
         initialLng={normalizeCoordinate(location.lng) || normalizeCoordinate(manualCoords.lng)}
         showDeliveryPricing={false}

@@ -18,7 +18,7 @@ function normalizeText(value) {
 
 function resolveStoreStatus(loja) {
   if (loja.ativo === null) {
-    return { statusTexto: "Indisponivel", statusCor: "#9e9e9e", isIndisponivel: true };
+    return { statusTexto: "Indisponível", statusCor: "#9e9e9e", isIndisponivel: true };
   }
 
   const open = loja.horario_funcionamento
@@ -160,12 +160,12 @@ export async function fetchFavoriteStores(user) {
 export async function toggleFavoriteStore(user, lojaId) {
   const userId = normalizeUserId(user);
   if (!userId) {
-    throw new Error("Inicia sessao para guardar restaurantes favoritos.");
+    throw new Error("Inicia sessão para guardar restaurantes favoritos.");
   }
 
   const normalizedLojaId = Number(lojaId);
   if (!Number.isFinite(normalizedLojaId)) {
-    throw new Error("Loja invalida para favoritos.");
+    throw new Error("Loja inválida para favoritos.");
   }
 
   const { data: isFavorite, error } = await supabase.rpc("favorite_stores_toggle", {
@@ -175,7 +175,7 @@ export async function toggleFavoriteStore(user, lojaId) {
 
   if (error) {
     if (isMissingFavoritesStorageError(error)) {
-      throw new Error("A tabela de favoritos ainda nao existe. Executa a migration 012.");
+      throw new Error("A tabela de favoritos ainda não existe. Executa a migration 012.");
     }
     throw error;
   }

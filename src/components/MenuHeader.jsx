@@ -34,7 +34,7 @@ function resolveStoreImage(value, folder) {
 
 function summarizeSchedule(schedule) {
   const weekly = Array.isArray(schedule?.weekly) ? schedule.weekly : [];
-  if (!weekly.length) return "Horario nao definido";
+  if (!weekly.length) return "Horário não definido";
 
   return weekly
     .slice(0, 2)
@@ -53,7 +53,7 @@ const STATUS_PILL_CLASS = {
 
 function MenuHeader({ lojaInfo }) {
   const nome = lojaInfo?.nome || "Restaurante";
-  const status = lojaInfo?.status || "Indisponivel";
+  const status = lojaInfo?.status || "Indisponível";
   const bannerImage = resolveStoreImage(lojaInfo?.imagemfundo, "fundo");
   const logoImage = resolveStoreImage(lojaInfo?.icon, "icon");
 
@@ -85,8 +85,8 @@ function MenuHeader({ lojaInfo }) {
           </span>
 
           <div className="mt-2 space-y-0.5 text-xs text-white/85">
-            <p><span className="font-semibold text-white">Horario:</span> {summarizeSchedule(lojaInfo?.horario_funcionamento)}</p>
-            {lojaInfo?.statusDetalhe ? <p><span className="font-semibold text-white">Excecao:</span> {lojaInfo.statusDetalhe}</p> : null}
+            <p><span className="font-semibold text-white">Horário:</span> {summarizeSchedule(lojaInfo?.horario_funcionamento)}</p>
+            {lojaInfo?.statusDetalhe ? <p><span className="font-semibold text-white">Exceção:</span> {lojaInfo.statusDetalhe}</p> : null}
             {lojaInfo?.morada ? <p><span className="font-semibold text-white">Morada:</span> {lojaInfo.morada}</p> : null}
           </div>
         </div>

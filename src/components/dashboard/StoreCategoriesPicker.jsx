@@ -30,7 +30,7 @@ export default function StoreCategoriesPicker({ lojaId, callerUserId, onSaved = 
       setSelectedIds(idsSet);
       setInitialIds(idsSet);
     } catch (err) {
-      setError(err?.message || "Nao foi possivel carregar as categorias.");
+      setError(err?.message || "Não foi possível carregar as categorias.");
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ export default function StoreCategoriesPicker({ lojaId, callerUserId, onSaved = 
       setSuccess("Categorias atualizadas.");
       if (onSaved) await onSaved();
     } catch (err) {
-      setError(err?.message || "Nao foi possivel guardar as categorias.");
+      setError(err?.message || "Não foi possível guardar as categorias.");
     } finally {
       setSaving(false);
     }
@@ -80,8 +80,8 @@ export default function StoreCategoriesPicker({ lojaId, callerUserId, onSaved = 
 
       {allCategories.length === 0 ? (
         <p className="muted">
-          Ainda nao existem categorias criadas. Um administrador pode criar categorias em
-          "Gestao de Categorias".
+          Ainda não existem categorias criadas. Um administrador pode criar categorias em
+          "Gestão de Categorias".
         </p>
       ) : (
         <div className="category-chip-grid store-categories-picker-grid">

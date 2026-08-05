@@ -23,15 +23,15 @@ function buildConfigDraft(config = null) {
 function validateDraft(draft) {
   const config = sanitizeDeliveryPricingConfig(draft, draft?.base_fee);
   if (!config) {
-    return "A configuracao de entrega esta invalida.";
+    return "A configuração de entrega está inválida.";
   }
 
   if (config.base_fee < 2.8) {
-    return "A taxa minima nao pode ser inferior a 2.80EUR.";
+    return "A taxa mínima não pode ser inferior a 2.80EUR.";
   }
 
   if (config.max_km <= 0) {
-    return "Define um limite maximo de distancia valido.";
+    return "Define um limite máximo de distância válido.";
   }
 
   return "";
@@ -153,7 +153,7 @@ export default function StoreDeliveryPricingPanel({
 
     const payload = sanitizeDeliveryPricingConfig(globalDraft, globalDraft?.base_fee);
     if (!payload) {
-      setFeedback({ tone: "error", message: "Nao foi possivel preparar a configuracao geral de entrega." });
+      setFeedback({ tone: "error", message: "Não foi possível preparar a configuração geral de entrega." });
       return;
     }
 
@@ -165,13 +165,13 @@ export default function StoreDeliveryPricingPanel({
       setSavedMap((prev) => ({ ...prev, global: true }));
       setFeedback({
         tone: "success",
-        message: "Configuracao geral de entrega atualizada com sucesso.",
+        message: "Configuração geral de entrega atualizada com sucesso.",
       });
     } catch (error) {
       setSavedMap((prev) => ({ ...prev, global: false }));
       setFeedback({
         tone: "error",
-        message: error?.message || "Nao foi possivel guardar a configuracao geral de entrega.",
+        message: error?.message || "Não foi possível guardar a configuração geral de entrega.",
       });
     } finally {
       setSavingKey("");
@@ -205,14 +205,14 @@ export default function StoreDeliveryPricingPanel({
       setFeedback({
         tone: "success",
         message: isOverrideEnabled
-          ? `Excecao de entrega guardada para ${store.nome || `Loja ${store.idloja}`}.`
-          : `${store.nome || `Loja ${store.idloja}`} voltou a usar a configuracao geral.`,
+          ? `Exceção de entrega guardada para ${store.nome || `Loja ${store.idloja}`}.`
+          : `${store.nome || `Loja ${store.idloja}`} voltou a usar a configuração geral.`,
       });
     } catch (error) {
       setSavedMap((prev) => ({ ...prev, [storeKey]: false }));
       setFeedback({
         tone: "error",
-        message: error?.message || "Nao foi possivel guardar a configuracao de entrega da loja.",
+        message: error?.message || "Não foi possível guardar a configuração de entrega da loja.",
       });
     } finally {
       setSavingKey("");
@@ -224,7 +224,7 @@ export default function StoreDeliveryPricingPanel({
       <div className="restaurant-settings-header">
         <div>
           <h3>Entrega por raio / km</h3>
-          <p className="muted">O admin define uma configuracao geral e, se quiser, cria excecoes especificas por loja.</p>
+          <p className="muted">O admin define uma configuração geral e, se quiser, cria exceções específicas por loja.</p>
         </div>
       </div>
 
@@ -238,7 +238,7 @@ export default function StoreDeliveryPricingPanel({
         <section className="restaurant-settings-card">
           <div className="restaurant-settings-card-top">
             <div>
-              <h4>Configuracao geral da plataforma</h4>
+              <h4>Configuração geral da plataforma</h4>
               <p className="muted">{describeDeliveryPricing(resolvedGlobalConfig, resolvedGlobalConfig?.base_fee)}</p>
             </div>
             <button
@@ -253,7 +253,7 @@ export default function StoreDeliveryPricingPanel({
 
           <div className="special-hours-grid">
             <label>
-              <span className="muted">Taxa minima (EUR)</span>
+              <span className="muted">Taxa mínima (EUR)</span>
               <input
                 type="number"
                 min="2.8"
@@ -265,7 +265,7 @@ export default function StoreDeliveryPricingPanel({
             </label>
 
             <label>
-              <span className="muted">Km incluidos na taxa minima</span>
+              <span className="muted">Km incluídos na taxa mínima</span>
               <input
                 type="number"
                 min="0"
@@ -289,7 +289,7 @@ export default function StoreDeliveryPricingPanel({
             </label>
 
             <label>
-              <span className="muted">Limite maximo (km)</span>
+              <span className="muted">Limite máximo (km)</span>
               <input
                 type="number"
                 min="1"
@@ -329,8 +329,8 @@ export default function StoreDeliveryPricingPanel({
                   <h4>{store.nome || `Loja ${store.idloja}`}</h4>
                   <p className="muted">
                     {isOverrideEnabled
-                      ? "Esta loja usa uma configuracao especifica."
-                      : "Esta loja usa a configuracao geral da plataforma."}
+                      ? "Esta loja usa uma configuração específica."
+                      : "Esta loja usa a configuração geral da plataforma."}
                   </p>
                 </div>
                 <button
@@ -345,7 +345,7 @@ export default function StoreDeliveryPricingPanel({
 
               <div className="restaurant-settings-controls">
                 <div className="restaurant-setting-field">
-                  <span className="restaurant-setting-label">Excecao por loja</span>
+                  <span className="restaurant-setting-label">Exceção por loja</span>
                   <label className={`dashboard-switch${!canEdit ? " is-disabled" : ""}`}>
                     <input
                       type="checkbox"
@@ -357,7 +357,7 @@ export default function StoreDeliveryPricingPanel({
                       <span className="dashboard-switch-thumb" />
                     </span>
                     <span className="dashboard-switch-text">
-                      {isOverrideEnabled ? "Especifica" : "Geral"}
+                      {isOverrideEnabled ? "Específica" : "Geral"}
                     </span>
                   </label>
                 </div>
@@ -365,7 +365,7 @@ export default function StoreDeliveryPricingPanel({
 
               <div className="special-hours-grid">
                 <label>
-                  <span className="muted">Taxa minima (EUR)</span>
+                  <span className="muted">Taxa mínima (EUR)</span>
                   <input
                     type="number"
                     min="2.8"
@@ -377,7 +377,7 @@ export default function StoreDeliveryPricingPanel({
                 </label>
 
                 <label>
-                  <span className="muted">Km incluidos na taxa minima</span>
+                  <span className="muted">Km incluídos na taxa mínima</span>
                   <input
                     type="number"
                     min="0"
@@ -401,7 +401,7 @@ export default function StoreDeliveryPricingPanel({
                 </label>
 
                 <label>
-                  <span className="muted">Limite maximo (km)</span>
+                  <span className="muted">Limite máximo (km)</span>
                   <input
                     type="number"
                     min="1"

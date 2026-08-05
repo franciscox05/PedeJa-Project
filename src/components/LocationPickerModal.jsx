@@ -29,7 +29,7 @@ function createCircleColor(index) {
 
 export default function LocationPickerModal({
   isOpen,
-  title = "Selecionar localizacao no mapa",
+  title = "Selecionar localização no mapa",
   subtitle = "Arrasta o marcador ou clica no mapa para escolher o ponto exato.",
   initialLat = null,
   initialLng = null,
@@ -204,7 +204,7 @@ export default function LocationPickerModal({
       .catch((error) => {
         if (cancelled) return;
         setDistanceKm(null);
-        setErrorMessage(error?.message || "Nao foi possivel calcular a distancia real.");
+        setErrorMessage(error?.message || "Não foi possível calcular a distância real.");
       })
       .finally(() => {
         if (!cancelled) setDistanceLoading(false);
@@ -233,7 +233,7 @@ export default function LocationPickerModal({
         lng: selectedPoint.lng,
       });
     } catch (error) {
-      setErrorMessage(error?.message || "Nao foi possivel confirmar o ponto no mapa.");
+      setErrorMessage(error?.message || "Não foi possível confirmar o ponto no mapa.");
     } finally {
       setSubmitLoading(false);
     }
@@ -265,7 +265,7 @@ export default function LocationPickerModal({
           {showDeliveryPricing ? (
             <>
               <div>
-                <strong>Distancia real (carro)</strong>
+                <strong>Distância real (carro)</strong>
                 <p>{distanceLoading ? "A calcular..." : formatDistanceKm(deliveryQuote.distanceKm)}</p>
               </div>
               <div>
@@ -279,13 +279,13 @@ export default function LocationPickerModal({
         {showDeliveryPricing ? (
           !deliveryQuote.deliverable ? (
             <p className="location-picker-error">
-              {deliveryQuote.reason || `Fora da zona de entrega (maximo ${maxDeliveryKm} km).`}
+              {deliveryQuote.reason || `Fora da zona de entrega (máximo ${maxDeliveryKm} km).`}
             </p>
           ) : (
             <p className="location-picker-ok">Ponto dentro da zona de entrega.</p>
           )
         ) : (
-          <p className="location-picker-ok">Localizacao pronta para ser usada.</p>
+          <p className="location-picker-ok">Localização pronta para ser usada.</p>
         )}
 
         {errorMessage ? <p className="location-picker-error">{errorMessage}</p> : null}

@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Star } from "lucide-react";
-import { fetchMyDeliveryRating, rateDelivery } from "../../services/estafetaService";
+import { fetchMyOrderRating, rateOrder } from "../../services/orderRatingService";
 import { useAlert } from "../../context/AlertContext";
 
 const STARS = [1, 2, 3, 4, 5];
 
-export default function DeliveryRatingCard({ orderId, callerUserId, driverName }) {
+export default function OrderRatingCard({ orderId, callerUserId, storeName }) {
   const { showError } = useAlert();
   const [loading, setLoading] = useState(true);
   const [existingRating, setExistingRating] = useState(null);
@@ -21,7 +20,7 @@ export default function DeliveryRatingCard({ orderId, callerUserId, driverName }
     async function load() {
       setLoading(true);
       try {
-        const data = await fetchMyDeliveryRating(callerUserId, orderId);
+        const data = await fetchMyOrderRating(callerUserId, orderId);
         if (cancelled) return;
         if (data?.id) {
           setExistingRating(data);
@@ -29,7 +28,7 @@ export default function DeliveryRatingCard({ orderId, callerUserId, driverName }
           setComentario(data.comentario || "");
         }
       } catch (error) {
-        console.error("DeliveryRatingCard: falha ao carregar avaliacao", { error: error?.message });
+        console.error("OrderRatingCard: falha ao carregar avaliacao", { error: error?.message });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -51,7 +50,7 @@ export default function DeliveryRatingCard({ orderId, callerUserId, driverName }
 
     setSubmitting(true);
     try {
-      const result = await rateDelivery(callerUserId, orderId, selectedValue, comentario);
+      const result = await rateOrder(callerUserId, orderId, selectedValue, comentario);
       setExistingRating(result);
       toast.success("Obrigado pela tua avaliação!");
     } catch (error) {
@@ -70,9 +69,9 @@ export default function DeliveryRatingCard({ orderId, callerUserId, driverName }
 
   return (
     <article className="pedido-panel pedido-rating-card">
-      <h3>Avalia a entrega{driverName ? ` de ${driverName}` : ""}</h3>
+      <h3>Avalia o pedido{storeName ? ` de ${storeName}` : ""}</h3>
 
-      <div className="pedido-rating-stars" role={isReadOnly ? undefined : "radiogroup"} aria-label="Classificação de 1 a 5 estrelas">
+      <div className="pedido-rating-stars" role={isReadOnly ? undefined : "radiogroup"} aria-label="Classificacao de 1 a 5 estrelas">
         {STARS.map((star) => (
           <button
             key={star}
@@ -84,7 +83,7 @@ export default function DeliveryRatingCard({ orderId, callerUserId, driverName }
             onClick={() => !isReadOnly && setSelectedValue(star)}
             aria-label={`${star} estrela${star === 1 ? "" : "s"}`}
           >
-            <Star fill={star <= displayValue ? "currentColor" : "none"} aria-hidden="true" />
+            {star <= displayValue ? "★" : "☆"}
           </button>
         ))}
       </div>
@@ -106,7 +105,7 @@ export default function DeliveryRatingCard({ orderId, callerUserId, driverName }
             disabled={submitting}
             onClick={handleSubmit}
           >
-            {submitting ? "A enviar..." : "Enviar avaliação"}
+            {submitting ? "A enviar..." : "Enviar avaliacao"}
           </button>
         </>
       )}

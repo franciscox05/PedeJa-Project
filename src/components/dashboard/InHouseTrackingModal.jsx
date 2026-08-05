@@ -41,7 +41,7 @@ export default function InHouseTrackingModal({
         <div className="admin-modal-header">
           <div>
             <h3>{title}</h3>
-            <p className="muted">Localizacao do estafeta em tempo real (dispatch interno).</p>
+            <p className="muted">Localização do estafeta em tempo real (dispatch interno).</p>
           </div>
           <button type="button" className="btn-dashboard small secondary" onClick={onClose}>
             Fechar
@@ -53,7 +53,7 @@ export default function InHouseTrackingModal({
             orderId={orderId}
             callerUserId={callerUserId}
             isLive={isLive}
-            fallback={<p className="admin-inline-error">Tracking indisponivel para este pedido.</p>}
+            fallback={<p className="admin-inline-error">Tracking indisponível para este pedido.</p>}
           />
         </div>
       </div>

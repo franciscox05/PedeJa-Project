@@ -127,7 +127,7 @@ export default function DashboardEstafetas() {
         setUnassignedOrders([]);
       }
     } catch (loadError) {
-      setError(loadError?.message || "Nao foi possivel carregar o painel de estafetas.");
+      setError(loadError?.message || "Não foi possível carregar o painel de estafetas.");
     } finally {
       setLoading(false);
     }
@@ -146,7 +146,7 @@ export default function DashboardEstafetas() {
       const data = await fetchAdminDeliveryOpsReport(callerUserId, 30, 45);
       setOpsReport({ loading: false, error: "", data });
     } catch (reportError) {
-      setOpsReport({ loading: false, error: reportError?.message || "Nao foi possivel carregar o relatorio.", data: null });
+      setOpsReport({ loading: false, error: reportError?.message || "Não foi possível carregar o relatório.", data: null });
     }
   }, [callerUserId]);
 
@@ -184,10 +184,10 @@ export default function DashboardEstafetas() {
     setBusyKey(key);
     try {
       await assignDeliveryToEstafeta(callerUserId, orderId, estafetaId);
-      toast.success("Estafeta atribuido.");
+      toast.success("Estafeta atribuído.");
       await load();
     } catch (assignError) {
-      showError(assignError?.message || "Nao foi possivel atribuir o estafeta.");
+      showError(assignError?.message || "Não foi possível atribuir o estafeta.");
     } finally {
       setBusyKey("");
     }
@@ -236,7 +236,7 @@ export default function DashboardEstafetas() {
       toast.success(!estafeta.ativo ? "Estafeta ativado." : "Estafeta desativado.");
       await load();
     } catch (toggleError) {
-      showError(toggleError?.message || "Nao foi possivel atualizar o estafeta.");
+      showError(toggleError?.message || "Não foi possível atualizar o estafeta.");
     } finally {
       setBusyKey("");
     }
@@ -248,12 +248,12 @@ export default function DashboardEstafetas() {
     try {
       const result = await adminResetEstafetaPassword(callerUserId, estafeta.id);
       toast.success(
-        `Password reposta para ${estafeta.nome || "estafeta"}! Nova password temporaria: ${result?.password_temporaria}`,
+        `Password reposta para ${estafeta.nome || "estafeta"}! Nova password temporária: ${result?.password_temporaria}`,
         { duration: 15000 },
       );
       await load();
     } catch (resetError) {
-      showError(resetError?.message || "Nao foi possivel repor a password.");
+      showError(resetError?.message || "Não foi possível repor a password.");
     } finally {
       setBusyKey("");
     }
@@ -268,7 +268,7 @@ export default function DashboardEstafetas() {
       ]);
       setPayoutModal({ open: true, estafeta, pending, history, loading: false });
     } catch (payoutError) {
-      showError(payoutError?.message || "Nao foi possivel carregar os pagamentos deste estafeta.");
+      showError(payoutError?.message || "Não foi possível carregar os pagamentos deste estafeta.");
       setPayoutModal({ open: false, estafeta: null, pending: null, history: [], loading: false });
     }
   };
@@ -285,7 +285,7 @@ export default function DashboardEstafetas() {
       toast.success(`Pagamento registado para ${payoutModal.estafeta.nome}.`);
       await handleOpenPayoutModal(payoutModal.estafeta);
     } catch (payoutError) {
-      showError(payoutError?.message || "Nao foi possivel registar o pagamento.");
+      showError(payoutError?.message || "Não foi possível registar o pagamento.");
     } finally {
       setBusyKey("");
     }
@@ -297,14 +297,14 @@ export default function DashboardEstafetas() {
     try {
       const result = await adminCreateEstafeta(callerUserId, createForm);
       toast.success(
-        `Estafeta criado! Password temporaria: ${result?.password_temporaria}`,
+        `Estafeta criado! Password temporária: ${result?.password_temporaria}`,
         { duration: 12000 },
       );
       setCreateForm({ nome: "", email: "", telemovel: "", veiculo: "mota" });
       setShowCreateForm(false);
       await load();
     } catch (createError) {
-      showError(createError?.message || "Nao foi possivel criar o estafeta.");
+      showError(createError?.message || "Não foi possível criar o estafeta.");
     } finally {
       setBusyKey("");
     }
@@ -317,7 +317,7 @@ export default function DashboardEstafetas() {
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Dispatch"
       title="Estafetas"
-      subtitle="Gestao do dispatch interno de entregas."
+      subtitle="Gestão do dispatch interno de entregas."
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <DashboardPageHeader
@@ -543,8 +543,8 @@ export default function DashboardEstafetas() {
 
       <section className="dashboard-stack">
         <DashboardPanel
-          title="Relatorio de operacao"
-          description={`Ultimos ${opsReport.data?.period_days || 30} dias. Entregas a tempo: dentro de ${opsReport.data?.on_time_threshold_minutes || 45} min desde o pedido.`}
+          title="Relatório de operação"
+          description={`Últimos ${opsReport.data?.period_days || 30} dias. Entregas a tempo: dentro de ${opsReport.data?.on_time_threshold_minutes || 45} min desde o pedido.`}
         >
           {opsReport.error ? <p className="shipday-inline-error">{opsReport.error}</p> : null}
 
@@ -560,7 +560,7 @@ export default function DashboardEstafetas() {
             </article>
             <article className="metric-card premium">
               <div className="metric-card-icon metric-icon-green"><CheckCircle2 aria-hidden="true" /></div>
-              <div className="metric-label">Entregas concluidas</div>
+              <div className="metric-label">Entregas concluídas</div>
               <div className="metric-value">{opsReport.data?.total_delivered ?? 0}</div>
             </article>
             <article className="metric-card premium">
@@ -575,16 +575,16 @@ export default function DashboardEstafetas() {
               <thead>
                 <tr>
                   <th>Estafeta</th>
-                  <th>Concluidas</th>
+                  <th>Concluídas</th>
                   <th>Canceladas</th>
                   <th>Rejeitados</th>
-                  <th>Tempo medio</th>
-                  <th>Avaliacao</th>
+                  <th>Tempo médio</th>
+                  <th>Avaliação</th>
                 </tr>
               </thead>
               <tbody>
                 {opsReport.loading ? (
-                  <tr><td colSpan={6} className="muted">A carregar relatorio...</td></tr>
+                  <tr><td colSpan={6} className="muted">A carregar relatório...</td></tr>
                 ) : (opsReport.data?.leaderboard || []).map((row) => (
                   <tr key={`leaderboard-${row.estafeta_id}`}>
                     <td>{row.nome}</td>
@@ -608,7 +608,7 @@ export default function DashboardEstafetas() {
           </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Entregas falhadas/canceladas" description="Ultimas 50 no periodo selecionado.">
+        <DashboardPanel title="Entregas falhadas/canceladas" description="Últimas 50 no período selecionado.">
           <div className="table-wrap">
             <table className="ops-table">
               <thead>
@@ -625,7 +625,7 @@ export default function DashboardEstafetas() {
                   </tr>
                 ))}
                 {!opsReport.loading && (opsReport.data?.failed_deliveries || []).length === 0 ? (
-                  <DashboardEmptyState as="tableRow" colSpan={5} label="Sem entregas falhadas ou canceladas no periodo." />
+                  <DashboardEmptyState as="tableRow" colSpan={5} label="Sem entregas falhadas ou canceladas no período." />
                 ) : null}
               </tbody>
             </table>
@@ -662,7 +662,7 @@ export default function DashboardEstafetas() {
 
             {payoutModal.history.length > 0 ? (
               <>
-                <p className="estafeta-order-card-meta"><strong>Historico de pagamentos</strong></p>
+                <p className="estafeta-order-card-meta"><strong>Histórico de pagamentos</strong></p>
                 <div className="table-wrap">
                   <table className="ops-table">
                     <thead>

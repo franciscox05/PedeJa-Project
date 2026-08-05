@@ -128,7 +128,7 @@ export async function fetchAdminRevenueBreakdown(periodDays = 7, callerUserId = 
   const until = new Date().toISOString();
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente.");
+    throw new Error("Sessão inválida: inicia sessão novamente.");
   }
 
   const ordersRes = await supabase.rpc("list_orders_for_viewer", {

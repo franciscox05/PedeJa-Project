@@ -77,7 +77,7 @@ export function normalizeMenuOptionType(value) {
 export function getMenuOptionTypeLabel(value) {
   const type = normalizeMenuOptionType(value);
   if (type === "complementar") return "Complementar";
-  if (type === "sugestao") return "Sugestao";
+  if (type === "sugestao") return "Sugestão";
   return "Extra";
 }
 
@@ -204,14 +204,14 @@ export function describeMenuOptionSelectionMode(group = {}) {
   const required = Boolean(group?.required ?? group?.obrigatorio ?? group?.is_required);
   const effectiveMin = required ? Math.max(1, Math.min(minSelections || 1, maxSelections)) : Math.min(minSelections, maxSelections);
 
-  if (required && maxSelections <= 1) return "Obrigatorio - escolha 1";
-  if (!required && maxSelections <= 1) return "Opcional - ate 1";
+  if (required && maxSelections <= 1) return "Obrigatório - escolha 1";
+  if (!required && maxSelections <= 1) return "Opcional - até 1";
   if (required) {
-    if (effectiveMin > 1) return `Obrigatorio - de ${effectiveMin} ate ${maxSelections}`;
-    return `Obrigatorio - ate ${maxSelections}`;
+    if (effectiveMin > 1) return `Obrigatório - de ${effectiveMin} até ${maxSelections}`;
+    return `Obrigatório - até ${maxSelections}`;
   }
-  if (effectiveMin > 0) return `Opcional - de ${effectiveMin} ate ${maxSelections}`;
-  return `Opcional - ate ${maxSelections}`;
+  if (effectiveMin > 0) return `Opcional - de ${effectiveMin} até ${maxSelections}`;
+  return `Opcional - até ${maxSelections}`;
 }
 
 export function buildDefaultMenuOptionSelections(groups = []) {
@@ -262,7 +262,7 @@ export function validateMenuOptionSelections(groups = [], selections = {}) {
     const maxSelections = toPositiveInt(group?.maxSelections ?? 1, 1);
 
     if (selectedCount > maxSelections) {
-      byGroup[group.id] = `Escolhe no maximo ${maxSelections}.`;
+      byGroup[group.id] = `Escolhe no máximo ${maxSelections}.`;
       hasBlockingError = true;
       overLimit = true;
       return;
@@ -270,7 +270,7 @@ export function validateMenuOptionSelections(groups = [], selections = {}) {
 
     if (selectedCount < minSelections) {
       byGroup[group.id] = minSelections <= 1
-        ? "Escolha obrigatoria."
+        ? "Escolha obrigatória."
         : `Escolhe pelo menos ${minSelections}.`;
       hasBlockingError = true;
       if (group.required) {
@@ -342,7 +342,7 @@ export function normalizeSelectedMenuOptions(rawSelectedOptions = [], commission
 
       return {
         group_id: normalizeId("group", entry?.group_id || entry?.groupId, index),
-        group_title: toText(entry?.group_title || entry?.groupTitle || entry?.grupo || "Opcoes"),
+        group_title: toText(entry?.group_title || entry?.groupTitle || entry?.grupo || "Opções"),
         group_type: normalizeMenuOptionType(entry?.group_type || entry?.groupType || entry?.tipo),
         option_id: normalizeId("option", entry?.option_id || entry?.optionId, index),
         option_name: optionName,

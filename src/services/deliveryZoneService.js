@@ -194,7 +194,7 @@ export function computeDeliveryQuoteByDistance(distanceKm, pricingConfig = null,
       distanceKm: null,
       tier: null,
       pricingModel: null,
-      reason: "Nao foi possivel validar a distancia de entrega.",
+      reason: "Não foi possível validar a distância de entrega.",
     };
   }
 
@@ -208,7 +208,7 @@ export function computeDeliveryQuoteByDistance(distanceKm, pricingConfig = null,
         distanceKm,
         tier: null,
         pricingModel: "legacy_tiers",
-        reason: `Fora da zona de entrega. O limite atual e ${MAX_BARCELOS_RADIUS_KM} km.`,
+        reason: `Fora da zona de entrega. O limite atual é ${MAX_BARCELOS_RADIUS_KM} km.`,
       };
     }
 
@@ -230,7 +230,7 @@ export function computeDeliveryQuoteByDistance(distanceKm, pricingConfig = null,
       tier: null,
       pricingModel: "per_km",
       pricingConfig: config,
-      reason: `Fora da zona de entrega. O limite atual e ${config.max_km.toFixed(0)} km.`,
+      reason: `Fora da zona de entrega. O limite atual é ${config.max_km.toFixed(0)} km.`,
     };
   }
 
@@ -268,10 +268,10 @@ export function formatDeliveryFee(value) {
 export function describeDeliveryPricing(pricingConfig = null, fallbackBaseFee = null) {
   const config = sanitizeDeliveryPricingConfig(pricingConfig, fallbackBaseFee);
   if (!config) {
-    return `Tabela base de Barcelos ate ${MAX_BARCELOS_RADIUS_KM} km.`;
+    return `Tabela base de Barcelos até ${MAX_BARCELOS_RADIUS_KM} km.`;
   }
 
-  return `Minimo ${config.base_fee.toFixed(2)}EUR ate ${config.included_km.toFixed(2)} km, +${config.extra_per_km.toFixed(2)}EUR/km ate ${config.max_km.toFixed(2)} km.`;
+  return `Mínimo ${config.base_fee.toFixed(2)}EUR até ${config.included_km.toFixed(2)} km, +${config.extra_per_km.toFixed(2)}EUR/km até ${config.max_km.toFixed(2)} km.`;
 }
 
 export function isInPortugalMainlandBounds(lat, lng) {

@@ -20,7 +20,7 @@ function getCarrierMeta(status) {
   if (status === "pickup") {
     return { label: "Estafeta em recolha", pointClass: "pickup" };
   }
-  return { label: "Estafeta disponivel", pointClass: "available" };
+  return { label: "Estafeta disponível", pointClass: "available" };
 }
 
 function resolveCarrierStatus(status, orderEstado = "") {
@@ -45,7 +45,7 @@ function formatOrderId(orderId) {
 }
 
 function formatDistanceLabel(distanceKm) {
-  if (!Number.isFinite(distanceKm)) return "Distancia nao disponivel";
+  if (!Number.isFinite(distanceKm)) return "Distância não disponível";
   if (distanceKm <= 2) return `Muito perto (${distanceKm.toFixed(1)} km)`;
   if (distanceKm <= 5) return `Perto (${distanceKm.toFixed(1)} km)`;
   if (distanceKm <= 10) return `A caminho (${distanceKm.toFixed(1)} km)`;
@@ -207,10 +207,10 @@ function getOrderPointMeta(order) {
     return { pointClass: "warn", label: "Pedido aceite" };
   }
   if (["atribuindo_estafeta", "estafeta_aceitou", "iniciado"].includes(estado)) {
-    return { pointClass: "warn", label: "Estafeta atribuido" };
+    return { pointClass: "warn", label: "Estafeta atribuído" };
   }
   if (["em_preparacao", "pronto_recolha"].includes(estado)) {
-    return { pointClass: "warn", label: "Pedido em preparacao" };
+    return { pointClass: "warn", label: "Pedido em preparação" };
   }
   if (["a_caminho", "recolhido"].includes(estado)) {
     return { pointClass: "ok", label: "Pedido em rota" };
@@ -729,7 +729,7 @@ export default function LiveOperationsBoard({
     return (
       <div className="panel live-board">
         <h3>Live Geo Board</h3>
-        <p className="muted">Sem coordenadas operacionais validas (Portugal/Barcelos) para lojas, pedidos ou estafetas.</p>
+        <p className="muted">Sem coordenadas operacionais válidas (Portugal/Barcelos) para lojas, pedidos ou estafetas.</p>
       </div>
     );
   }
@@ -738,7 +738,7 @@ export default function LiveOperationsBoard({
     return (
       <div className="panel live-board">
         <h3>Live Geo Board</h3>
-        <p className="muted">Sem pontos validos no mapa. Mantemos a tabela operacional ativa.</p>
+        <p className="muted">Sem pontos válidos no mapa. Mantemos a tabela operacional ativa.</p>
         <div className="table-wrap" style={{ marginTop: "10px" }}>
           <table className="ops-table">
             <thead>
@@ -778,7 +778,7 @@ export default function LiveOperationsBoard({
           <h3>Live Geo Board</h3>
           <p className="muted">
             {isRestaurantMode
-              ? "Mapa da loja com estafetas atribuidos em tempo real."
+              ? "Mapa da loja com estafetas atribuídos em tempo real."
               : "Mapa operacional em tempo real com lojas, pedidos ativos e estafetas online."}
           </p>
           {typeof onOpenDetails === "function" ? (
@@ -802,7 +802,7 @@ export default function LiveOperationsBoard({
               <>
                 <strong>{selectedPoint.payload?.name || `Estafeta ${selectedPoint.id}`}</strong>
                 <p>{selectedMeta?.label || "Estafeta"}</p>
-                <p>{selectedPoint.payload?.phone || "Sem telemovel"}</p>
+                <p>{selectedPoint.payload?.phone || "Sem telemóvel"}</p>
                 <p>
                   Pedido em curso: {formatOrderId(
                     selectedCarrierOrder?.id
@@ -810,9 +810,9 @@ export default function LiveOperationsBoard({
                   )}
                 </p>
                 <p>
-                  Estado do pedido: {selectedCarrierEstado ? getEstadoInternoLabelPt(selectedCarrierEstado) : "Sem sincronizacao"}
+                  Estado do pedido: {selectedCarrierEstado ? getEstadoInternoLabelPt(selectedCarrierEstado) : "Sem sincronização"}
                 </p>
-                <p>Fonte localizacao: {selectedPoint.payload?.coordsSource === "carrier" ? "GPS live" : "Fallback operacional"}</p>
+                <p>Fonte localização: {selectedPoint.payload?.coordsSource === "carrier" ? "GPS live" : "Fallback operacional"}</p>
                 {isRestaurantMode ? <p>Distancia loja: {formatDistanceLabel(restaurantCarrierDistance)}</p> : null}
               </>
             ) : null}
@@ -848,7 +848,7 @@ export default function LiveOperationsBoard({
           type="button"
           className="geo-map-fullscreen-btn"
           onClick={() => setIsMapFullscreen((prev) => !prev)}
-          title={isMapFullscreen ? "Fechar mapa em ecra completo" : "Expandir mapa em ecra completo"}
+          title={isMapFullscreen ? "Fechar mapa em ecrã completo" : "Expandir mapa em ecrã completo"}
         >
           {isMapFullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
         </button>
@@ -857,9 +857,9 @@ export default function LiveOperationsBoard({
 
       <div className="geo-legend">
         <span><i className="dot store" /> Loja</span>
-        <span><i className="dot warn" /> Pedido em preparacao</span>
+        <span><i className="dot warn" /> Pedido em preparação</span>
         <span><i className="dot ok" /> Pedido em rota</span>
-        <span><i className="dot available" /> Estafeta disponivel</span>
+        <span><i className="dot available" /> Estafeta disponível</span>
         <span><i className="dot pickup" /> Estafeta em recolha</span>
         <span><i className="dot delivery" /> Estafeta em entrega</span>
       </div>

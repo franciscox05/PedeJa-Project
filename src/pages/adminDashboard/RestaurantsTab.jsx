@@ -21,11 +21,11 @@ import { safeImage, safeFixed } from "./helpers";
 
 const SUB_TABS = [
   { id: "profile", label: "Dados da Loja", icon: Store },
-  { id: "commission", label: "Comissao", icon: Percent },
+  { id: "commission", label: "Comissão", icon: Percent },
   { id: "delivery", label: "Entrega", icon: Truck },
-  { id: "hours", label: "Horarios Especiais", icon: Clock },
+  { id: "hours", label: "Horários Especiais", icon: Clock },
   { id: "performance", label: "Performance", icon: LineChart },
-  { id: "approvals", label: "Aprovacoes", icon: ClipboardCheck },
+  { id: "approvals", label: "Aprovações", icon: ClipboardCheck },
   { id: "association", label: "Associar Utilizador", icon: Link2 },
 ];
 
@@ -92,7 +92,7 @@ export default function RestaurantsTab({
         <div className="store-access-header">
           <div>
             <h3>Loja em foco</h3>
-            <p className="muted">Pesquisa por nome e gere a configuracao granular de uma loja de cada vez.</p>
+            <p className="muted">Pesquisa por nome e gere a configuração granular de uma loja de cada vez.</p>
           </div>
           <button className="btn-dashboard secondary" disabled={!selectedStoreId} onClick={() => openRestaurantDashboard()}>
             Abrir dashboard da loja
@@ -132,7 +132,7 @@ export default function RestaurantsTab({
         </div>
       </section>
 
-      <nav className="restaurants-subtabs" aria-label="Seccoes de gestao de restaurantes">
+      <nav className="restaurants-subtabs" aria-label="Secções de gestão de restaurantes">
         {SUB_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -155,8 +155,8 @@ export default function RestaurantsTab({
             <div>
               <h3>Dados da loja</h3>
               <p className="muted">
-                Nome, NIF, contacto, tipo, morada, imagens e horario semanal -- tudo o que antes
-                so dava para editar saltando para outra pagina.
+                Nome, NIF, contacto, tipo, morada, imagens e horário semanal -- tudo o que antes
+                só dava para editar saltando para outra página.
               </p>
             </div>
           </div>
@@ -170,8 +170,8 @@ export default function RestaurantsTab({
 
       {section === "commission" ? (
         <RestaurantManagementPanel
-          title="Gestao de Restaurantes"
-          subtitle="Escolhe o modo de comissao e define overrides globais, por categoria ou por prato."
+          title="Gestão de Restaurantes"
+          subtitle="Escolhe o modo de comissão e define overrides globais, por categoria ou por prato."
           stores={managementStores}
           loading={loading}
           canEdit
@@ -233,8 +233,8 @@ export default function RestaurantsTab({
                   <th>Loja</th>
                   <th>Pedidos</th>
                   <th>Receita</th>
-                  <th>Ticket medio</th>
-                  <th>Concluido</th>
+                  <th>Ticket médio</th>
+                  <th>Concluído</th>
                   <th>Acesso</th>
                 </tr>
               </thead>
@@ -271,8 +271,8 @@ export default function RestaurantsTab({
 
       {section === "approvals" ? (
         <DashboardPanel
-          title="Aprovacoes de restaurantes"
-          description="Candidaturas novas de parceiros a espera de revisao."
+          title="Aprovações de restaurantes"
+          description="Candidaturas novas de parceiros à espera de revisão."
         >
           <div className="table-wrap">
             <table className="ops-table">
@@ -282,8 +282,8 @@ export default function RestaurantsTab({
                   <th>Email</th>
                   <th>Restaurante</th>
                   <th>NIF</th>
-                  <th>Horario</th>
-                  <th>Acao</th>
+                  <th>Horário</th>
+                  <th>Ação</th>
                 </tr>
               </thead>
               <tbody>
@@ -329,13 +329,13 @@ export default function RestaurantsTab({
                                 <div><span className="request-detail-label">Estabelecimento</span><p>{request.restaurante_nome || "-"}</p></div>
                                 <div><span className="request-detail-label">Candidato</span><p>{request.nome || "-"}</p></div>
                                 <div><span className="request-detail-label">Email</span><p>{request.email || "-"}</p></div>
-                                <div><span className="request-detail-label">Telemovel</span><p>{request.telefone || "-"}</p></div>
+                                <div><span className="request-detail-label">Telemóvel</span><p>{request.telefone || "-"}</p></div>
                                 <div><span className="request-detail-label">NIF</span><p>{request.nif || "-"}</p></div>
                                 <div><span className="request-detail-label">Tipo de loja</span><p>{storeTypeMap.get(String(request.idtipoloja || "")) || "-"}</p></div>
                                 <div><span className="request-detail-label">Morada</span><p>{request.morada_completa || "-"}</p></div>
                                 <div><span className="request-detail-label">Coordenadas</span><p>{request.latitude ?? "-"}, {request.longitude ?? "-"}</p></div>
                                 <div><span className="request-detail-label">Place ID</span><p>{request.place_id || "-"}</p></div>
-                                <div><span className="request-detail-label">Horario</span><p>{request.horario_funcionamento ? formatScheduleLabel(request.horario_funcionamento) : "-"}</p></div>
+                                <div><span className="request-detail-label">Horário</span><p>{request.horario_funcionamento ? formatScheduleLabel(request.horario_funcionamento) : "-"}</p></div>
                               </div>
 
                               <div className="request-detail-images">

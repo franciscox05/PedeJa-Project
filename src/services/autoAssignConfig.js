@@ -1,7 +1,7 @@
 export const AUTO_ASSIGN_CRITERIA_OPTIONS = [
   { key: "availability", label: "Disponibilidade", hint: "Prioriza estafetas livres, sem pedidos ativos." },
   { key: "workload", label: "Menor carga", hint: "Favorece quem tem menos pedidos no dia." },
-  { key: "proximity", label: "Proximidade", hint: "Favorece quem esta mais perto do centro operativo." },
+  { key: "proximity", label: "Proximidade", hint: "Favorece quem está mais perto do centro operativo." },
 ];
 
 export const DEFAULT_AUTO_ASSIGN_CRITERIA = {
@@ -42,7 +42,7 @@ export function criteriaSummaryText(criteria) {
     .filter((option) => normalized[option.key])
     .map((option) => option.label);
 
-  return labels.length > 0 ? labels.join(" + ") : "Criterios padrao";
+  return labels.length > 0 ? labels.join(" + ") : "Critérios padrão";
 }
 
 export function resolveEffectiveAutoAssignConfig(store, globalConfig) {

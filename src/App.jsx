@@ -116,7 +116,8 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
       <Toaster
-        position="top-right"
+        position="top-center"
+        containerStyle={{ zIndex: 10000, top: 16 }}
         toastOptions={{
           duration: 4500,
           style: {

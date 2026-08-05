@@ -16,7 +16,6 @@ import {
   ClipboardList,
   ChevronsLeft,
   ChevronsRight,
-  ExternalLink,
   User,
   LogOut,
 } from "lucide-react";
@@ -184,13 +183,6 @@ export default function DashboardSidebarLayout({
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-1.5">
                             <span className="truncate">{tab.label}</span>
-                            {tab.route ? (
-                              <ExternalLink
-                                className={cn("w-3 h-3 flex-shrink-0 opacity-70", isActive ? "text-white" : "text-gray-400")}
-                                aria-hidden="true"
-                                title="Abre noutra pagina"
-                              />
-                            ) : null}
                             {typeof tab.badge === "number" && tab.badge > 0 ? (
                               <span
                                 className={cn(

@@ -135,19 +135,19 @@ function validateDraftGroup(draft) {
   const options = Array.isArray(draft?.options) ? draft.options : [];
 
   if (name.length < 2) return "O grupo precisa de nome com pelo menos 2 caracteres.";
-  if (!Number.isFinite(maxChoices) || maxChoices < 1) return "Define um maximo de escolhas valido (>= 1).";
-  if (!Number.isFinite(minChoices) || minChoices < 0) return "Define um minimo de escolhas valido (>= 0).";
-  if (required && minChoices < 1) return "Se o grupo e obrigatorio, o minimo tem de ser pelo menos 1.";
-  if (minChoices > maxChoices) return "O minimo nao pode ser superior ao maximo.";
+  if (!Number.isFinite(maxChoices) || maxChoices < 1) return "Define um máximo de escolhas válido (>= 1).";
+  if (!Number.isFinite(minChoices) || minChoices < 0) return "Define um mínimo de escolhas válido (>= 0).";
+  if (required && minChoices < 1) return "Se o grupo é obrigatório, o mínimo tem de ser pelo menos 1.";
+  if (minChoices > maxChoices) return "O mínimo não pode ser superior ao máximo.";
 
   const validOptions = options.filter((option) => String(option?.name || "").trim());
-  if (validOptions.length === 0) return "Adiciona pelo menos uma opcao ao grupo.";
+  if (validOptions.length === 0) return "Adiciona pelo menos uma opção ao grupo.";
 
   const hasInvalidPrice = validOptions.some((option) => {
     const value = Number(String(option?.price_modifier ?? "0").replace(",", "."));
     return !Number.isFinite(value) || value < 0;
   });
-  if (hasInvalidPrice) return "Todas as opcoes precisam de um preco valido (>= 0).";
+  if (hasInvalidPrice) return "Todas as opções precisam de um preço válido (>= 0).";
 
   return "";
 }
@@ -408,7 +408,7 @@ export default function MenuOptionBuilderModal({
   const handleSaveGroup = async (event) => {
     event.preventDefault();
     if (!lojaId || !Number.isFinite(menuId)) {
-      setError("Define uma loja e prato validos antes de guardar modificadores.");
+      setError("Define uma loja e prato válidos antes de guardar modificadores.");
       return;
     }
 
@@ -463,7 +463,7 @@ export default function MenuOptionBuilderModal({
 
     const linkedCount = Number(group?.linked_menu_count || 0);
     const warnText = linkedCount > 1
-      ? `Este grupo esta ligado a ${linkedCount} pratos. Apagar vai remover em todos. Continuar?`
+      ? `Este grupo está ligado a ${linkedCount} pratos. Apagar vai remover em todos. Continuar?`
       : "Apagar este grupo permanentemente?";
     if (!window.confirm(warnText)) return;
 
@@ -530,7 +530,7 @@ export default function MenuOptionBuilderModal({
     const sourceGroupId = group?.library_group_id || group?.id;
     if (!sourceGroupId) return;
 
-    const suggestedName = `${group?.title || "Grupo"} (Copia)`;
+    const suggestedName = `${group?.title || "Grupo"} (Cópia)`;
     const duplicateName = window.prompt("Nome do grupo duplicado:", suggestedName);
     if (!duplicateName || !duplicateName.trim()) return;
 
@@ -565,7 +565,7 @@ export default function MenuOptionBuilderModal({
           <div>
             <p className="kicker">Modificadores do prato</p>
             <h3>{menuItem?.nome || "Prato"}</h3>
-            <p className="muted">Cria grupos obrigatorios/opcionais e liga opcoes com preco extra para este menu.</p>
+            <p className="muted">Cria grupos obrigatórios/opcionais e liga opções com preço extra para este menu.</p>
           </div>
           <button type="button" className="btn-dashboard small secondary" onClick={onClose}>
             Fechar
@@ -610,14 +610,14 @@ export default function MenuOptionBuilderModal({
                   }}
                 />
                 <span className="menu-form-checkbox-box">
-                  <strong>Grupo obrigatorio</strong>
+                  <strong>Grupo obrigatório</strong>
                   <small className="muted">{selectionModePreview}</small>
                 </span>
               </label>
 
               <div className="menu-form-row">
                 <label>
-                  <span className="muted">Minimo de escolhas</span>
+                  <span className="muted">Mínimo de escolhas</span>
                   <input
                     type="number"
                     min={draft.is_required ? "1" : "0"}
@@ -627,7 +627,7 @@ export default function MenuOptionBuilderModal({
                   />
                 </label>
                 <label>
-                  <span className="muted">Maximo de escolhas</span>
+                  <span className="muted">Máximo de escolhas</span>
                   <input
                     type="number"
                     min="1"
@@ -640,7 +640,7 @@ export default function MenuOptionBuilderModal({
 
               <section className="menu-option-dependency-editor menu-option-group-dependency-editor">
                 <div className="menu-option-dependency-head">
-                  <strong>Regras de exibicao do grupo</strong>
+                  <strong>Regras de exibição do grupo</strong>
                   <button
                     type="button"
                     className="btn-dashboard secondary small"
@@ -653,7 +653,7 @@ export default function MenuOptionBuilderModal({
 
                 {dependencySourceGroups.length === 0 ? (
                   <p className="menu-builder-caption muted">
-                    Sem grupos anteriores disponiveis. Este grupo aparece sempre.
+                    Sem grupos anteriores disponíveis. Este grupo aparece sempre.
                   </p>
                 ) : (
                   <div className="menu-option-dependency-groups">
@@ -663,7 +663,7 @@ export default function MenuOptionBuilderModal({
                         <details key={`group-rule-${sourceGroupId}`} className="menu-option-dependency-group">
                           <summary>
                             <span>{sourceGroup?.title || "Grupo sem nome"}</span>
-                            <small>{sourceGroup?.options?.length || 0} opcoes</small>
+                            <small>{sourceGroup?.options?.length || 0} opções</small>
                           </summary>
                           <div className="menu-option-dependency-options">
                             {(sourceGroup?.options || []).map((sourceOption) => {
@@ -677,7 +677,7 @@ export default function MenuOptionBuilderModal({
                                     checked={isSelected}
                                     onChange={() => toggleGroupDependency(sourceOptionId)}
                                   />
-                                  <span>{sourceOption?.name || "Opcao sem nome"}</span>
+                                  <span>{sourceOption?.name || "Opção sem nome"}</span>
                                 </label>
                               );
                             })}
@@ -692,11 +692,11 @@ export default function MenuOptionBuilderModal({
               <section className="menu-options-builder">
                 <div className="menu-options-builder-head">
                   <div>
-                    <h4>Opcoes do grupo</h4>
-                    <p className="menu-builder-caption muted">Define o nome e o preco extra de cada opcao.</p>
+                    <h4>Opções do grupo</h4>
+                    <p className="menu-builder-caption muted">Define o nome e o preço extra de cada opção.</p>
                   </div>
                   <button type="button" className="btn-dashboard secondary small" onClick={addOption}>
-                    Adicionar opcao
+                    Adicionar opção
                   </button>
                 </div>
 
@@ -704,7 +704,7 @@ export default function MenuOptionBuilderModal({
                   {draft.options.map((option, index) => (
                     <div key={option.id} className="menu-option-builder-row">
                       <label>
-                        <span className="muted">Opcao {index + 1}</span>
+                        <span className="muted">Opção {index + 1}</span>
                         <input
                           type="text"
                           placeholder="Ex: Coca-Cola"
@@ -713,7 +713,7 @@ export default function MenuOptionBuilderModal({
                         />
                       </label>
                       <label>
-                        <span className="muted">Preco extra</span>
+                        <span className="muted">Preço extra</span>
                         <input
                           type="number"
                           min="0"
@@ -748,7 +748,7 @@ export default function MenuOptionBuilderModal({
 
                       <div className="menu-option-dependency-editor">
                         <div className="menu-option-dependency-head">
-                          <strong>Regras de exibicao desta opcao</strong>
+                          <strong>Regras de exibição desta opção</strong>
                           <button
                             type="button"
                             className="btn-dashboard secondary small"
@@ -761,7 +761,7 @@ export default function MenuOptionBuilderModal({
 
                         {dependencySourceGroups.length === 0 ? (
                           <p className="menu-builder-caption muted">
-                            Sem grupos anteriores disponiveis. Esta opcao aparece sempre.
+                            Sem grupos anteriores disponíveis. Esta opção aparece sempre.
                           </p>
                         ) : (
                           <div className="menu-option-dependency-groups">
@@ -771,7 +771,7 @@ export default function MenuOptionBuilderModal({
                                 <details key={sourceGroupId} className="menu-option-dependency-group">
                                   <summary>
                                     <span>{sourceGroup?.title || "Grupo sem nome"}</span>
-                                    <small>{sourceGroup?.options?.length || 0} opcoes</small>
+                                    <small>{sourceGroup?.options?.length || 0} opções</small>
                                   </summary>
                                   <div className="menu-option-dependency-options">
                                     {(sourceGroup?.options || []).map((sourceOption) => {
@@ -785,7 +785,7 @@ export default function MenuOptionBuilderModal({
                                             checked={isSelected}
                                             onChange={() => toggleOptionDependency(option.id, sourceOptionId)}
                                           />
-                                          <span>{sourceOption?.name || "Opcao sem nome"}</span>
+                                          <span>{sourceOption?.name || "Opção sem nome"}</span>
                                         </label>
                                       );
                                     })}
@@ -807,7 +807,7 @@ export default function MenuOptionBuilderModal({
                 </button>
                 {editingGroupId ? (
                   <button type="button" className="btn-dashboard secondary" onClick={resetDraft} disabled={saving || orderingInProgress}>
-                    Cancelar edicao
+                    Cancelar edição
                   </button>
                 ) : null}
               </div>
@@ -818,7 +818,7 @@ export default function MenuOptionBuilderModal({
             <div className="menu-option-panel-head">
               <div>
                 <h4>Grupos deste prato</h4>
-                <p className="menu-builder-caption muted">Ajusta a sequencia para controlar a ordem no checkout.</p>
+                <p className="menu-builder-caption muted">Ajusta a sequência para controlar a ordem no checkout.</p>
               </div>
               <div className="menu-option-panel-head-actions">
                 <span className="menu-library-count">{orderedGroups.length} grupos</span>
@@ -844,7 +844,7 @@ export default function MenuOptionBuilderModal({
             {loading ? (
               <p className="muted">A carregar grupos...</p>
             ) : orderedGroups.length === 0 ? (
-              <p className="muted">Este prato ainda nao tem modificadores. Cria o primeiro grupo no painel ao lado.</p>
+              <p className="muted">Este prato ainda não tem modificadores. Cria o primeiro grupo no painel ao lado.</p>
             ) : (
               <div className="menu-option-group-list">
                 {orderedGroups.map((group) => {
@@ -864,14 +864,14 @@ export default function MenuOptionBuilderModal({
                     <article key={String(groupId)} className="menu-option-group-card">
                       <div className="menu-option-group-head">
                         <div>
-                          <h5>{group?.title || "Grupo sem titulo"}</h5>
+                          <h5>{group?.title || "Grupo sem título"}</h5>
                           <p className="muted">{describeMenuOptionSelectionMode(group)}</p>
                           {groupDependencies.length > 0 ? (
-                            <p className="muted">Condicional - {groupDependencies.length} regra(s) de exibicao</p>
+                            <p className="muted">Condicional - {groupDependencies.length} regra(s) de exibição</p>
                           ) : null}
                         </div>
                         <div className="menu-option-group-order-controls">
-                          <span className="menu-library-count">#{orderLabel} - {group?.options?.length || 0} opcoes</span>
+                          <span className="menu-library-count">#{orderLabel} - {group?.options?.length || 0} opções</span>
                           <div className="menu-option-group-order-buttons">
                             <button
                               type="button"
@@ -898,7 +898,7 @@ export default function MenuOptionBuilderModal({
                       <div className="menu-option-group-items">
                         {(group?.options || []).map((option) => (
                           <div key={option?.id} className="menu-option-group-item">
-                            <span>{option?.name || "Opcao sem nome"}</span>
+                            <span>{option?.name || "Opção sem nome"}</span>
                             <strong>{Number(option?.price || 0) > 0 ? `+${formatCurrency(option?.price)}` : "Sem extra"}</strong>
                           </div>
                         ))}

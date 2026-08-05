@@ -5,22 +5,22 @@
 
 export const DAYS = [
   { id: 1, label: "Segunda", short: "Seg" },
-  { id: 2, label: "Terca", short: "Ter" },
+  { id: 2, label: "Terça", short: "Ter" },
   { id: 3, label: "Quarta", short: "Qua" },
   { id: 4, label: "Quinta", short: "Qui" },
   { id: 5, label: "Sexta", short: "Sex" },
-  { id: 6, label: "Sabado", short: "Sab" },
+  { id: 6, label: "Sábado", short: "Sab" },
   { id: 0, label: "Domingo", short: "Dom" },
 ];
 
 export const DAY_PRESETS = [
-  { id: "workdays", label: "Dias uteis", days: [1, 2, 3, 4, 5] },
+  { id: "workdays", label: "Dias úteis", days: [1, 2, 3, 4, 5] },
   { id: "weekend", label: "Fim de semana", days: [6, 0] },
   { id: "all", label: "Todos os dias", days: [1, 2, 3, 4, 5, 6, 0] },
 ];
 
 export const SHIFT_PRESETS = [
-  { id: "almoco", label: "Almoco 12:00-15:00", open: "12:00", close: "15:00" },
+  { id: "almoco", label: "Almoço 12:00-15:00", open: "12:00", close: "15:00" },
   { id: "jantar", label: "Jantar 19:00-23:00", open: "19:00", close: "23:00" },
   { id: "dia", label: "Dia inteiro 09:00-22:00", open: "09:00", close: "22:00" },
 ];

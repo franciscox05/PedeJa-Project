@@ -17,15 +17,15 @@ export async function associateRestaurantToUser({ callerUserId, userId, lojaId }
   const normalizedLojaId = Number(lojaId);
 
   if (!Number.isFinite(normalizedCallerId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente.");
+    throw new Error("Sessão inválida: inicia sessão novamente.");
   }
 
   if (!Number.isFinite(normalizedUserId)) {
-    throw new Error("Utilizador invalido para associacao.");
+    throw new Error("Utilizador inválido para associação.");
   }
 
   if (!Number.isFinite(normalizedLojaId)) {
-    throw new Error("Loja invalida para associacao.");
+    throw new Error("Loja inválida para associação.");
   }
 
   const { data, error } = await supabase.rpc("admin_associate_restaurant_to_user", {
@@ -52,10 +52,10 @@ export async function fetchStoreAssociation({ callerUserId, lojaId }) {
   const normalizedLojaId = Number(lojaId);
 
   if (!Number.isFinite(normalizedCallerId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente.");
+    throw new Error("Sessão inválida: inicia sessão novamente.");
   }
   if (!Number.isFinite(normalizedLojaId)) {
-    throw new Error("Loja invalida para associacao.");
+    throw new Error("Loja inválida para associação.");
   }
 
   const { data, error } = await supabase.rpc("admin_get_store_association", {
@@ -75,10 +75,10 @@ export async function removeRestaurantAssociation({ callerUserId, lojaId }) {
   const normalizedLojaId = Number(lojaId);
 
   if (!Number.isFinite(normalizedCallerId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente.");
+    throw new Error("Sessão inválida: inicia sessão novamente.");
   }
   if (!Number.isFinite(normalizedLojaId)) {
-    throw new Error("Loja invalida para associacao.");
+    throw new Error("Loja inválida para associação.");
   }
 
   const { data, error } = await supabase.rpc("admin_remove_restaurant_association", {

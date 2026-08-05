@@ -48,7 +48,7 @@ export default function ProfileFavoritos() {
       setStores((prev) => prev.filter((store) => String(store.id) !== String(storeId)));
       window.dispatchEvent(new Event("pedeja-favorites-updated"));
     } catch (error) {
-      showError(error?.message || "Nao foi possivel atualizar os favoritos.");
+      showError(error?.message || "Não foi possível atualizar os favoritos.");
     } finally {
       setBusyId("");
     }
@@ -62,7 +62,7 @@ export default function ProfileFavoritos() {
     return (
       <div className="py-10 text-center">
         <Heart className="mx-auto mb-3 h-12 w-12 text-gray-200" aria-hidden="true" />
-        <p className="text-sm text-gray-500">Ainda nao adicionaste restaurantes aos favoritos.</p>
+        <p className="text-sm text-gray-500">Ainda não adicionaste restaurantes aos favoritos.</p>
       </div>
     );
   }
@@ -74,7 +74,7 @@ export default function ProfileFavoritos() {
           <div>
             <p className="text-xs font-bold text-[#e62429]">Loja favorita</p>
             <h4 className="mt-0.5 font-bold text-gray-900">{store.nome}</h4>
-            <p className="mt-0.5 text-sm text-gray-500">{store.morada || "Morada nao definida"}</p>
+            <p className="mt-0.5 text-sm text-gray-500">{store.morada || "Morada não definida"}</p>
           </div>
 
           <div className="flex items-center gap-2">

@@ -74,7 +74,7 @@ export default function RegistoPage() {
       try {
         await syncAuthUserForEmail(formData.email);
       } catch (syncError) {
-        console.error("Nao foi possivel sincronizar a conta com o Supabase Auth:", syncError);
+        console.error("Não foi possível sincronizar a conta com o Supabase Auth:", syncError);
       }
 
       setSuccess(true);

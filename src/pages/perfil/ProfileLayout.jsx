@@ -46,7 +46,7 @@ export default function ProfileLayout() {
               </div>
 
               <div className="profile-header-text">
-                <p className="profile-kicker">Area pessoal</p>
+                <p className="profile-kicker">Área pessoal</p>
                 <h1>O Meu Perfil</h1>
                 <p className="profile-member-since">
                   Membro desde: {user?.dataregisto ? new Date(user.dataregisto).toLocaleDateString("pt-PT") : "-"}
@@ -65,7 +65,7 @@ export default function ProfileLayout() {
               ) : null}
             </header>
 
-            <nav className="profile-tabs" aria-label="Secoes do perfil">
+            <nav className="profile-tabs" aria-label="Secções do perfil">
               {TABS.map((tab) => (
                 <NavLink
                   key={tab.path}

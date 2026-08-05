@@ -93,7 +93,7 @@ export default function ProfileDados() {
       </div>
 
       <div>
-        <label htmlFor="telemovel" className="mb-1.5 block text-sm font-semibold text-gray-700">Telemovel</label>
+        <label htmlFor="telemovel" className="mb-1.5 block text-sm font-semibold text-gray-700">Telemóvel</label>
         <input
           type="tel"
           id="telemovel"
@@ -134,7 +134,7 @@ export default function ProfileDados() {
               className="rounded-xl bg-[#e62429] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#c91b20] disabled:opacity-60"
               disabled={loading}
             >
-              {loading ? "A guardar..." : "Guardar alteracoes"}
+              {loading ? "A guardar..." : "Guardar alterações"}
             </button>
           </>
         )}

@@ -78,7 +78,7 @@ export default function DashboardPromocoes() {
       setPromotions(promoRows);
       setStores(storeRows);
     } catch (err) {
-      setError(err?.message || "Nao foi possivel carregar as promocoes.");
+      setError(err?.message || "Não foi possível carregar as promoções.");
     } finally {
       setLoading(false);
     }
@@ -115,7 +115,7 @@ export default function DashboardPromocoes() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.title.trim()) {
-      showError("Titulo da promocao e obrigatorio.");
+      showError("Título da promoção é obrigatório.");
       return;
     }
 
@@ -135,31 +135,31 @@ export default function DashboardPromocoes() {
     try {
       if (editingId) {
         await updatePromotion(callerUserId, editingId, payload);
-        toast.success("Promocao atualizada.");
+        toast.success("Promoção atualizada.");
       } else {
         await createPromotion(callerUserId, payload);
-        toast.success("Promocao criada.");
+        toast.success("Promoção criada.");
       }
       resetForm();
       await load();
     } catch (err) {
-      showError(err?.message || "Nao foi possivel guardar a promocao.");
+      showError(err?.message || "Não foi possível guardar a promoção.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (promotion) => {
-    const confirmed = window.confirm(`Eliminar a promocao "${promotion.title || "(sem titulo)"}"? Esta acao nao pode ser desfeita.`);
+    const confirmed = window.confirm(`Eliminar a promoção "${promotion.title || "(sem título)"}"? Esta ação não pode ser desfeita.`);
     if (!confirmed) return;
 
     setBusyId(promotion.id);
     try {
       await deletePromotion(callerUserId, promotion.id);
-      toast.success("Promocao eliminada.");
+      toast.success("Promoção eliminada.");
       await load();
     } catch (err) {
-      showError(err?.message || "Nao foi possivel eliminar a promocao.");
+      showError(err?.message || "Não foi possível eliminar a promoção.");
     } finally {
       setBusyId(null);
     }
@@ -171,15 +171,15 @@ export default function DashboardPromocoes() {
       activeTab="promotions"
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Marketing"
-      title="Gestao de Promocoes"
+      title="Gestão de Promoções"
       subtitle="Campanhas e destaques, globais ou por loja."
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <div className="dashboard-tab-section">
         <DashboardPageHeader
           kicker="Marketing"
-          title="Promocoes"
-          subtitle="Conteudo de destaque mostrado na home e nas lojas. Nao aplica descontos automaticos aos pedidos — para descontos com codigo, usa a pagina de Cupoes."
+          title="Promoções"
+          subtitle="Conteúdo de destaque mostrado na home e nas lojas. Não aplica descontos automáticos aos pedidos — para descontos com código, usa a página de Cupões."
         />
 
         {error ? <p className="shipday-inline-error">{error}</p> : null}
@@ -190,7 +190,7 @@ export default function DashboardPromocoes() {
               <Megaphone aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
-              <div className="metric-label">Promocoes criadas</div>
+              <div className="metric-label">Promoções criadas</div>
               <div className="metric-value">{promotions.length}</div>
               <div className="metric-foot">No total</div>
             </div>
@@ -202,7 +202,7 @@ export default function DashboardPromocoes() {
             <div className="stat-hero-body">
               <div className="metric-label">Ativas</div>
               <div className="metric-value">{activeCount}</div>
-              <div className="metric-foot">Visiveis agora</div>
+              <div className="metric-foot">Visíveis agora</div>
             </div>
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
@@ -212,7 +212,7 @@ export default function DashboardPromocoes() {
             <div className="stat-hero-body">
               <div className="metric-label">Globais</div>
               <div className="metric-value">{globalCount}</div>
-              <div className="metric-foot">Sem loja especifica associada</div>
+              <div className="metric-foot">Sem loja específica associada</div>
             </div>
           </article>
         </section>
@@ -225,17 +225,17 @@ export default function DashboardPromocoes() {
               ) : (
                 <PlusCircle className="panel-title-icon" aria-hidden="true" />
               )}
-              {editingId ? "Editar promocao" : "Nova promocao"}
+              {editingId ? "Editar promoção" : "Nova promoção"}
             </>
           )}
         >
           <form onSubmit={handleSubmit} className="dashboard-form-grid">
             <label className="dashboard-form-field">
-              <span>Titulo *</span>
+              <span>Título *</span>
               <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
             </label>
             <label className="dashboard-form-field">
-              <span>Descricao</span>
+              <span>Descrição</span>
               <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </label>
             <label className="dashboard-form-field">
@@ -275,18 +275,18 @@ export default function DashboardPromocoes() {
 
             {form.image_url ? (
               <div className="dashboard-form-field dashboard-form-field--full">
-                <span>Pre-visualizacao</span>
+                <span>Pré-visualização</span>
                 <div className="menu-card-media" style={{ height: 160, borderRadius: 12 }}>
-                  <img src={form.image_url} alt="Pre-visualizacao da promocao" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                  <img src={form.image_url} alt="Pré-visualização da promoção" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 </div>
               </div>
             ) : null}
 
             <div className="dashboard-form-actions">
               <button className="btn-dashboard" type="submit" disabled={saving}>
-                {saving ? "A gravar..." : editingId ? "Guardar alteracoes" : "Criar promocao"}
+                {saving ? "A gravar..." : editingId ? "Guardar alterações" : "Criar promoção"}
               </button>
-              {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edicao</button>}
+              {editingId && <button className="btn-dashboard secondary" type="button" onClick={resetForm}>Cancelar edição</button>}
             </div>
           </form>
         </DashboardPanel>
@@ -295,21 +295,21 @@ export default function DashboardPromocoes() {
           title={(
             <>
               <LayoutGrid className="panel-title-icon" aria-hidden="true" />
-              Promocoes existentes
+              Promoções existentes
             </>
           )}
         >
           {loading ? (
             <DashboardLoadingState />
           ) : promotions.length === 0 ? (
-            <DashboardEmptyState label="Sem promocoes para mostrar." />
+            <DashboardEmptyState label="Sem promoções para mostrar." />
           ) : (
             <div className="menu-card-grid">
               {promotions.map((promotion) => (
                 <article key={promotion.id} className="menu-card">
                   <div className="menu-card-media">
                     {promotion.image_url ? (
-                      <img src={promotion.image_url} alt={promotion.title || "Promocao"} />
+                      <img src={promotion.image_url} alt={promotion.title || "Promoção"} />
                     ) : (
                       <div className="menu-card-placeholder">
                         <Megaphone aria-hidden="true" />

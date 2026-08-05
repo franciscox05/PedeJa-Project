@@ -30,7 +30,7 @@ export function isSupabaseConfigured() {
 
 export function assertSupabaseConfigured(context = "supabaseClient") {
   if (!isSupabaseConfigured()) {
-    throw new Error(`Configuracao Supabase em falta no frontend (${context}).`);
+    throw new Error(`Configuração Supabase em falta no frontend (${context}).`);
   }
 }
 
@@ -38,7 +38,7 @@ export function assertSupabaseClientAvailable(context = "supabaseClient") {
   assertSupabaseConfigured(context);
 
   if (!supabase || typeof supabase.from !== "function" || !supabase.auth) {
-    throw new Error(`Cliente Supabase indisponivel (${context}).`);
+    throw new Error(`Cliente Supabase indisponível (${context}).`);
   }
 }
 
@@ -183,7 +183,7 @@ export async function buscarCategoriasService() {
 
 function resolveStoreStatus(loja) {
   if (loja.ativo === null) {
-    return { statusTexto: "Indisponivel", statusCor: "#9e9e9e", isIndisponivel: true, statusDetalhe: "" };
+    return { statusTexto: "Indisponível", statusCor: "#9e9e9e", isIndisponivel: true, statusDetalhe: "" };
   }
 
   const scheduleStatus = loja.horario_funcionamento
@@ -649,7 +649,7 @@ export async function buscarDadosLojaService(idloja) {
     console.error("Erro ao buscar dados da loja:", error);
     return {
       nome: "Restaurante",
-      status: "Indisponivel",
+      status: "Indisponível",
       imagemfundo: "",
       icon: "",
       morada: "",

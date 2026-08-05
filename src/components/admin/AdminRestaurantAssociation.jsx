@@ -46,7 +46,7 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
       setAssociation(result);
     } catch (err) {
       setAssociation(null);
-      setError(err.message || "Falha ao consultar a associacao atual da loja.");
+      setError(err.message || "Falha ao consultar a associação atual da loja.");
     } finally {
       setAssociationLoading(false);
     }
@@ -107,7 +107,7 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
 
       setSuccess(
         result.alreadyAssociated
-          ? `${result.user.username} ja estava associado a ${result.store.nome} -- nada mudou.`
+          ? `${result.user.username} já estava associado a ${result.store.nome} -- nada mudou.`
           : `Utilizador ${result.user.username} associado a ${result.store.nome}.`,
       );
 
@@ -134,14 +134,14 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
 
     try {
       await removeRestaurantAssociation({ callerUserId: extractUserId(user), lojaId: selectedStoreId });
-      setSuccess("Associacao removida. Podes agora associar outra conta a esta loja.");
+      setSuccess("Associação removida. Podes agora associar outra conta a esta loja.");
       await loadAssociation(selectedStoreId);
 
       if (onLinked) {
         await onLinked();
       }
     } catch (err) {
-      setError(err.message || "Falha ao remover a associacao da loja.");
+      setError(err.message || "Falha ao remover a associação da loja.");
     } finally {
       setRemoving(false);
     }
@@ -187,11 +187,11 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
         </div>
 
         {associationLoading ? (
-          <p className="muted">A verificar associacao atual...</p>
+          <p className="muted">A verificar associação atual...</p>
         ) : association?.associated ? (
           <div className="admin-inline-warning">
             <p>
-              Esta loja ja esta associada a <strong>{association.user?.username}</strong>
+              Esta loja já está associada a <strong>{association.user?.username}</strong>
               {" "}({association.user?.email || "sem email"}).
             </p>
             <button
@@ -200,11 +200,11 @@ export default function AdminRestaurantAssociation({ stores = [], onLinked }) {
               disabled={removing}
               onClick={handleRemove}
             >
-              {removing ? "A remover..." : "Remover associacao"}
+              {removing ? "A remover..." : "Remover associação"}
             </button>
           </div>
         ) : selectedStoreId ? (
-          <p className="muted">Esta loja ainda nao tem nenhuma conta associada.</p>
+          <p className="muted">Esta loja ainda não tem nenhuma conta associada.</p>
         ) : null}
       </section>
 

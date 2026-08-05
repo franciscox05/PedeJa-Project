@@ -38,7 +38,7 @@ function UserProfileMenu({ user, canOpenPortal = false, onLogout, onOpenProfile,
       </div>
 
       <div className={`user-dropdown-menu ${isOpen ? "active" : ""}`}>
-        <div className="dropdown-item-info">Ola, {getNomeFormatado(user.username)}!</div>
+        <div className="dropdown-item-info">Olá, {getNomeFormatado(user.username)}!</div>
 
         {canOpenPortal && (
           <div

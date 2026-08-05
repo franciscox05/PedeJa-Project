@@ -131,7 +131,7 @@ export function getStoreScheduleStatus(schedule, date = new Date()) {
     return {
       isOpen: true,
       source: "no_schedule",
-      message: "Horario nao definido",
+      message: "Horário não definido",
       exception: null,
     };
   }
@@ -160,7 +160,7 @@ export function getStoreScheduleStatus(schedule, date = new Date()) {
       isOpen,
       source: "special_exception",
       message: activeException.label
-        || `Horario especial ${formatMinutesLabel(activeException.open)}-${formatMinutesLabel(activeException.close)}`,
+        || `Horário especial ${formatMinutesLabel(activeException.open)}-${formatMinutesLabel(activeException.close)}`,
       exception: activeException,
     };
   }
@@ -169,7 +169,7 @@ export function getStoreScheduleStatus(schedule, date = new Date()) {
     return {
       isOpen: true,
       source: "weekly",
-      message: "Horario nao definido",
+      message: "Horário não definido",
       exception: null,
     };
   }
@@ -193,7 +193,7 @@ export function isStoreOpenNow(schedule) {
 
 export function formatScheduleLabel(schedule) {
   const normalized = normalizeSchedule(schedule);
-  if (!normalized) return "Horario nao definido";
+  if (!normalized) return "Horário não definido";
 
   const daysMap = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
   const blocks = normalized.weekly.map((entry) => {
@@ -211,10 +211,10 @@ export function formatScheduleExceptionLabel(exception) {
 
   const rangeLabel = exception.startDate === exception.endDate
     ? exception.startDate
-    : `${exception.startDate} ate ${exception.endDate}`;
+    : `${exception.startDate} até ${exception.endDate}`;
 
   if (exception.type === "custom_hours") {
-    return `${exception.label || "Horario especial"} (${rangeLabel} - ${formatMinutesLabel(exception.open)}-${formatMinutesLabel(exception.close)})`;
+    return `${exception.label || "Horário especial"} (${rangeLabel} - ${formatMinutesLabel(exception.open)}-${formatMinutesLabel(exception.close)})`;
   }
 
   return `${exception.label || "Encerrado excecionalmente"} (${rangeLabel})`;

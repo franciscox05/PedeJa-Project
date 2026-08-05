@@ -326,7 +326,7 @@ export default function DashboardAdmin() {
         if (!active) return;
         setCatalogErrorByStore((prev) => ({
           ...prev,
-          [String(selectedStoreId)]: error?.message || "Nao foi possivel carregar o catalogo da loja.",
+          [String(selectedStoreId)]: error?.message || "Não foi possível carregar o catálogo da loja.",
         }));
       } finally {
         if (active) {
@@ -410,7 +410,7 @@ export default function DashboardAdmin() {
           setGlobalDeliveryPricing((prev) => ({
             ...prev,
             loading: false,
-            error: error?.message || "Nao foi possivel carregar a configuracao global de entrega.",
+            error: error?.message || "Não foi possível carregar a configuração global de entrega.",
           }));
         }
 
@@ -418,14 +418,14 @@ export default function DashboardAdmin() {
           setGlobalCommission((prev) => ({
             ...prev,
             loading: false,
-            error: error?.message || "Nao foi possivel carregar a comissao base da plataforma.",
+            error: error?.message || "Não foi possível carregar a comissão base da plataforma.",
           }));
         }
 
         setGlobalAutoAssign((prev) => ({
           ...prev,
           loading: false,
-          error: error?.message || "Nao foi possivel carregar a atribuicao automatica geral.",
+          error: error?.message || "Não foi possível carregar a atribuição automática geral.",
         }));
       }
     };
@@ -480,7 +480,7 @@ export default function DashboardAdmin() {
       setOrderDetailModal({
         open: true,
         loading: false,
-        error: error?.message || "Nao foi possivel carregar os detalhes do pedido.",
+        error: error?.message || "Não foi possível carregar os detalhes do pedido.",
         data: null,
       });
     }
@@ -571,7 +571,7 @@ export default function DashboardAdmin() {
       setCommissionEarned((prev) => ({
         ...prev,
         loading: false,
-        error: error?.message || "Nao foi possivel calcular a comissao ganha.",
+        error: error?.message || "Não foi possível calcular a comissão ganha.",
       }));
     }
   }, [periodDays, user]);
@@ -614,7 +614,7 @@ export default function DashboardAdmin() {
       await load();
       toast.success(status === "APPROVED" ? "Pedido aprovado com sucesso." : "Pedido rejeitado com sucesso.");
     } catch (error) {
-      showError(`Falha na revisao: ${error.message}`);
+      showError(`Falha na revisão: ${error.message}`);
     } finally {
       setReviewingId("");
     }
@@ -650,7 +650,7 @@ export default function DashboardAdmin() {
         ...prev,
         carriers: availableCarriers,
         loading: false,
-        error: availableCarriers.length === 0 ? "Sem estafetas disponiveis para atribuicao." : "",
+        error: availableCarriers.length === 0 ? "Sem estafetas disponíveis para atribuição." : "",
       }));
     } catch (error) {
       setCarrierModal((prev) => ({
@@ -682,7 +682,7 @@ export default function DashboardAdmin() {
       setCarrierModal((prev) => ({
         ...prev,
         assigningCarrierId: "",
-        error: error?.message || "Nao foi possivel atribuir estafeta.",
+        error: error?.message || "Não foi possível atribuir estafeta.",
       }));
     }
   };
@@ -838,7 +838,7 @@ export default function DashboardAdmin() {
     <DashboardSidebarLayout
       kicker="PedeJa Control Center"
       title="Admin Command Dashboard"
-      subtitle="Menu lateral retratil para pedidos, restaurantes e campanhas."
+      subtitle="Menu lateral retrátil para pedidos, restaurantes e campanhas."
       tabs={tabsWithBadges}
       activeTab={activeTab}
       onTabChange={(tabId) => {
@@ -899,9 +899,9 @@ export default function DashboardAdmin() {
                 setPeriodDays(Number(event.target.value));
               }}
             >
-              <option value={7}>Ultimos 7 dias</option>
-              <option value={30}>Ultimos 30 dias</option>
-              <option value={90}>Ultimos 90 dias</option>
+              <option value={7}>Últimos 7 dias</option>
+              <option value={30}>Últimos 30 dias</option>
+              <option value={90}>Últimos 90 dias</option>
               <option value="custom">Intervalo personalizado</option>
             </select>
             {rangeMode === "custom" ? (
@@ -910,13 +910,13 @@ export default function DashboardAdmin() {
                   <span className="muted">De</span>
                   <DatePickerCustom
                     mode="datetime"
-                    placeholder="Selecionar inicio"
+                    placeholder="Selecionar início"
                     value={customRange.from}
                     onChange={(value) => setCustomRange((prev) => ({ ...prev, from: value }))}
                   />
                 </label>
                 <label className="dashboard-range-field">
-                  <span className="muted">Ate</span>
+                  <span className="muted">Até</span>
                   <DatePickerCustom
                     mode="datetime"
                     placeholder="Selecionar fim"

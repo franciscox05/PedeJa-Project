@@ -56,7 +56,7 @@ function normalizeItems(cart, storePricingSource = null) {
         ...selectedOptions,
         {
           group_id: "special_instructions",
-          group_title: "Instrucoes especiais",
+          group_title: "Instruções especiais",
           group_type: "observacao",
           option_id: `note-${item?.idmenu || item?.menu_id || index}`,
           option_name: specialInstructions,
@@ -101,11 +101,11 @@ function resolveExpectedDelivery(deliverySchedule) {
   if (deliverySchedule?.mode === "SCHEDULED") {
     const scheduled = parseScheduledDateTime(deliverySchedule?.scheduledAt);
     if (!scheduled) {
-      throw new Error("Horario de entrega invalido.");
+      throw new Error("Horário de entrega inválido.");
     }
 
     if (scheduled.getTime() <= now.getTime()) {
-      throw new Error("Escolhe um horario de entrega no futuro.");
+      throw new Error("Escolhe um horário de entrega no futuro.");
     }
 
     return scheduled;
@@ -122,7 +122,7 @@ async function assertStoreOpenForSchedule(lojaId, deliverySchedule) {
     .maybeSingle();
 
   if (error) throw error;
-  if (!data) throw new Error("Loja nao encontrada.");
+  if (!data) throw new Error("Loja não encontrada.");
 
   if (data.ativo === false || data.ativo === null) {
     throw new Error("Loja fechada no momento.");
@@ -135,7 +135,7 @@ async function assertStoreOpenForSchedule(lojaId, deliverySchedule) {
     : new Date();
 
   if (!referenceDate) {
-    throw new Error("Horario de entrega invalido.");
+    throw new Error("Horário de entrega inválido.");
   }
 
   if (!isStoreOpenAt(data.horario_funcionamento, referenceDate)) {
@@ -143,7 +143,7 @@ async function assertStoreOpenForSchedule(lojaId, deliverySchedule) {
     const detail = scheduleStatus?.message && scheduleStatus.message !== "Fechado"
       ? ` (${scheduleStatus.message})`
       : "";
-    throw new Error(`Loja fechada para o horario escolhido${detail}. Escolhe um horario dentro do funcionamento.`);
+    throw new Error(`Loja fechada para o horário escolhido${detail}. Escolhe um horário dentro do funcionamento.`);
   }
 }
 
@@ -162,7 +162,7 @@ export async function criarPedidoCheckout({
 
   const lojaId = cart[0]?.idloja;
   if (!lojaId) {
-    throw new Error("Nao foi possivel identificar a loja do pedido.");
+    throw new Error("Não foi possível identificar a loja do pedido.");
   }
 
   await assertStoreOpenForSchedule(lojaId, deliverySchedule);
@@ -199,7 +199,7 @@ export async function criarPedidoCheckout({
   const data = await invokePublicEdgeFunction("create-order", payload);
 
   if (!data?.order_id) {
-    throw new Error("Resposta invalida do checkout.");
+    throw new Error("Resposta inválida do checkout.");
   }
 
   return data;

@@ -178,12 +178,12 @@ export async function submitPartnerRequest(payload) {
 export async function updateRestaurantProfile(lojaId, payload, callerUserId) {
   const normalizedLojaId = normalizeId(lojaId);
   if (!normalizedLojaId) {
-    throw new Error("Loja invalida para atualizar.");
+    throw new Error("Loja inválida para atualizar.");
   }
 
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para atualizar o perfil da loja.");
+    throw new Error("Sessão inválida: inicia sessão novamente para atualizar o perfil da loja.");
   }
 
   let moradaId = null;

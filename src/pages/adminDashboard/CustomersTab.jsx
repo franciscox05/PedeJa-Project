@@ -53,15 +53,15 @@ export default function CustomersTab({
         </article>
         <article className="metric-card premium">
           <div className="metric-card-icon metric-icon-purple"><Receipt aria-hidden="true" /></div>
-          <div className="metric-label">Ticket medio</div>
+          <div className="metric-label">Ticket médio</div>
           <div className="metric-value">{safeFixed(customerInsights?.metrics?.avgTicket, 2)}EUR</div>
-          <div className="metric-foot">Media por pedido cliente</div>
+          <div className="metric-foot">Média por pedido cliente</div>
         </article>
         <article className="metric-card premium">
           <div className="metric-card-icon metric-icon-teal"><TrendingUp aria-hidden="true" /></div>
-          <div className="metric-label">LTV medio cliente</div>
+          <div className="metric-label">LTV médio cliente</div>
           <div className="metric-value">{safeFixed(customerInsights?.metrics?.avgSpentPerCustomer, 2)}EUR</div>
-          <div className="metric-foot">Media de gasto por cliente comprador</div>
+          <div className="metric-foot">Média de gasto por cliente comprador</div>
         </article>
       </section>
 
@@ -69,7 +69,7 @@ export default function CustomersTab({
 
       <DashboardPanel
         title="Clientes da plataforma"
-        description="Vista sem dados privados sensiveis. Inclui comportamento de compra, ticket medio e restaurante favorito."
+        description="Vista sem dados privados sensíveis. Inclui comportamento de compra, ticket médio e restaurante favorito."
         actions={(
           <label className="dashboard-toolbar-field customer-search-field">
             <span className="muted">Pesquisar cliente</span>
@@ -91,11 +91,11 @@ export default function CustomersTab({
                 <th>Membro desde</th>
                 <th>Pedidos</th>
                 <th>Gasto</th>
-                <th>Ticket medio</th>
+                <th>Ticket médio</th>
                 <th>Restaurante favorito</th>
                 <th>Pico semanal</th>
-                <th>Pico horario</th>
-                <th>Ultimo pedido</th>
+                <th>Pico horário</th>
+                <th>Último pedido</th>
               </tr>
             </thead>
             <tbody>

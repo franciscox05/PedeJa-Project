@@ -61,19 +61,19 @@ export default function DashboardDev() {
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="DevOps"
       title="Dashboard DevOps"
-      subtitle="Integracoes, webhooks e saude operacional."
+      subtitle="Integrações, webhooks e saúde operacional."
       storageKey="dashboard-admin-sidebar-collapsed"
     >
       <DashboardPageHeader
         kicker="DevOps"
         title="Dashboard DevOps"
-        subtitle="Integracoes, webhooks e saude operacional."
+        subtitle="Integrações, webhooks e saúde operacional."
         actions={(
           <>
             <select value={periodDays} onChange={(e) => setPeriodDays(Number(e.target.value))}>
-              <option value={7}>Ultimos 7 dias</option>
-              <option value={30}>Ultimos 30 dias</option>
-              <option value={90}>Ultimos 90 dias</option>
+              <option value={7}>Últimos 7 dias</option>
+              <option value={30}>Últimos 30 dias</option>
+              <option value={90}>Últimos 90 dias</option>
             </select>
             <button className="btn-dashboard" onClick={load}>Atualizar</button>
             <button className="btn-dashboard secondary" onClick={() => navigate("/dashboard/admin")}>Voltar ao dashboard</button>
@@ -91,7 +91,7 @@ export default function DashboardDev() {
           <div className="metric-value">{state.metrics.failedDeliveries}</div>
         </article>
         <article className="metric-card">
-          <div className="metric-label">Ultimo estado de entrega</div>
+          <div className="metric-label">Último estado de entrega</div>
           <div className="metric-value" style={{ fontSize: "1.2rem" }}>{state.metrics.latestDeliveryStatus}</div>
         </article>
       </section>

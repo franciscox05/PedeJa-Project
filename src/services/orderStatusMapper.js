@@ -55,7 +55,7 @@ export const ESTADO_INTERNO_LABEL_PT = {
   aceite: "Aceite",
   atribuindo_estafeta: "Atribuindo estafeta",
   estafeta_aceitou: "Estafeta Atribuído",
-  em_preparacao: "Em preparacao",
+  em_preparacao: "Em preparação",
   pronto_recolha: "Pronto para recolha",
   iniciado: "Estafeta a caminho da loja",
   recolhido: "Recolhido",
@@ -129,7 +129,7 @@ export function getRestaurantActionsForEstado(estadoInterno) {
   }
 
   if (key === "aceite" || key === "atribuindo_estafeta" || key === "estafeta_aceitou" || key === "iniciado") {
-    return [{ action: "preparar", toEstado: "em_preparacao", label: "Comecar a Preparar", variant: "primary" }];
+    return [{ action: "preparar", toEstado: "em_preparacao", label: "Começar a Preparar", variant: "primary" }];
   }
 
   if (key === "em_preparacao") {

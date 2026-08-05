@@ -129,7 +129,7 @@ export default function DashboardGeoBoard() {
       setState((prev) => ({
         ...prev,
         loading: false,
-        error: error?.message || "Nao foi possivel carregar o painel completo de geolocalizacao.",
+        error: error?.message || "Não foi possível carregar o painel completo de geolocalização.",
       }));
     }
   }, [callerUserId, dashboardInput, user]);
@@ -167,7 +167,7 @@ export default function DashboardGeoBoard() {
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Live Geo"
       title="Geo Board Expandido"
-      subtitle="Vista dedicada para monitorizacao operacional de pedidos, lojas e estafetas."
+      subtitle="Vista dedicada para monitorização operacional de pedidos, lojas e estafetas."
       storageKey="dashboard-admin-sidebar-collapsed"
       footer={(
         <div>
@@ -179,7 +179,7 @@ export default function DashboardGeoBoard() {
     >
       <DashboardPageHeader
         kicker="Live Geo Board"
-        title="Painel Completo de Operacao"
+        title="Painel Completo de Operação"
         subtitle="Controlo central de pedidos ativos, estafetas online e contexto de loja em tempo real."
         actions={(
           <>
@@ -197,9 +197,9 @@ export default function DashboardGeoBoard() {
               syncUrlFilters({ rangeMode: "preset", periodDays: nextDays, customRange: { from: "", to: "" } });
             }}
           >
-            <option value={7}>Ultimos 7 dias</option>
-            <option value={30}>Ultimos 30 dias</option>
-            <option value={90}>Ultimos 90 dias</option>
+            <option value={7}>Últimos 7 dias</option>
+            <option value={30}>Últimos 30 dias</option>
+            <option value={90}>Últimos 90 dias</option>
             <option value="custom">Intervalo personalizado</option>
           </select>
 
@@ -209,7 +209,7 @@ export default function DashboardGeoBoard() {
                 <span className="muted">De</span>
                 <DatePickerCustom
                   mode="datetime"
-                  placeholder="Selecionar inicio"
+                  placeholder="Selecionar início"
                   value={customRange.from}
                   onChange={(value) => {
                     const next = { ...customRange, from: value };
@@ -219,7 +219,7 @@ export default function DashboardGeoBoard() {
                 />
               </label>
               <label className="dashboard-range-field">
-                <span className="muted">Ate</span>
+                <span className="muted">Até</span>
                 <DatePickerCustom
                   mode="datetime"
                   placeholder="Selecionar fim"
@@ -254,7 +254,7 @@ export default function DashboardGeoBoard() {
           <div className="metric-card-icon metric-icon-blue"><Bike aria-hidden="true" /></div>
           <div className="metric-label">Estafetas no mapa</div>
           <div className="metric-value">{liveCarrierEntries.length}</div>
-          <div className="metric-foot">Com coordenadas validas</div>
+          <div className="metric-foot">Com coordenadas válidas</div>
         </article>
         <article className="metric-card premium">
           <div className="metric-card-icon metric-icon-teal"><Truck aria-hidden="true" /></div>
@@ -266,7 +266,7 @@ export default function DashboardGeoBoard() {
           <div className="metric-card-icon metric-icon-slate"><ShoppingBag aria-hidden="true" /></div>
           <div className="metric-label">Pedidos janela</div>
           <div className="metric-value">{state.metrics.totalOrders}</div>
-          <div className="metric-foot">Selecionados pelo periodo</div>
+          <div className="metric-foot">Selecionados pelo período</div>
         </article>
       </section>
 
@@ -302,7 +302,7 @@ export default function DashboardGeoBoard() {
                     </tr>
                   ))}
                   {!state.loading && liveCarrierEntries.length === 0 ? (
-                    <DashboardEmptyState as="tableRow" colSpan={5} label="Sem estafetas com coordenadas validas para mostrar." />
+                    <DashboardEmptyState as="tableRow" colSpan={5} label="Sem estafetas com coordenadas válidas para mostrar." />
                   ) : null}
                 </tbody>
               </table>

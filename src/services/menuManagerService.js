@@ -112,7 +112,7 @@ function ensureLibraryTablesAvailable(error) {
   }
 
   throw new Error(
-    "A biblioteca de extras ainda nao existe na base de dados. Corre as migrations 021_shared_menu_option_library.sql, 022_menu_modifier_order_and_dependencies.sql e 023_menu_group_dependencies.sql antes de usar esta funcionalidade.",
+    "A biblioteca de extras ainda não existe na base de dados. Corre as migrations 021_shared_menu_option_library.sql, 022_menu_modifier_order_and_dependencies.sql e 023_menu_group_dependencies.sql antes de usar esta funcionalidade.",
   );
 }
 
@@ -564,7 +564,7 @@ async function syncMenuOptionGroupLinks(idmenu, groupIds = [], callerUserId = nu
   const normalizedGroupIds = normalizeGroupIdList(groupIds);
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para gerir os extras deste prato.");
+    throw new Error("Sessão inválida: inicia sessão novamente para gerir os extras deste prato.");
   }
 
   const { error } = await supabase.rpc("menu_manager_sync_menu_option_links", {
@@ -626,7 +626,7 @@ export async function linkMenuOptionLibraryGroupToMenu(idmenu, groupId, callerUs
   const normalizedMenuId = normalizeMenuId(idmenu);
   const normalizedGroupId = normalizeGroupId(groupId);
   if (!normalizedMenuId || !Number.isFinite(normalizedGroupId)) {
-    throw new Error("Menu ou grupo invalido para associar.");
+    throw new Error("Menu ou grupo inválido para associar.");
   }
 
   const linkSchema = await detectMenuOptionLinkSchema();
@@ -664,7 +664,7 @@ export async function unlinkMenuOptionLibraryGroupFromMenu(idmenu, groupId, call
   const normalizedMenuId = normalizeMenuId(idmenu);
   const normalizedGroupId = normalizeGroupId(groupId);
   if (!normalizedMenuId || !Number.isFinite(normalizedGroupId)) {
-    throw new Error("Menu ou grupo invalido para remover associacao.");
+    throw new Error("Menu ou grupo inválido para remover associação.");
   }
 
   const { data: existingLinks, error: existingLinkError } = await supabase
@@ -684,7 +684,7 @@ export async function unlinkMenuOptionLibraryGroupFromMenu(idmenu, groupId, call
 export async function reorderMenuOptionGroupsByMenu(idmenu, orderedGroupIds = [], callerUserId) {
   const normalizedMenuId = normalizeMenuId(idmenu);
   if (!normalizedMenuId) {
-    throw new Error("Menu invalido para ordenar grupos.");
+    throw new Error("Menu inválido para ordenar grupos.");
   }
 
   await syncMenuOptionGroupLinks(normalizedMenuId, orderedGroupIds, callerUserId);
@@ -693,7 +693,7 @@ export async function reorderMenuOptionGroupsByMenu(idmenu, orderedGroupIds = []
 export async function reorderMenuOptionLibraryGroups(lojaId, orderedGroupIds = [], callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   if (!normalizedLojaId) {
-    throw new Error("Loja invalida para ordenar grupos da biblioteca.");
+    throw new Error("Loja inválida para ordenar grupos da biblioteca.");
   }
 
   const normalizedGroupIds = normalizeGroupIdList(orderedGroupIds);
@@ -701,7 +701,7 @@ export async function reorderMenuOptionLibraryGroups(lojaId, orderedGroupIds = [
 
   const normalizedCallerUserId = Number(callerUserId);
   if (!Number.isFinite(normalizedCallerUserId)) {
-    throw new Error("Sessao invalida: inicia sessao novamente para ordenar os extras.");
+    throw new Error("Sessão inválida: inicia sessão novamente para ordenar os extras.");
   }
 
   const { error } = await supabase.rpc("menu_manager_reorder_option_groups", {
@@ -723,8 +723,8 @@ function requireCallerUserId(callerUserId, message) {
 
 export async function createMenu(lojaId, payload, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
-  if (!normalizedLojaId) throw new Error("Loja invalida para criar prato.");
-  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para criar pratos.");
+  if (!normalizedLojaId) throw new Error("Loja inválida para criar prato.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessão inválida: inicia sessão novamente para criar pratos.");
 
   const descriptionColumn = await detectDescriptionColumn();
   const body = buildMenuBody(payload, descriptionColumn);
@@ -752,7 +752,7 @@ export async function createMenu(lojaId, payload, callerUserId) {
 export async function updateMenu(lojaId, idmenu, payload, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedMenuId = normalizeMenuId(idmenu);
-  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para editar pratos.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessão inválida: inicia sessão novamente para editar pratos.");
   const descriptionColumn = await detectDescriptionColumn();
 
   const body = buildMenuBody(payload, descriptionColumn);
@@ -776,7 +776,7 @@ export async function updateMenu(lojaId, idmenu, payload, callerUserId) {
 export async function deleteMenu(lojaId, idmenu, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedMenuId = normalizeMenuId(idmenu);
-  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para apagar pratos.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessão inválida: inicia sessão novamente para apagar pratos.");
 
   const { error } = await supabase.rpc("menu_manager_delete_menu", {
     caller_user_id: normalizedCallerUserId,
@@ -790,7 +790,7 @@ export async function deleteMenu(lojaId, idmenu, callerUserId) {
 export async function toggleDisponivel(lojaId, idmenu, disponivel, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedMenuId = normalizeMenuId(idmenu);
-  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para atualizar o prato.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessão inválida: inicia sessão novamente para atualizar o prato.");
 
   const { error } = await supabase.rpc("menu_manager_upsert_menu", {
     caller_user_id: normalizedCallerUserId,
@@ -805,7 +805,7 @@ export async function toggleDisponivel(lojaId, idmenu, disponivel, callerUserId)
 export async function toggleVisibilidade(lojaId, idmenu, visivel, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedMenuId = normalizeMenuId(idmenu);
-  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para atualizar o prato.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessão inválida: inicia sessão novamente para atualizar o prato.");
 
   const { error } = await supabase.rpc("menu_manager_upsert_menu", {
     caller_user_id: normalizedCallerUserId,
@@ -819,19 +819,19 @@ export async function toggleVisibilidade(lojaId, idmenu, visivel, callerUserId) 
 
 export async function createMenuOptionLibraryGroup(lojaId, payload, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
-  if (!normalizedLojaId) throw new Error("Loja invalida para criar grupo.");
-  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para criar grupos de extras.");
+  if (!normalizedLojaId) throw new Error("Loja inválida para criar grupo.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessão inválida: inicia sessão novamente para criar grupos de extras.");
 
   const body = await buildLibraryGroupBody(normalizedLojaId, payload);
   delete body.idloja;
   const groupTitle = toTrimmedText(payload?.title || payload?.titulo || payload?.name);
   if (!groupTitle) {
-    throw new Error("O grupo precisa de um titulo.");
+    throw new Error("O grupo precisa de um título.");
   }
 
   const options = await buildLibraryItemBodies(null, payload?.options || payload?.opcoes);
   if (options.length === 0) {
-    throw new Error("O grupo precisa de pelo menos uma opcao.");
+    throw new Error("O grupo precisa de pelo menos uma opção.");
   }
 
   const { data: insertedGroup, error: groupError } = await supabase.rpc("menu_manager_upsert_option_group", {
@@ -843,7 +843,7 @@ export async function createMenuOptionLibraryGroup(lojaId, payload, callerUserId
 
   if (groupError) ensureLibraryTablesAvailable(groupError);
   if (!insertedGroup) {
-    throw new Error("Nao foi possivel criar o grupo de opcoes com o schema atual.");
+    throw new Error("Não foi possível criar o grupo de opções com o schema atual.");
   }
 
   const itemsPayload = options.map((option) => {
@@ -866,7 +866,7 @@ export async function createMenuOptionLibraryGroup(lojaId, payload, callerUserId
 
 export async function createMenuOptionGroupForMenu(lojaId, idmenu, payload, callerUserId) {
   const normalizedMenuId = normalizeMenuId(idmenu);
-  if (!normalizedMenuId) throw new Error("Menu invalido para criar grupo.");
+  if (!normalizedMenuId) throw new Error("Menu inválido para criar grupo.");
 
   const createdGroup = await createMenuOptionLibraryGroup(lojaId, payload, callerUserId);
   await linkMenuOptionLibraryGroupToMenu(normalizedMenuId, createdGroup?.id, callerUserId);
@@ -879,7 +879,7 @@ export async function duplicateMenuOptionLibraryGroup(lojaId, sourceGroupId, {
 } = {}, callerUserId) {
   const normalizedSourceGroupId = normalizeGroupId(sourceGroupId);
   if (!Number.isFinite(normalizedSourceGroupId)) {
-    throw new Error("Grupo invalido para duplicar.");
+    throw new Error("Grupo inválido para duplicar.");
   }
 
   const libraryGroups = await fetchMenuOptionLibrary(lojaId);
@@ -888,10 +888,10 @@ export async function duplicateMenuOptionLibraryGroup(lojaId, sourceGroupId, {
   );
 
   if (!sourceGroup) {
-    throw new Error("Grupo de origem nao encontrado para duplicacao.");
+    throw new Error("Grupo de origem não encontrado para duplicação.");
   }
 
-  const duplicatedTitle = toTrimmedText(title) || `${sourceGroup.title || "Grupo"} (Copia)`;
+  const duplicatedTitle = toTrimmedText(title) || `${sourceGroup.title || "Grupo"} (Cópia)`;
   const sourceDependsOnOptionIds = normalizeDependencyOptionIds(
     sourceGroup?.dependsOnOptionIds
     ?? sourceGroup?.depends_on_option_ids
@@ -929,19 +929,19 @@ export async function duplicateMenuOptionLibraryGroup(lojaId, sourceGroupId, {
 export async function updateMenuOptionLibraryGroup(lojaId, groupId, payload, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedGroupId = normalizeGroupId(groupId);
-  if (!Number.isFinite(normalizedGroupId)) throw new Error("Grupo invalido.");
-  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para editar grupos de extras.");
+  if (!Number.isFinite(normalizedGroupId)) throw new Error("Grupo inválido.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessão inválida: inicia sessão novamente para editar grupos de extras.");
 
   const body = await buildLibraryGroupBody(normalizedLojaId, payload);
   delete body.idloja;
   const groupTitle = toTrimmedText(payload?.title || payload?.titulo || payload?.name);
   if (!groupTitle) {
-    throw new Error("O grupo precisa de um titulo.");
+    throw new Error("O grupo precisa de um título.");
   }
 
   const options = await buildLibraryItemBodies(normalizedGroupId, payload?.options || payload?.opcoes);
   if (options.length === 0) {
-    throw new Error("O grupo precisa de pelo menos uma opcao.");
+    throw new Error("O grupo precisa de pelo menos uma opção.");
   }
 
   const { error: groupError } = await supabase.rpc("menu_manager_upsert_option_group", {
@@ -1004,8 +1004,8 @@ export async function updateMenuOptionLibraryGroup(lojaId, groupId, payload, cal
 export async function deleteMenuOptionLibraryGroup(lojaId, groupId, callerUserId) {
   const normalizedLojaId = normalizeLojaId(lojaId);
   const normalizedGroupId = normalizeGroupId(groupId);
-  if (!Number.isFinite(normalizedGroupId)) throw new Error("Grupo invalido.");
-  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessao invalida: inicia sessao novamente para apagar grupos de extras.");
+  if (!Number.isFinite(normalizedGroupId)) throw new Error("Grupo inválido.");
+  const normalizedCallerUserId = requireCallerUserId(callerUserId, "Sessão inválida: inicia sessão novamente para apagar grupos de extras.");
 
   const { error } = await supabase.rpc("menu_manager_delete_option_group", {
     caller_user_id: normalizedCallerUserId,

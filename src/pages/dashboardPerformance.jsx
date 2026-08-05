@@ -125,7 +125,7 @@ export default function DashboardPerformance() {
     } catch (error) {
       setState({
         loading: false,
-        error: error?.message || "Nao foi possivel carregar o dashboard de performance.",
+        error: error?.message || "Não foi possível carregar o dashboard de performance.",
         data: null,
       });
     }
@@ -150,7 +150,7 @@ export default function DashboardPerformance() {
         if (!active) return;
         setState({
           loading: false,
-          error: error?.message || "Nao foi possivel carregar o dashboard de performance.",
+          error: error?.message || "Não foi possível carregar o dashboard de performance.",
           data: null,
         });
       });
@@ -183,10 +183,10 @@ export default function DashboardPerformance() {
       onTabChange={(tabId) => navigate(resolveAdminTabRoute(tabId))}
       kicker="Performance"
       title="Admin Performance Center"
-      subtitle="Leitura operacional da faturacao, produtos mais vendidos e tempos medios de entrega."
+      subtitle="Leitura operacional da faturação, produtos mais vendidos e tempos médios de entrega."
       footer={(
         <div>
-          <p className="muted dashboard-sidebar-footer-label">Analise</p>
+          <p className="muted dashboard-sidebar-footer-label">Análise</p>
           <strong>Performance</strong>
           <p className="muted dashboard-sidebar-footer-meta">
             {rangeMode === "custom" ? "Intervalo personalizado" : `${periodDays} dias`}
@@ -198,7 +198,7 @@ export default function DashboardPerformance() {
       <DashboardPageHeader
         kicker="Performance"
         title="Dashboard de Performance"
-        subtitle="Faturacao, taxas de entrega, top produtos e tempo medio entre atribuicao e entrega final."
+        subtitle="Faturação, taxas de entrega, top produtos e tempo médio entre atribuição e entrega final."
         actions={(
           <>
           <select
@@ -215,9 +215,9 @@ export default function DashboardPerformance() {
               });
             }}
           >
-            <option value={7}>Ultimos 7 dias</option>
-            <option value={30}>Ultimos 30 dias</option>
-            <option value={90}>Ultimos 90 dias</option>
+            <option value={7}>Últimos 7 dias</option>
+            <option value={30}>Últimos 30 dias</option>
+            <option value={90}>Últimos 90 dias</option>
             <option value="custom">Intervalo personalizado</option>
           </select>
           {rangeMode === "custom" ? (
@@ -226,7 +226,7 @@ export default function DashboardPerformance() {
                 <span className="muted">De</span>
                 <DatePickerCustom
                   mode="datetime"
-                  placeholder="Selecionar inicio"
+                  placeholder="Selecionar início"
                   value={customRange.from}
                   onChange={(value) => updateSearchFilters({
                     rangeMode: "custom",
@@ -238,7 +238,7 @@ export default function DashboardPerformance() {
                 />
               </label>
               <label className="dashboard-range-field">
-                <span className="muted">Ate</span>
+                <span className="muted">Até</span>
                 <DatePickerCustom
                   mode="datetime"
                   placeholder="Selecionar fim"
@@ -259,7 +259,7 @@ export default function DashboardPerformance() {
             value={granularity}
             onChange={(event) => updateSearchFilters({ granularity: event.target.value })}
           >
-            <option value="day">Diario</option>
+            <option value="day">Diário</option>
             <option value="week">Semanal</option>
           </select>
           <button className="btn-dashboard" onClick={() => load({ periodDays, granularity, rangeMode, customRange })}>Atualizar</button>
@@ -272,7 +272,7 @@ export default function DashboardPerformance() {
 
       {state.loading ? (
         <DashboardPanel title="Performance">
-          <DashboardLoadingState label="A carregar metricas de performance..." />
+          <DashboardLoadingState label="A carregar métricas de performance..." />
         </DashboardPanel>
       ) : state.data ? (
         <div className="dashboard-stack">
@@ -282,9 +282,9 @@ export default function DashboardPerformance() {
                 <Euro aria-hidden="true" />
               </div>
               <div className="stat-hero-body">
-                <div className="metric-label">Faturacao total</div>
+                <div className="metric-label">Faturação total</div>
                 <div className="metric-value">{formatMoney(overview?.totalRevenue)}</div>
-                <div className="metric-foot">Periodo selecionado</div>
+                <div className="metric-foot">Período selecionado</div>
               </div>
             </article>
             <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#c2410c" }}>
@@ -294,7 +294,7 @@ export default function DashboardPerformance() {
               <div className="stat-hero-body">
                 <div className="metric-label">Taxas de entrega</div>
                 <div className="metric-value">{formatMoney(overview?.totalDeliveryFees)}</div>
-                <div className="metric-foot">Somatorio de taxas cobradas</div>
+                <div className="metric-foot">Somatório de taxas cobradas</div>
               </div>
             </article>
             <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#1d4ed8" }}>
@@ -302,7 +302,7 @@ export default function DashboardPerformance() {
                 <CheckCircle2 aria-hidden="true" />
               </div>
               <div className="stat-hero-body">
-                <div className="metric-label">Entregas concluidas</div>
+                <div className="metric-label">Entregas concluídas</div>
                 <div className="metric-value">{overview?.deliveredOrders || 0}</div>
                 <div className="metric-foot">Pedidos entregues</div>
               </div>
@@ -312,9 +312,9 @@ export default function DashboardPerformance() {
                 <Clock aria-hidden="true" />
               </div>
               <div className="stat-hero-body">
-                <div className="metric-label">Tempo medio</div>
+                <div className="metric-label">Tempo médio</div>
                 <div className="metric-value">{Number(overview?.averageAssignToDeliveredMinutes || 0).toFixed(1)} min</div>
-                <div className="metric-foot">Da atribuicao ate entrega</div>
+                <div className="metric-foot">Da atribuição até entrega</div>
               </div>
             </article>
           </section>
@@ -325,13 +325,13 @@ export default function DashboardPerformance() {
               title={(
                 <>
                   <LineChartIcon className="panel-title-icon" aria-hidden="true" />
-                  Faturacao vs. taxas de entrega
+                  Faturação vs. taxas de entrega
                 </>
               )}
-              description={`Comparacao por ${granularity === "week" ? "semana" : "dia"}.`}
+              description={`Comparação por ${granularity === "week" ? "semana" : "dia"}.`}
             >
               {revenueSeries.length === 0 ? (
-                <DashboardEmptyState label="Sem pedidos nesta janela para desenhar a serie de faturacao." />
+                <DashboardEmptyState label="Sem pedidos nesta janela para desenhar a série de faturação." />
               ) : (
               <div className="chart-shell">
                 <ResponsiveContainer width="100%" height={320}>
@@ -350,7 +350,7 @@ export default function DashboardPerformance() {
                     <Line
                       type="monotone"
                       dataKey="revenue"
-                      name="Faturacao"
+                      name="Faturação"
                       stroke="#e62429"
                       strokeWidth={3}
                       dot={{ r: 3 }}
@@ -371,7 +371,7 @@ export default function DashboardPerformance() {
                   Top 5 produtos
                 </>
               )}
-              description={`Mais vendidos por quantidade. Lider atual: ${bestProductLabel}.`}
+              description={`Mais vendidos por quantidade. Líder atual: ${bestProductLabel}.`}
             >
               {topProducts.length === 0 ? (
                 <DashboardEmptyState label="Sem produtos vendidos nesta janela." />
@@ -397,13 +397,13 @@ export default function DashboardPerformance() {
             title={(
               <>
                 <Timer className="panel-title-icon" aria-hidden="true" />
-                Tempo medio entre atribuicao e entrega
+                Tempo médio entre atribuição e entrega
               </>
             )}
-            description={`Serie media por ${granularity === "week" ? "semana" : "dia"} com base nas entregas concluidas.`}
+            description={`Série média por ${granularity === "week" ? "semana" : "dia"} com base nas entregas concluídas.`}
           >
             {deliveryPerformanceSeries.length === 0 ? (
-              <DashboardEmptyState label="Sem entregas com atribuicao e entrega registadas nesta janela para calcular o tempo medio." />
+              <DashboardEmptyState label="Sem entregas com atribuição e entrega registadas nesta janela para calcular o tempo médio." />
             ) : (
               <div className="chart-shell">
                 <ResponsiveContainer width="100%" height={320}>
@@ -413,7 +413,7 @@ export default function DashboardPerformance() {
                     <YAxis stroke="#64748b" />
                     <Tooltip formatter={(value) => `${Number(value || 0).toFixed(1)} min`} />
                     <Legend />
-                    <Bar dataKey="avgMinutes" name="Tempo medio" fill="#0f172a" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="avgMinutes" name="Tempo médio" fill="#0f172a" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

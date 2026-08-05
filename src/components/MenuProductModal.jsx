@@ -27,7 +27,7 @@ function resolveDisplayUnitPrice(item) {
 }
 
 function resolveDescription(prato) {
-  return prato?.desc ?? prato?.descricao ?? prato?.desricao ?? "Sem descricao adicional.";
+  return prato?.desc ?? prato?.descricao ?? prato?.desricao ?? "Sem descrição adicional.";
 }
 
 function buildSelectedOptionIdSet(selections = {}) {
@@ -135,7 +135,7 @@ export default function MenuProductModal({
         const fallbackGroups = sanitizeMenuOptionsConfig(prato?.configuracao_opcoes || []);
         setOptionGroups(fallbackGroups);
         setSelections(buildDefaultMenuOptionSelections(fallbackGroups));
-        setLoadError(error?.message || "Nao foi possivel carregar as opcoes deste produto.");
+        setLoadError(error?.message || "Não foi possível carregar as opções deste produto.");
       } finally {
         if (active) setLoadingGroups(false);
       }
@@ -252,7 +252,7 @@ export default function MenuProductModal({
     if (selected.length >= maxSelections) {
       setInteractionErrors((prev) => ({
         ...prev,
-        [groupId]: `Limite maximo atingido (${maxSelections}).`,
+        [groupId]: `Limite máximo atingido (${maxSelections}).`,
       }));
       return;
     }
@@ -287,17 +287,17 @@ export default function MenuProductModal({
     const isRequired = Boolean(group?.required);
 
     if (isRequired && maxSelections === 1) {
-      return "Obrigatorio - escolha 1";
+      return "Obrigatório - escolha 1";
     }
     if (isRequired) {
       return minSelections > 1
-        ? `Obrigatorio - escolha de ${minSelections} ate ${maxSelections}`
-        : `Obrigatorio - escolha ate ${maxSelections}`;
+        ? `Obrigatório - escolha de ${minSelections} até ${maxSelections}`
+        : `Obrigatório - escolha até ${maxSelections}`;
     }
     if (maxSelections > 1) {
       return minSelections > 0
-        ? `Opcional - escolha de ${minSelections} ate ${maxSelections}`
-        : `Opcional - escolha ate ${maxSelections}`;
+        ? `Opcional - escolha de ${minSelections} até ${maxSelections}`
+        : `Opcional - escolha até ${maxSelections}`;
     }
     return fallback;
   };
@@ -327,7 +327,7 @@ export default function MenuProductModal({
               <p>{resolveDescription(prato)}</p>
             </div>
             <div className="menu-product-modal-price-box">
-              <span>Preco base</span>
+              <span>Preço base</span>
               <strong>{resolveDisplayUnitPrice(basePrato).toFixed(2)}EUR</strong>
             </div>
           </header>
@@ -335,7 +335,7 @@ export default function MenuProductModal({
           {loadError ? <p className="menu-product-modal-error">{loadError}</p> : null}
 
           {loadingGroups ? (
-            <p className="menu-product-modal-loading">A carregar opcoes...</p>
+            <p className="menu-product-modal-loading">A carregar opções...</p>
           ) : (
             <section className="menu-product-modal-groups">
               {effectiveOptionGroups.map((group) => {
@@ -383,7 +383,7 @@ export default function MenuProductModal({
                               />
                               <span className="menu-product-modal-option-name">{option.name}</span>
                               <strong className="menu-product-modal-option-price">
-                                {optionPrice > 0 ? `+${optionPrice.toFixed(2)}EUR` : "Incluido"}
+                                {optionPrice > 0 ? `+${optionPrice.toFixed(2)}EUR` : "Incluído"}
                               </strong>
                             </label>
                           );
@@ -405,12 +405,12 @@ export default function MenuProductModal({
           )}
 
           <section className="menu-product-modal-special">
-            <label htmlFor="menu-special-instructions">Instrucoes especiais</label>
+            <label htmlFor="menu-special-instructions">Instruções especiais</label>
             <textarea
               id="menu-special-instructions"
               rows={3}
               maxLength={250}
-              placeholder="Ex: sem cebola, molho a parte..."
+              placeholder="Ex: sem cebola, molho à parte..."
               value={specialInstructions}
               onChange={(event) => setSpecialInstructions(event.target.value)}
             />

@@ -158,12 +158,12 @@ export default function Carrinho() {
 
     if (!newAddress.rua.trim()) return "Preencha a Rua.";
     if (!newAddress.porta.trim()) return "Preencha a Porta.";
-    if (!newAddress.codigoPostal.trim()) return "Preencha o Codigo Postal.";
+    if (!newAddress.codigoPostal.trim()) return "Preencha o Código Postal.";
     if (!newAddress.cidade.trim()) return "Preencha a Cidade.";
 
     const postalRegex = /^\d{4}-\d{3}$/;
     if (!postalRegex.test(newAddress.codigoPostal.trim())) {
-      return "Codigo Postal invalido. Use o formato 0000-000.";
+      return "Código Postal inválido. Use o formato 0000-000.";
     }
 
     return "";
@@ -206,7 +206,7 @@ export default function Carrinho() {
       }
 
       if (response.error) throw response.error;
-      if (!response.data) throw new Error("Loja nao encontrada para calcular entrega.");
+      if (!response.data) throw new Error("Loja não encontrada para calcular entrega.");
       setGlobalDeliveryPricingConfig(globalDeliveryPricing?.config || null);
 
       const effectiveDeliveryPricingConfig = resolveEffectiveDeliveryPricingConfig(
@@ -246,7 +246,7 @@ export default function Carrinho() {
         fee: 0,
         distanceKm: null,
         tier: null,
-        reason: error?.message || "Nao foi possivel carregar coordenadas da loja.",
+        reason: error?.message || "Não foi possível carregar coordenadas da loja.",
       });
     } finally {
       setStoreOriginLoading(false);
@@ -385,7 +385,7 @@ export default function Carrinho() {
 
     const userId = extractUserId(user);
     if (!userId) {
-      setCouponError("Inicia sessao para usar um cupao de desconto.");
+      setCouponError("Inicia sessão para usar um cupão de desconto.");
       return;
     }
 
@@ -397,7 +397,7 @@ export default function Carrinho() {
       setCouponInput("");
     } catch (error) {
       setAppliedCoupon(null);
-      setCouponError(error?.message || "Cupao invalido.");
+      setCouponError(error?.message || "Cupão inválido.");
     } finally {
       setCouponChecking(false);
     }
@@ -424,7 +424,7 @@ export default function Carrinho() {
       } catch (error) {
         if (!cancelled) {
           setAppliedCoupon(null);
-          setCouponError(error?.message || "O cupao deixou de ser valido para o novo valor do carrinho.");
+          setCouponError(error?.message || "O cupão deixou de ser válido para o novo valor do carrinho.");
         }
       }
     }, 400);
@@ -519,7 +519,7 @@ export default function Carrinho() {
         fee: 0,
         distanceKm: null,
         tier: null,
-        reason: "Morada sem coordenadas validas.",
+        reason: "Morada sem coordenadas válidas.",
       };
     }
 
@@ -561,7 +561,7 @@ export default function Carrinho() {
             fee: 0,
             distanceKm: null,
             tier: null,
-            reason: "Nao foi possivel validar a morada selecionada.",
+            reason: "Não foi possível validar a morada selecionada.",
           });
           return;
         }
@@ -625,7 +625,7 @@ export default function Carrinho() {
             fee: 0,
             distanceKm: null,
             tier: null,
-            reason: `Morada fora das freguesias de Barcelos ou nao encontrada. Limite: ${deliveryMaxKm} km.`,
+            reason: `Morada fora das freguesias de Barcelos ou não encontrada. Limite: ${deliveryMaxKm} km.`,
           });
           return;
         }
@@ -676,10 +676,10 @@ export default function Carrinho() {
     }
 
     if (deliveryMode === "SCHEDULED") {
-      if (!scheduledAt) return "Escolha o horario de entrega.";
+      if (!scheduledAt) return "Escolha o horário de entrega.";
       const selectedDate = new Date(scheduledAt);
       if (Number.isNaN(selectedDate.getTime()) || selectedDate.getTime() <= Date.now()) {
-        return "Escolha um horario de entrega no futuro.";
+        return "Escolha um horário de entrega no futuro.";
       }
     }
 
@@ -713,7 +713,7 @@ export default function Carrinho() {
 
         const geocoded = await geocodeNewAddress(composedAddress);
         if (!geocoded) {
-          throw new Error("Nao foi possivel validar a nova morada.");
+          throw new Error("Não foi possível validar a nova morada.");
         }
 
         quoteToUse = await calculateQuoteForCoordinates(geocoded);
@@ -759,7 +759,7 @@ export default function Carrinho() {
       } else if (selectedAddress) {
         const coords = await ensureExistingAddressCoordinates(selectedAddress);
         if (!coords) {
-          throw new Error("Nao foi possivel validar a morada guardada.");
+          throw new Error("Não foi possível validar a morada guardada.");
         }
 
         quoteToUse = await calculateQuoteForCoordinates(coords);
@@ -813,7 +813,7 @@ export default function Carrinho() {
         },
       });
     } catch (error) {
-      setCheckoutError(error.message || "Nao foi possivel finalizar o pedido.");
+      setCheckoutError(error.message || "Não foi possível finalizar o pedido.");
     } finally {
       setCheckoutLoading(false);
     }
@@ -822,7 +822,7 @@ export default function Carrinho() {
   if (cart.length === 0) {
     return (
       <div className="cart-page-wrapper" style={{ display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
-        <h2 style={{ color: "#333", marginTop: "20px" }}>O seu carrinho esta vazio</h2>
+        <h2 style={{ color: "#333", marginTop: "20px" }}>O seu carrinho está vazio</h2>
         <button onClick={handleVoltar} className="btn-checkout-final" style={{ width: "auto", padding: "15px 40px", boxShadow: "none" }}>
           Voltar aos Restaurantes
         </button>
@@ -870,7 +870,7 @@ export default function Carrinho() {
                   ))}
                   {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim() ? (
                     <p className="mt-0.5 text-xs italic text-gray-600">
-                      <strong>Instrucoes:</strong> {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim()}
+                      <strong>Instruções:</strong> {String(item?.instrucoes_especiais || item?.specialInstructions || "").trim()}
                     </p>
                   ) : null}
                   <div className="mt-2 flex items-center justify-between">
@@ -919,7 +919,7 @@ export default function Carrinho() {
               <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 p-2.5">
                 <span className="flex items-center gap-1.5 font-semibold text-green-700">
                   <Ticket className="h-4 w-4" aria-hidden="true" />
-                  Cupao {appliedCoupon.code} aplicado
+                  Cupão {appliedCoupon.code} aplicado
                 </span>
                 <button type="button" onClick={handleRemoveCoupon} className="text-green-700 underline">
                   Remover
@@ -929,7 +929,7 @@ export default function Carrinho() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Codigo de desconto"
+                  placeholder="Código de desconto"
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value)}
                   className="flex-1 rounded-xl border border-gray-200 p-2.5"
@@ -953,7 +953,7 @@ export default function Carrinho() {
               Zona de entrega{storeOrigin.nome ? ` - ${storeOrigin.nome}` : ""}
             </strong>
             {storeOriginLoading || deliveryLoading ? (
-              <span className="text-gray-900">A validar morada e distancia real de conducao...</span>
+              <span className="text-gray-900">A validar morada e distância real de condução...</span>
             ) : deliveryQuote.deliverable ? (
               <span className="text-green-700">
                 Dentro da zona ({formatDistanceKm(deliveryQuote.distanceKm)} por estrada).
@@ -1027,7 +1027,7 @@ export default function Carrinho() {
                 />
                 <input
                   type="text"
-                  placeholder="Codigo Postal (0000-000)"
+                  placeholder="Código Postal (0000-000)"
                   value={newAddress.codigoPostal}
                   onChange={(e) => setNewAddress((prev) => ({ ...prev, codigoPostal: e.target.value }))}
                   className="w-full rounded-xl border border-gray-200 p-2"
@@ -1086,11 +1086,11 @@ export default function Carrinho() {
             <div className="grid gap-1.5 rounded-xl border border-gray-100 p-3">
               <strong className="flex items-center gap-1.5 text-gray-900">
                 <Clock className="h-4 w-4" aria-hidden="true" />
-                Horario de entrega
+                Horário de entrega
               </strong>
               <select value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)} className="w-full rounded-xl border border-gray-200 p-2">
                 <option value="ASAP">Imediato (ASAP)</option>
-                <option value="SCHEDULED">Escolher hora especifica</option>
+                <option value="SCHEDULED">Escolher hora específica</option>
               </select>
               {deliveryMode === "SCHEDULED" && (
                 <DatePickerCustom
@@ -1106,7 +1106,7 @@ export default function Carrinho() {
             <div className="grid gap-1.5 rounded-xl border border-gray-100 p-3">
               <strong className="flex items-center gap-1.5 text-gray-900">
                 <Wallet className="h-4 w-4" aria-hidden="true" />
-                Metodo de pagamento
+                Método de pagamento
               </strong>
               <label className="flex items-center gap-2">
                 <input
@@ -1140,7 +1140,7 @@ export default function Carrinho() {
 
       <LocationPickerModal
         isOpen={showMapPicker}
-        title="Selecionar localizacao de entrega"
+        title="Selecionar localização de entrega"
         subtitle="Marca o ponto exato no mapa para guardar morada e coordenadas sem erro."
         initialLat={newAddressGeo?.lat ?? null}
         initialLng={newAddressGeo?.lng ?? null}

@@ -31,9 +31,9 @@ export default class PageErrorBoundary extends Component {
       <div className="dashboard-shell enterprise" style={{ padding: "24px" }}>
         <article className="panel" style={{ maxWidth: "820px", margin: "0 auto" }}>
           <p className="kicker">Erro de runtime</p>
-          <h2 style={{ marginTop: 4 }}>{this.props.pageName || "Pagina"} temporariamente indisponivel</h2>
+          <h2 style={{ marginTop: 4 }}>{this.props.pageName || "Página"} temporariamente indisponível</h2>
           <p className="muted" style={{ marginTop: 8 }}>
-            Capturamos uma falha inesperada para evitar ecrã branco. Podes atualizar a pagina e continuar a usar o sistema.
+            Capturamos uma falha inesperada para evitar ecrã branco. Podes atualizar a página e continuar a usar o sistema.
           </p>
           {this.state.error?.message ? (
             <p className="shipday-inline-error" style={{ marginTop: 12 }}>
@@ -46,7 +46,7 @@ export default class PageErrorBoundary extends Component {
               className="btn-dashboard"
               onClick={() => window.location.reload()}
             >
-              Atualizar pagina
+              Atualizar página
             </button>
           </div>
         </article>

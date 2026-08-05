@@ -30,7 +30,7 @@ export default function ProfileSeguranca() {
     e.preventDefault();
 
     if (!formData.senhaAtual) {
-      showError("Introduz a tua password atual para confirmar a alteracao.");
+      showError("Introduz a tua password atual para confirmar a alteração.");
       return;
     }
 
@@ -45,7 +45,7 @@ export default function ProfileSeguranca() {
     }
 
     if (formData.novaSenha !== formData.confirmarSenha) {
-      showError("As novas passwords nao coincidem!");
+      showError("As novas passwords não coincidem!");
       return;
     }
 
@@ -78,7 +78,7 @@ export default function ProfileSeguranca() {
   return (
     <form onSubmit={handleSave} className="grid gap-4">
       <p className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800">
-        Atualiza a password da conta. Os restantes dados do perfil mantem-se inalterados.
+        Atualiza a password da conta. Os restantes dados do perfil mantêm-se inalterados.
       </p>
 
       <div>
