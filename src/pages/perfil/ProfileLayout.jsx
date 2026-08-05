@@ -1,5 +1,5 @@
 import { Link, NavLink, Navigate, Outlet } from "react-router-dom";
-import { Package, Heart, User, Shield, MapPin } from "lucide-react";
+import { Package, Heart, User, Shield, MapPin, Ticket, Bell } from "lucide-react";
 import Logo from "../../components/Logo";
 import LoginButton from "../../components/LoginButton";
 import CartWidget from "../../components/CartWidget";
@@ -16,9 +16,11 @@ import "../../css/pages/perfil.css";
 const TABS = [
   { path: "pedidos", label: "Pedidos", icon: Package },
   { path: "favoritos", label: "Favoritos", icon: Heart },
+  { path: "cupoes", label: "Cupões", icon: Ticket },
   { path: "dados", label: "Dados pessoais", icon: User },
   { path: "seguranca", label: "Segurança", icon: Shield },
   { path: "moradas", label: "Moradas", icon: MapPin },
+  { path: "notificacoes", label: "Notificações", icon: Bell },
 ];
 
 export default function ProfileLayout() {

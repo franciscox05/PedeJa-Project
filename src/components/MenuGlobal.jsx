@@ -106,6 +106,17 @@ function MenuGlobal() {
                 </button>
               </a>
 
+              <button
+                onClick={() => {
+                  navigate("/ajuda");
+                  setMenuAberto(false);
+                }}
+                className="menu-btn-custom"
+              >
+                <img src={iconInfo} className="menu-item-icon icon-red" alt="Ajuda" />
+                Ajuda
+              </button>
+
               <a href="https://pedeja.pt/contatos.html" style={{ textDecoration: "none" }}>
                 <button className="menu-btn-custom">
                   <img src={iconPhone} className="menu-item-icon icon-red" alt="Contactos" />

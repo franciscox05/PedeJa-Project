@@ -27,3 +27,12 @@ export async function fetchOrderReviewsAdmin(callerUserId) {
   if (error) throw error;
   return data || [];
 }
+
+export async function fetchOrderReviewsForStore(callerUserId, lojaId) {
+  const { data, error } = await supabase.rpc("restaurant_list_own_reviews", {
+    caller_user_id: Number(callerUserId),
+    loja_id_input: Number(lojaId),
+  });
+  if (error) throw error;
+  return data || [];
+}

@@ -30,6 +30,9 @@ import ProfileFavoritos from "./pages/perfil/favoritos";
 import ProfileDados from "./pages/perfil/dados";
 import ProfileSeguranca from "./pages/perfil/seguranca";
 import ProfileMoradas from "./pages/perfil/moradas";
+import ProfileCupoes from "./pages/perfil/cupoes";
+import ProfileNotificacoes from "./pages/perfil/notificacoes";
+import Ajuda from "./pages/ajuda";
 import ProtectedRoute from "./components/routes/ProtectedRoute";
 import PageErrorBoundary from "./components/routes/PageErrorBoundary";
 import { CartProvider } from "./context/CartContext";
@@ -165,10 +168,14 @@ export default function App() {
             <Route index element={<ProfileIndexRedirect />} />
             <Route path="pedidos" element={<ProfilePedidos />} />
             <Route path="favoritos" element={<ProfileFavoritos />} />
+            <Route path="cupoes" element={<ProfileCupoes />} />
             <Route path="dados" element={<ProfileDados />} />
             <Route path="seguranca" element={<ProfileSeguranca />} />
             <Route path="moradas" element={<ProfileMoradas />} />
+            <Route path="notificacoes" element={<ProfileNotificacoes />} />
           </Route>
+
+          <Route path="/ajuda" element={<Ajuda />} />
 
           <Route
             path="/menu-manager"

@@ -10,6 +10,7 @@ import {
   Receipt,
   CheckCircle2,
   XCircle,
+  Star,
 } from "lucide-react";
 import "../css/pages/dashboard.css";
 import {
@@ -46,6 +47,30 @@ import {
   listActiveAtribuicoes,
   listEstafetasForDispatch,
 } from "../services/estafetaService";
+import { fetchOrderReviewsForStore } from "../services/orderRatingService";
+
+function ReviewStars({ value }) {
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-label={`${value} de 5 estrelas`}>
+      {Array.from({ length: 5 }, (_, index) => (
+        <Star
+          key={index}
+          className="h-3.5 w-3.5"
+          fill={index < value ? "#f59e0b" : "none"}
+          color="#f59e0b"
+          aria-hidden="true"
+        />
+      ))}
+    </span>
+  );
+}
+
+function formatReviewDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
 function normalizeSearch(value) {
   return String(value || "").trim().toLowerCase();
@@ -158,6 +183,7 @@ function buildWindowInput({ rangeMode, periodDays, customRange }) {
 const RESTAURANT_DASHBOARD_TABS = [
   { id: "dashboard", label: "Dashboard", description: "Fila de pedidos e entregas da loja", icon: "dashboard" },
   { id: "restaurants", label: "Gestão de Restaurantes", description: "Configuração operacional da loja", icon: "restaurants" },
+  { id: "reviews", label: "Avaliações", description: "O que os clientes dizem sobre a loja", icon: "avaliacoes" },
   { id: "promotions", label: "Promoções", description: "Campanhas e futuras ativações", icon: "promotions" },
 ];
 
@@ -338,6 +364,36 @@ export default function DashboardRestaurante() {
   }, [admin, adminStores, lojaId]);
 
   const scopedStoreId = admin ? lojaId : fixedStoreId;
+
+  const [storeReviews, setStoreReviews] = useState([]);
+  const [storeReviewsLoading, setStoreReviewsLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab !== "reviews" || !scopedStoreId) return undefined;
+    let active = true;
+
+    setStoreReviewsLoading(true);
+    fetchOrderReviewsForStore(extractUserId(user), scopedStoreId)
+      .then((rows) => {
+        if (active) setStoreReviews(rows);
+      })
+      .catch((error) => {
+        console.error("Falha ao carregar avaliações da loja", error);
+        if (active) setStoreReviews([]);
+      })
+      .finally(() => {
+        if (active) setStoreReviewsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab, scopedStoreId, user]);
+
+  const storeReviewsAverage = useMemo(() => {
+    if (!storeReviews.length) return 0;
+    return storeReviews.reduce((sum, r) => sum + Number(r.classificacao || 0), 0) / storeReviews.length;
+  }, [storeReviews]);
 
   useEffect(() => {
     let active = true;
@@ -1128,6 +1184,66 @@ export default function DashboardRestaurante() {
                 </tbody>
               </table>
             </div>
+          </DashboardPanel>
+        </div>
+      ) : null}
+
+      {activeTab === "reviews" ? (
+        <div className="dashboard-stack">
+          <section className="dashboard-grid premium-grid stat-hero-grid">
+            <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
+              <div className="stat-hero-icon stat-hero-icon--red">
+                <Star aria-hidden="true" />
+              </div>
+              <div className="stat-hero-body">
+                <div className="metric-label">Avaliações recebidas</div>
+                <div className="metric-value">{storeReviews.length}</div>
+                <div className="metric-foot">No total</div>
+              </div>
+            </article>
+            <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
+              <div className="stat-hero-icon stat-hero-icon--green">
+                <Star aria-hidden="true" />
+              </div>
+              <div className="stat-hero-body">
+                <div className="metric-label">Média geral</div>
+                <div className="metric-value">{storeReviewsAverage.toFixed(1)}</div>
+                <div className="metric-foot">De 5 estrelas</div>
+              </div>
+            </article>
+          </section>
+
+          <DashboardPanel title="Avaliações dos clientes" description="Classificação de 1 a 5 estrelas deixada pelos clientes após a entrega.">
+            {storeReviewsLoading ? (
+              <DashboardLoadingState />
+            ) : storeReviews.length === 0 ? (
+              <DashboardEmptyState label="Ainda sem avaliações para esta loja." />
+            ) : (
+              <div className="table-wrap">
+                <table className="ops-table">
+                  <thead>
+                    <tr>
+                      <th>Pedido</th>
+                      <th>Cliente</th>
+                      <th>Classificação</th>
+                      <th>Comentário</th>
+                      <th>Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {storeReviews.map((review) => (
+                      <tr key={review.id}>
+                        <td>#{review.order_id}</td>
+                        <td>{review.customer_nome || "-"}</td>
+                        <td><ReviewStars value={Number(review.classificacao || 0)} /></td>
+                        <td>{review.comentario || <span className="muted">Sem comentário</span>}</td>
+                        <td>{formatReviewDateTime(review.criado_em)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </DashboardPanel>
         </div>
       ) : null}
