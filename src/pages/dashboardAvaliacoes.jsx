@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { MessageSquareText, Star, ListChecks } from "lucide-react";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
@@ -34,9 +35,16 @@ function formatDateTime(value) {
 
 function Stars({ value }) {
   return (
-    <span aria-label={`${value} de 5 estrelas`}>
-      {"★".repeat(value)}
-      <span style={{ opacity: 0.3 }}>{"★".repeat(5 - value)}</span>
+    <span className="inline-flex items-center gap-0.5" aria-label={`${value} de 5 estrelas`}>
+      {Array.from({ length: 5 }, (_, index) => (
+        <Star
+          key={index}
+          className="h-3.5 w-3.5"
+          fill={index < value ? "#f59e0b" : "none"}
+          color="#f59e0b"
+          aria-hidden="true"
+        />
+      ))}
     </span>
   );
 }
@@ -92,7 +100,7 @@ export default function DashboardAvaliacoes() {
         <section className="dashboard-grid premium-grid stat-hero-grid">
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
             <div className="stat-hero-icon stat-hero-icon--red">
-              <span className="material-icons" aria-hidden="true">reviews</span>
+              <MessageSquareText aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Avaliações recebidas</div>
@@ -102,7 +110,7 @@ export default function DashboardAvaliacoes() {
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
             <div className="stat-hero-icon stat-hero-icon--green">
-              <span className="material-icons" aria-hidden="true">star</span>
+              <Star aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Média geral</div>
@@ -115,7 +123,7 @@ export default function DashboardAvaliacoes() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">list_alt</span>
+              <ListChecks className="panel-title-icon" aria-hidden="true" />
               Todas as avaliações
             </>
           )}

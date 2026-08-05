@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { ClipboardList, Hourglass, CheckCircle2, Pencil, PlusCircle, ListChecks } from "lucide-react";
 import "../css/pages/dashboard.css";
 import DashboardSidebarLayout from "../components/dashboard/DashboardSidebarLayout";
 import DashboardPageHeader from "../components/dashboard/DashboardPageHeader";
@@ -185,7 +186,7 @@ export default function DashboardRecrutamento() {
         <section className="dashboard-grid premium-grid stat-hero-grid">
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#e62429" }}>
             <div className="stat-hero-icon stat-hero-icon--red">
-              <span className="material-icons" aria-hidden="true">assignment</span>
+              <ClipboardList aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Tarefas totais</div>
@@ -195,7 +196,7 @@ export default function DashboardRecrutamento() {
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#b45309" }}>
             <div className="stat-hero-icon stat-hero-icon--blue">
-              <span className="material-icons" aria-hidden="true">pending_actions</span>
+              <Hourglass aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Em aberto</div>
@@ -205,7 +206,7 @@ export default function DashboardRecrutamento() {
           </article>
           <article className="metric-card premium stat-hero" style={{ "--stat-accent": "#15803d" }}>
             <div className="stat-hero-icon stat-hero-icon--green">
-              <span className="material-icons" aria-hidden="true">check_circle</span>
+              <CheckCircle2 aria-hidden="true" />
             </div>
             <div className="stat-hero-body">
               <div className="metric-label">Concluídas</div>
@@ -218,9 +219,11 @@ export default function DashboardRecrutamento() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">
-                {editingId ? "edit" : "add_circle"}
-              </span>
+              {editingId ? (
+                <Pencil className="panel-title-icon" aria-hidden="true" />
+              ) : (
+                <PlusCircle className="panel-title-icon" aria-hidden="true" />
+              )}
               {editingId ? "Editar tarefa" : "Nova tarefa"}
             </>
           )}
@@ -284,7 +287,7 @@ export default function DashboardRecrutamento() {
         <DashboardPanel
           title={(
             <>
-              <span className="material-icons panel-title-icon" aria-hidden="true">list_alt</span>
+              <ListChecks className="panel-title-icon" aria-hidden="true" />
               Tarefas existentes
             </>
           )}
